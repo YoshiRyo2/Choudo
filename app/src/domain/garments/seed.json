@@ -2,6 +2,35 @@
   "_readme": "Hand-made garment seed for Nimbus v1. Numbers are copied exactly as each size chart prints them (see chart.unit and chart.girth); normalizeGarment converts to cm / full circumference. Rows with source.placeholder = true are INVENTED for development, under made-up brands (Fieldline, Corvo Denim) — replace them with real, cited charts before trusting any fit result. The Knightweave and Lands' End tees are real rows copied from data/tees.csv.",
   "garments": [
     {
+      "id": "gildan-5000",
+      "brand": "Gildan",
+      "name": "Heavy Cotton T-Shirt (5000)",
+      "category": "top",
+      "type": "tee",
+      "sizing": "unisex",
+      "image": null,
+      "color": "#a7a9ac",
+      "sleeve": "short",
+      "stretch": "none",
+      "chart": { "unit": "in", "girth": "flat" },
+      "source": {
+        "placeholder": false,
+        "url": "https://www.ooshirts.com/guides/Gildan-T-Shirt-Size-Chart-and-Fit-Guide.html",
+        "capturedOn": "2026-11-18",
+        "notes": "Nominal garment measurements laid flat, from Gildan's 2026 USA Style & Color Guide (p. 22) as reproduced by ooShirts. Width is pit to pit; length is high shoulder point to hem. Sleeve is not in this chart, so it is left out. 100% cotton: expect some shrinkage after washing."
+      },
+      "sizes": [
+        { "label": "S", "measurements": { "chest": 18, "length": 28 } },
+        { "label": "M", "measurements": { "chest": 20, "length": 29 } },
+        { "label": "L", "measurements": { "chest": 22, "length": 30 } },
+        { "label": "XL", "measurements": { "chest": 24, "length": 31 } },
+        { "label": "2XL", "measurements": { "chest": 26, "length": 32 } },
+        { "label": "3XL", "measurements": { "chest": 28, "length": 33 } },
+        { "label": "4XL", "measurements": { "chest": 30, "length": 34 } },
+        { "label": "5XL", "measurements": { "chest": 32, "length": 35 } }
+      ]
+    },
+    {
       "id": "knightweave-tee",
       "brand": "Knightweave",
       "name": "Tee",
