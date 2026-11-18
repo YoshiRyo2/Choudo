@@ -16,7 +16,6 @@ const base: SeedGarment = {
   category: 'top',
   type: 'tee',
   sizing: 'mens',
-  image: null,
   color: '#000000',
   sleeve: 'short',
   stretch: 'none',
@@ -96,5 +95,59 @@ describe('validateSeed', () => {
   it('flags non-positive numbers', () => {
     const bad = { ...base, sizes: [{ label: 'M', measurements: { chest: -1, length: 28 } }] };
     expect(validateSeed([bad])).toContain('garment "test-tee" size M: chest must be a positive number');
+  });
+});
+
+describe('garment photos', () => {
+  const photo = {
+    file: 'garments/test-front.png',
+    photographedSize: 'M',
+    landmarks: {
+      collarLeft: { x: 380, y: 60 },
+      collarRight: { x: 620, y: 60 },
+      shoulderLeft: { x: 230, y: 110 },
+      shoulderRight: { x: 770, y: 110 },
+      armpitLeft: { x: 260, y: 360 },
+      armpitRight: { x: 740, y: 360 },
+      hemLeft: { x: 265, y: 980 },
+      hemRight: { x: 735, y: 980 },
+    },
+  };
+
+  it('accepts a complete photo entry', () => {
+    expect(validateSeed([{ ...base, image: photo }])).toEqual([]);
+  });
+
+  it('is optional', () => {
+    expect(validateSeed([base])).toEqual([]);
+  });
+
+  it('rejects remote files, unknown sizes and missing landmarks', () => {
+    const { hemRight: _dropped, ...partial } = photo.landmarks;
+    const problems = validateSeed([
+      {
+        ...base,
+        image: {
+          file: 'https://example.com/tee.png',
+          photographedSize: 'XXL',
+          landmarks: partial as typeof photo.landmarks,
+        },
+      },
+    ]);
+    expect(problems.join('\n')).toMatch(/file must be/);
+    expect(problems.join('\n')).toMatch(/photographedSize "XXL"/);
+    expect(problems.join('\n')).toMatch(/hemRight/);
+  });
+
+  it('rejects landmarks that are swapped or out of order', () => {
+    const swapped = {
+      ...photo.landmarks,
+      collarLeft: photo.landmarks.collarRight,
+      collarRight: photo.landmarks.collarLeft,
+      hemLeft: { x: 265, y: 100 },
+    };
+    const problems = validateSeed([{ ...base, image: { ...photo, landmarks: swapped } }]).join('\n');
+    expect(problems).toMatch(/collarLeft must be left of collarRight/);
+    expect(problems).toMatch(/left side must run/);
   });
 });

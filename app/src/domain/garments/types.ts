@@ -60,6 +60,32 @@ export interface GarmentSize {
   measurements: SizeMeasurements;
 }
 
+/** Named points on a top's outline, as seen in a front photo: "Left" is the viewer's left. */
+export const TOP_LANDMARKS = [
+  'collarLeft',
+  'collarRight',
+  'shoulderLeft',
+  'shoulderRight',
+  'armpitLeft',
+  'armpitRight',
+  'hemLeft',
+  'hemRight',
+] as const;
+export type TopLandmarkName = (typeof TOP_LANDMARKS)[number];
+
+/**
+ * A front product photo, and where the garment's landmarks are in it.
+ * Used to warp the photo onto the drawn outline of whichever size is worn.
+ */
+export interface GarmentImage {
+  /** Path under app/public, e.g. "garments/gildan-5000-front.png". Local files only. */
+  file: string;
+  /** The size the photographed garment was. */
+  photographedSize: string;
+  /** Image pixel coordinates, origin top-left. */
+  landmarks: Record<TopLandmarkName, { x: number; y: number }>;
+}
+
 export interface GarmentSource {
   /** true = invented numbers for development. Replace before trusting any fit result. */
   placeholder: boolean;
@@ -76,8 +102,8 @@ interface GarmentBase {
   category: GarmentCategory;
   type: GarmentType;
   sizing: GarmentSizing;
-  /** Product image URL, or null to draw it from `color`. v1 seeds use null. */
-  image: string | null;
+  /** A front product photo to texture the garment with. Without one we draw it in `color`. */
+  image?: GarmentImage;
   /** Main colour, used to draw the garment on the mannequin. */
   color: string;
   /** Tops only. */
