@@ -1,0 +1,253 @@
+{
+  "_readme": "Hand-made garment seed for Nimbus v1. Numbers are copied exactly as each size chart prints them (see chart.unit and chart.girth); normalizeGarment converts to cm / full circumference. Rows with source.placeholder = true are INVENTED for development, under made-up brands (Fieldline, Corvo Denim) — replace them with real, cited charts before trusting any fit result. The Knightweave and Lands' End tees are real rows copied from data/tees.csv.",
+  "garments": [
+    {
+      "id": "knightweave-tee",
+      "brand": "Knightweave",
+      "name": "Tee",
+      "category": "top",
+      "type": "tee",
+      "sizing": "mens",
+      "image": null,
+      "color": "#2f3b4c",
+      "sleeve": "short",
+      "stretch": "none",
+      "chart": { "unit": "in", "girth": "flat", "sleeveDefinition": "shoulder_to_cuff" },
+      "source": {
+        "placeholder": false,
+        "url": "https://knightweave.com/pages/size-guide-tees",
+        "capturedOn": "2026-11-17"
+      },
+      "sizes": [
+        { "label": "S", "measurements": { "chest": 18, "length": 28, "sleeve": 15.62 } },
+        { "label": "M", "measurements": { "chest": 20, "length": 29, "sleeve": 17 } },
+        { "label": "L", "measurements": { "chest": 22, "length": 30, "sleeve": 18.5 } },
+        { "label": "XL", "measurements": { "chest": 24, "length": 31, "sleeve": 20 } },
+        { "label": "2XL", "measurements": { "chest": 26, "length": 32, "sleeve": 21.5 } }
+      ]
+    },
+    {
+      "id": "landsend-super-t",
+      "brand": "Lands' End",
+      "name": "Men's Pattern Crewneck Super-T (Regular)",
+      "category": "top",
+      "type": "tee",
+      "sizing": "mens",
+      "image": null,
+      "color": "#b5473a",
+      "sleeve": "short",
+      "stretch": "none",
+      "chart": { "unit": "in", "girth": "unknown", "sleeveDefinition": "top_of_sleeve" },
+      "source": {
+        "placeholder": false,
+        "url": "https://www.landsend.com/garment_measurements/426768_core_pdp_spec.pdf",
+        "capturedOn": "2026-11-17",
+        "notes": "Chart doesn't say whether chest is flat or full circumference, so chest fit is reported as unknown."
+      },
+      "sizes": [
+        { "label": "S", "measurements": { "chest": 40, "length": 28, "sleeve": 9.75 } },
+        { "label": "M", "measurements": { "chest": 44, "length": 28.5, "sleeve": 10 } },
+        { "label": "L", "measurements": { "chest": 48, "length": 29.5, "sleeve": 10.25 } },
+        { "label": "XL", "measurements": { "chest": 52, "length": 30.5, "sleeve": 10.5 } },
+        { "label": "XXL", "measurements": { "chest": 56, "length": 31.5, "sleeve": 10.75 } }
+      ]
+    },
+    {
+      "id": "fieldline-boxy-tee",
+      "brand": "Fieldline",
+      "name": "Heavyweight Boxy Tee",
+      "category": "top",
+      "type": "tee",
+      "sizing": "mens",
+      "image": null,
+      "color": "#e8e1d3",
+      "sleeve": "short",
+      "stretch": "none",
+      "chart": { "unit": "cm", "girth": "circumference" },
+      "source": { "placeholder": true },
+      "sizes": [
+        { "label": "S", "measurements": { "chest": 108, "length": 66, "shoulder": 50 } },
+        { "label": "M", "measurements": { "chest": 116, "length": 68, "shoulder": 52 } },
+        { "label": "L", "measurements": { "chest": 124, "length": 70, "shoulder": 54 } },
+        { "label": "XL", "measurements": { "chest": 132, "length": 72, "shoulder": 56 } }
+      ]
+    },
+    {
+      "id": "fieldline-long-sleeve-tee",
+      "brand": "Fieldline",
+      "name": "Long-Sleeve Tee",
+      "category": "top",
+      "type": "long-sleeve-tee",
+      "sizing": "mens",
+      "image": null,
+      "color": "#5d7a5a",
+      "sleeve": "long",
+      "stretch": "some",
+      "chart": { "unit": "cm", "girth": "circumference", "sleeveDefinition": "shoulder_to_cuff" },
+      "source": { "placeholder": true },
+      "sizes": [
+        { "label": "S", "measurements": { "chest": 96, "length": 68, "sleeve": 61, "shoulder": 43 } },
+        { "label": "M", "measurements": { "chest": 104, "length": 70, "sleeve": 62.5, "shoulder": 45 } },
+        { "label": "L", "measurements": { "chest": 112, "length": 72, "sleeve": 64, "shoulder": 47 } },
+        { "label": "XL", "measurements": { "chest": 120, "length": 74, "sleeve": 65.5, "shoulder": 49 } }
+      ]
+    },
+    {
+      "id": "fieldline-oxford",
+      "brand": "Fieldline",
+      "name": "Oxford Button-Down",
+      "category": "top",
+      "type": "button-up",
+      "sizing": "mens",
+      "image": null,
+      "color": "#9db6d3",
+      "sleeve": "long",
+      "stretch": "none",
+      "chart": { "unit": "in", "girth": "flat", "sleeveDefinition": "shoulder_to_cuff" },
+      "source": { "placeholder": true },
+      "sizes": [
+        { "label": "S", "measurements": { "chest": 20, "waist": 19, "length": 29, "sleeve": 24.5, "shoulder": 17.25 } },
+        { "label": "M", "measurements": { "chest": 21.25, "waist": 20.25, "length": 30, "sleeve": 25, "shoulder": 18 } },
+        { "label": "L", "measurements": { "chest": 22.5, "waist": 21.5, "length": 30.75, "sleeve": 25.5, "shoulder": 18.5 } },
+        { "label": "XL", "measurements": { "chest": 24, "waist": 23, "length": 31.5, "sleeve": 26, "shoulder": 19.25 } }
+      ]
+    },
+    {
+      "id": "fieldline-pique-polo",
+      "brand": "Fieldline",
+      "name": "Piqué Polo",
+      "category": "top",
+      "type": "polo",
+      "sizing": "mens",
+      "image": null,
+      "color": "#1f4e5f",
+      "sleeve": "short",
+      "stretch": "some",
+      "chart": { "unit": "cm", "girth": "circumference" },
+      "source": { "placeholder": true },
+      "sizes": [
+        { "label": "S", "measurements": { "chest": 98, "length": 69, "shoulder": 43 } },
+        { "label": "M", "measurements": { "chest": 104, "length": 71, "shoulder": 45 } },
+        { "label": "L", "measurements": { "chest": 110, "length": 73, "shoulder": 47 } },
+        { "label": "XL", "measurements": { "chest": 118, "length": 75, "shoulder": 49 } }
+      ]
+    },
+    {
+      "id": "fieldline-slim-chino",
+      "brand": "Fieldline",
+      "name": "Slim Chino",
+      "category": "bottom",
+      "type": "chinos",
+      "sizing": "mens",
+      "image": null,
+      "color": "#c2a878",
+      "stretch": "some",
+      "chart": { "unit": "cm", "girth": "circumference" },
+      "source": { "placeholder": true },
+      "sizes": [
+        { "label": "30", "measurements": { "waist": 78, "hips": 96, "inseam": 81, "rise": 25 } },
+        { "label": "32", "measurements": { "waist": 83, "hips": 101, "inseam": 81, "rise": 26 } },
+        { "label": "34", "measurements": { "waist": 88, "hips": 106, "inseam": 81, "rise": 26.5 } },
+        { "label": "36", "measurements": { "waist": 93, "hips": 111, "inseam": 81, "rise": 27 } }
+      ]
+    },
+    {
+      "id": "fieldline-straight-chino",
+      "brand": "Fieldline",
+      "name": "Straight Chino",
+      "category": "bottom",
+      "type": "chinos",
+      "sizing": "mens",
+      "image": null,
+      "color": "#3e4a3d",
+      "stretch": "none",
+      "chart": { "unit": "in", "girth": "flat" },
+      "source": { "placeholder": true },
+      "sizes": [
+        { "label": "30", "measurements": { "waist": 15.5, "hips": 20, "inseam": 32, "rise": 10.5 } },
+        { "label": "32", "measurements": { "waist": 16.5, "hips": 21, "inseam": 32, "rise": 10.75 } },
+        { "label": "34", "measurements": { "waist": 17.5, "hips": 22, "inseam": 32, "rise": 11 } },
+        { "label": "36", "measurements": { "waist": 18.5, "hips": 23, "inseam": 32, "rise": 11.25 } }
+      ]
+    },
+    {
+      "id": "fieldline-jogger",
+      "brand": "Fieldline",
+      "name": "Drawstring Jogger",
+      "category": "bottom",
+      "type": "joggers",
+      "sizing": "unisex",
+      "image": null,
+      "color": "#55565b",
+      "stretch": "high",
+      "chart": { "unit": "cm", "girth": "circumference" },
+      "source": { "placeholder": true, "notes": "Waist is the relaxed elastic measurement." },
+      "sizes": [
+        { "label": "S", "measurements": { "waist": 72, "hips": 100, "inseam": 76 } },
+        { "label": "M", "measurements": { "waist": 78, "hips": 106, "inseam": 78 } },
+        { "label": "L", "measurements": { "waist": 84, "hips": 112, "inseam": 80 } },
+        { "label": "XL", "measurements": { "waist": 90, "hips": 118, "inseam": 82 } }
+      ]
+    },
+    {
+      "id": "fieldline-wide-trouser",
+      "brand": "Fieldline",
+      "name": "Wide-Leg Trouser",
+      "category": "bottom",
+      "type": "trousers",
+      "sizing": "mens",
+      "image": null,
+      "color": "#7a5c45",
+      "stretch": "none",
+      "chart": { "unit": "cm", "girth": "circumference" },
+      "source": { "placeholder": true },
+      "sizes": [
+        { "label": "30", "measurements": { "waist": 78, "hips": 104, "inseam": 82, "rise": 29 } },
+        { "label": "32", "measurements": { "waist": 83, "hips": 109, "inseam": 82, "rise": 30 } },
+        { "label": "34", "measurements": { "waist": 88, "hips": 114, "inseam": 82, "rise": 30.5 } },
+        { "label": "36", "measurements": { "waist": 93, "hips": 119, "inseam": 82, "rise": 31 } }
+      ]
+    },
+    {
+      "id": "corvo-slim-jean",
+      "brand": "Corvo Denim",
+      "name": "Slim Jean",
+      "category": "bottom",
+      "type": "jeans",
+      "sizing": "mens",
+      "image": null,
+      "color": "#2b3f66",
+      "stretch": "some",
+      "chart": { "unit": "cm", "girth": "circumference" },
+      "source": { "placeholder": true },
+      "sizes": [
+        { "label": "30x30", "measurements": { "waist": 79, "hips": 95, "inseam": 76, "rise": 25 } },
+        { "label": "30x32", "measurements": { "waist": 79, "hips": 95, "inseam": 81, "rise": 25 } },
+        { "label": "32x30", "measurements": { "waist": 84, "hips": 100, "inseam": 76, "rise": 25.5 } },
+        { "label": "32x32", "measurements": { "waist": 84, "hips": 100, "inseam": 81, "rise": 25.5 } },
+        { "label": "34x32", "measurements": { "waist": 89, "hips": 105, "inseam": 81, "rise": 26 } },
+        { "label": "36x32", "measurements": { "waist": 94, "hips": 110, "inseam": 81, "rise": 26.5 } }
+      ]
+    },
+    {
+      "id": "corvo-relaxed-jean",
+      "brand": "Corvo Denim",
+      "name": "Relaxed Jean",
+      "category": "bottom",
+      "type": "jeans",
+      "sizing": "mens",
+      "image": null,
+      "color": "#5b7fa8",
+      "stretch": "none",
+      "chart": { "unit": "in", "girth": "flat" },
+      "source": { "placeholder": true },
+      "sizes": [
+        { "label": "30x32", "measurements": { "waist": 15.75, "hips": 20.5, "inseam": 32, "rise": 11 } },
+        { "label": "32x32", "measurements": { "waist": 16.75, "hips": 21.5, "inseam": 32, "rise": 11.25 } },
+        { "label": "34x32", "measurements": { "waist": 17.75, "hips": 22.5, "inseam": 32, "rise": 11.5 } },
+        { "label": "34x34", "measurements": { "waist": 17.75, "hips": 22.5, "inseam": 34, "rise": 11.5 } },
+        { "label": "36x32", "measurements": { "waist": 18.75, "hips": 23.5, "inseam": 32, "rise": 11.75 } }
+      ]
+    }
+  ]
+}
