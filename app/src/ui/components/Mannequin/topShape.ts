@@ -19,7 +19,7 @@
  * Pure functions, no React. Right side (+x) is built and mirrored for the left.
  */
 
-import type { Garment, SizeMeasurements } from '../../../domain/garments';
+import type { Garment, SizeMeasurements, TopLandmarkName } from '../../../domain/garments';
 import {
   bodyHalfAt,
   halfWidth,
@@ -59,17 +59,6 @@ const SLEEVE_PER_CHEST = 0.12;
 /** Short sleeves end at least this far above the elbow. */
 const ELBOW_GAP_CM = 1;
 
-/** Named outline points, for warping a product photo onto the drawn shape. */
-export type TopLandmark =
-  | 'collarLeft'
-  | 'collarRight'
-  | 'shoulderLeft'
-  | 'shoulderRight'
-  | 'armpitLeft'
-  | 'armpitRight'
-  | 'hemLeft'
-  | 'hemRight';
-
 export interface TopShape {
   body: string;
   sleeves: [string, string];
@@ -81,8 +70,13 @@ export interface TopShape {
   strain: string[];
   /** Where to pin each zone's fit marker. */
   markers: Partial<Record<'chest' | 'waist' | 'length' | 'sleeve', Marker>>;
-  /** Outline points, as the viewer sees them: "Right" is the +x side. */
-  landmarks: Record<TopLandmark, Pt>;
+  /**
+   * Outline points matching a product photo's landmarks, for warping it onto this
+   * size. "Right" is the +x side, as the viewer sees it. The armpits are the shirt
+   * body's; `sleeveArmpits` are where each sleeve's own outline meets the body.
+   */
+  landmarks: Record<TopLandmarkName, Pt>;
+  sleeveArmpits: { left: Pt; right: Pt };
   /** Right-side facts, for tests and debugging. */
   right: {
     seam: Pt;
@@ -299,13 +293,19 @@ export function topShape(
     landmarks: {
       collarRight: collar,
       collarLeft: mirrorPt(collar),
+      neckFront: { x: 0, y: g.y.neckBase + necklineDip },
       shoulderRight: seam,
       shoulderLeft: mirrorPt(seam),
       armpitRight: underarm,
       armpitLeft: mirrorPt(underarm),
       hemRight: hem,
       hemLeft: mirrorPt(hem),
+      sleeveOuterRight: outerEnd,
+      sleeveOuterLeft: mirrorPt(outerEnd),
+      sleeveInnerRight: innerEnd,
+      sleeveInnerLeft: mirrorPt(innerEnd),
     },
+    sleeveArmpits: { right: innerTop, left: mirrorPt(innerTop) },
     right: {
       seam,
       underarm,

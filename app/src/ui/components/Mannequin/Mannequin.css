@@ -85,3 +85,11 @@
 @media (prefers-reduced-motion: reduce) {
   .mannequin__garment { transition: none; }
 }
+
+/* Outline redrawn over a photo texture. */
+.mannequin__garment-edge {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 55%, transparent);
+  stroke-width: 0.35;
+  stroke-linejoin: round;
+}

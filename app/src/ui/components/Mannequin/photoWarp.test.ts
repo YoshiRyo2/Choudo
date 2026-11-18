@@ -1,0 +1,94 @@
+import { describe, expect, it } from 'vitest';
+import { estimateBody } from '../../../domain/body';
+import { findGarment } from '../../../domain/garments';
+import { bodyGeometry } from './geometry';
+import { applyAffine, triangleAffine, warpPieces, type XY } from './photoWarp';
+import { topShape } from './topShape';
+
+const tri = (...p: number[]): [XY, XY, XY] => [
+  { x: p[0]!, y: p[1]! },
+  { x: p[2]!, y: p[3]! },
+  { x: p[4]!, y: p[5]! },
+];
+
+describe('triangleAffine', () => {
+  it('lands each corner exactly on its partner', () => {
+    const from = tri(10, 20, 300, 40, 120, 500);
+    const to = tri(-5, 30, 18, 33, 2, 90);
+    const m = triangleAffine(from, to)!;
+    from.forEach((p, i) => {
+      const q = applyAffine(m, p);
+      expect(q.x).toBeCloseTo(to[i]!.x, 9);
+      expect(q.y).toBeCloseTo(to[i]!.y, 9);
+    });
+  });
+
+  it('maps the centroid to the centroid', () => {
+    const from = tri(0, 0, 100, 0, 0, 100);
+    const to = tri(1, 1, 3, 1, 1, 5);
+    const c = applyAffine(triangleAffine(from, to)!, { x: 100 / 3, y: 100 / 3 });
+    expect(c.x).toBeCloseTo(5 / 3);
+    expect(c.y).toBeCloseTo(7 / 3);
+  });
+
+  it('refuses a flat photo triangle', () => {
+    expect(triangleAffine(tri(0, 0, 10, 10, 20, 20), tri(0, 0, 1, 0, 0, 1))).toBeNull();
+  });
+});
+
+describe('warpPieces for the Gildan 5000 photo', () => {
+  const garment = findGarment('gildan-5000')!;
+  const photo = garment.image!.landmarks;
+  const body = estimateBody({ heightCm: 178, weightKg: 75, sizing: 'mens' }).measurements;
+  const g = bodyGeometry(body);
+
+  for (const label of ['S', 'XL', '5XL']) {
+    it(`sends every photo landmark to its outline point at ${label}`, () => {
+      const size = garment.sizes.find((s) => s.label === label)!.measurements;
+      const shape = topShape(g, garment, size, body.chestCm);
+      const pieces = warpPieces(photo, shape.landmarks, shape.sleeveArmpits);
+      expect(pieces.filter((p) => p.region === 'body')).toHaveLength(12);
+      expect(pieces.filter((p) => p.region === 'sleeveRight')).toHaveLength(2);
+      expect(pieces.filter((p) => p.region === 'sleeveLeft')).toHaveLength(2);
+
+      const near = (p: XY, q: XY) => Math.hypot(p.x - q.x, p.y - q.y) < 1e-6;
+      const check = (region: string, name: keyof typeof photo, target: XY) => {
+        const hits = pieces
+          .filter((p) => p.region === region)
+          .map((p) => applyAffine(p.transform, photo[name]))
+          .filter((q) => near(q, target));
+        expect(hits.length, `${region} ${name}`).toBeGreaterThan(0);
+      };
+      for (const name of ['collarLeft', 'collarRight', 'neckFront', 'shoulderLeft', 'shoulderRight', 'armpitLeft', 'armpitRight', 'hemLeft', 'hemRight'] as const) {
+        check('body', name, shape.landmarks[name]);
+      }
+      check('sleeveRight', 'sleeveOuterRight', shape.landmarks.sleeveOuterRight);
+      check('sleeveRight', 'sleeveInnerRight', shape.landmarks.sleeveInnerRight);
+      check('sleeveRight', 'armpitRight', shape.sleeveArmpits.right);
+      check('sleeveLeft', 'sleeveOuterLeft', shape.landmarks.sleeveOuterLeft);
+      check('sleeveLeft', 'armpitLeft', shape.sleeveArmpits.left);
+    });
+  }
+
+  it('stretches only the outer pieces past the landmark outline', () => {
+    const size = garment.sizes.find((s) => s.label === 'XL')!.measurements;
+    const shape = topShape(g, garment, size, body.chestCm);
+    const pieces = warpPieces(photo, shape.landmarks, shape.sleeveArmpits);
+    const torso = pieces.filter((p) => p.region === 'body');
+    // The pieces on the centre line under the neck and across the chest touch no outside edge.
+    expect(torso.filter((p) => p.clip.length === 3)).toHaveLength(4);
+    // Hem pieces reach well below the hem, so a longer drawn hem still gets texture.
+    const lowest = Math.max(...torso.flatMap((p) => p.clip.map((q) => q.y)));
+    expect(lowest).toBeGreaterThan(shape.landmarks.hemRight.y + 4);
+    // Every sleeve piece has an outside edge.
+    expect(pieces.filter((p) => p.region !== 'body').every((p) => p.clip.length > 3)).toBe(true);
+  });
+
+  it('keeps the photo the right way up and unmirrored', () => {
+    const size = garment.sizes.find((s) => s.label === 'M')!.measurements;
+    const shape = topShape(g, garment, size, body.chestCm);
+    for (const p of warpPieces(photo, shape.landmarks, shape.sleeveArmpits)) {
+      expect(p.transform.a * p.transform.d - p.transform.b * p.transform.c).toBeGreaterThan(0);
+    }
+  });
+});
