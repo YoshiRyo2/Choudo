@@ -55,13 +55,13 @@ export const PROFILE_MODELS: Record<SizingProfile, ProfileModel> = {
     ref: { heightCm: 176, weightKg: 85, chestCm: 104, waistCm: 94, hipsCm: 103 },
     bmiExponent: { chest: 0.55, waist: 0.75, hips: 0.5 },
     heightExponent: 0.5,
-    ratio: { inseam: 0.45, armLength: 0.335, torsoLength: 0.41, shoulderWidth: 0.26 },
+    ratio: { inseam: 0.45, armLength: 0.35, torsoLength: 0.41, shoulderWidth: 0.26 },
   },
   womens: {
     ref: { heightCm: 163, weightKg: 68, chestCm: 95, waistCm: 83, hipsCm: 102 },
     bmiExponent: { chest: 0.55, waist: 0.75, hips: 0.55 },
     heightExponent: 0.5,
-    ratio: { inseam: 0.445, armLength: 0.33, torsoLength: 0.395, shoulderWidth: 0.245 },
+    ratio: { inseam: 0.445, armLength: 0.342, torsoLength: 0.395, shoulderWidth: 0.245 },
   },
 };
 
