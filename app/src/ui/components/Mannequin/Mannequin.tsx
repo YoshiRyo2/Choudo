@@ -1,8 +1,11 @@
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import type { BodyMeasurements } from '../../../domain/body';
 import type { GarmentFit, ZoneFit } from '../../../domain/fit';
 import type { Garment } from '../../../domain/garments';
-import { bodyGeometry, bottomShape, topShape, type Marker } from './geometry';
+import { bodyGeometry, bottomShape, type Marker } from './geometry';
+import { affineToSvg, warpPieces, type WarpPiece, type WarpRegion } from './photoWarp';
+import { topShape } from './topShape';
+import { usePhotoSize, type PhotoSize } from './usePhotoSize';
 import './Mannequin.css';
 
 export interface WornGarment {
@@ -34,6 +37,25 @@ export function Mannequin({ body, top, bottom, showFit = true, className }: Mann
   const bottomSize = bottom?.garment.sizes.find((s) => s.label === bottom.sizeLabel);
   const topDraw = top && topSize ? topShape(g, top.garment, topSize.measurements, body.chestCm) : null;
   const bottomDraw = bottom && bottomSize ? bottomShape(g, bottom.garment, bottomSize.measurements) : null;
+
+  // A product photo, when the top has one and the file is present, is warped onto
+  // this size's outline over the flat colour.
+  const photo = top?.garment.image;
+  const photoSrc = photo ? `${import.meta.env.BASE_URL}${photo.file}` : null;
+  const photoSize = usePhotoSize(photoSrc);
+  const pieces =
+    topDraw && photo && photoSize ? warpPieces(photo.landmarks, topDraw.landmarks, topDraw.sleeveArmpits) : null;
+  const clipId = `mq${useId().replace(/[^\w-]/g, '')}`;
+  const texture = (region: WarpRegion, outline: string) =>
+    pieces && photoSrc && photoSize ? (
+      <PhotoTexture
+        id={`${clipId}-${region}`}
+        outline={outline}
+        pieces={pieces.filter((p) => p.region === region)}
+        src={photoSrc}
+        size={photoSize}
+      />
+    ) : null;
 
   const viewHeight = Math.max(214, body.heightCm + 10);
   // Top pins go on the figure's right edge, bottom pins on the left, so a pants
@@ -90,10 +112,30 @@ export function Mannequin({ body, top, bottom, showFit = true, className }: Mann
         />
       )}
       {topDraw && top && (
-        <g className={garmentClass(topDraw.approximate)} style={{ fill: top.garment.color }}>
-          <path d={topDraw.sleeves[0]} />
-          <path d={topDraw.sleeves[1]} />
-          <path d={topDraw.body} />
+        <g>
+          <g className={garmentClass(topDraw.approximate)} style={{ fill: top.garment.color }}>
+            <path d={topDraw.body} />
+          </g>
+          {texture('body', topDraw.body)}
+          <g className="mannequin__creases" aria-hidden="true">
+            {topDraw.folds.map((d, i) => (
+              <path key={`fold-${i}`} className="mannequin__fold" d={d} />
+            ))}
+            {topDraw.strain.map((d, i) => (
+              <path key={`strain-${i}`} className="mannequin__strain" d={d} />
+            ))}
+          </g>
+          {/* Relaxed arms hang in front of the shirt's sides; the sleeves then cover their tops. */}
+          <g className="mannequin__form">
+            <path d={topDraw.arms[0]} />
+            <path d={topDraw.arms[1]} />
+          </g>
+          <g className={garmentClass(topDraw.approximate)} style={{ fill: top.garment.color }}>
+            <path d={topDraw.sleeves[0]} />
+            <path d={topDraw.sleeves[1]} />
+          </g>
+          {texture('sleeveRight', topDraw.sleeves[0])}
+          {texture('sleeveLeft', topDraw.sleeves[1])}
         </g>
       )}
 
@@ -109,6 +151,53 @@ export function Mannequin({ body, top, bottom, showFit = true, className }: Mann
         </g>
       ))}
     </svg>
+  );
+}
+
+/**
+ * The photo drawn once per warp triangle, each copy clipped to its triangle, the
+ * lot clipped to the garment outline, with the outline's edge redrawn on top.
+ */
+function PhotoTexture({
+  id,
+  outline,
+  pieces,
+  src,
+  size,
+}: {
+  id: string;
+  outline: string;
+  pieces: WarpPiece[];
+  src: string;
+  size: PhotoSize;
+}) {
+  return (
+    <g aria-hidden="true">
+      <defs>
+        <clipPath id={id}>
+          <path d={outline} />
+        </clipPath>
+        {pieces.map((p, i) => (
+          <clipPath key={i} id={`${id}-${i}`}>
+            <polygon points={p.clip.map((q) => `${q.x},${q.y}`).join(' ')} />
+          </clipPath>
+        ))}
+      </defs>
+      <g clipPath={`url(#${id})`}>
+        {pieces.map((p, i) => (
+          <g key={i} clipPath={`url(#${id}-${i})`}>
+            <image
+              href={src}
+              width={size.width}
+              height={size.height}
+              preserveAspectRatio="none"
+              transform={affineToSvg(p.transform)}
+            />
+          </g>
+        ))}
+      </g>
+      <path className="mannequin__garment-edge" d={outline} />
+    </g>
   );
 }
 

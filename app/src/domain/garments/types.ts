@@ -60,6 +60,46 @@ export interface GarmentSize {
   measurements: SizeMeasurements;
 }
 
+/** Named points on a top's outline, as seen in a front photo: "Left" is the viewer's left. */
+export const TOP_LANDMARKS = [
+  'collarLeft',
+  'collarRight',
+  // Bottom of the front neckline, on the centre line, so the collar lands on the drawn neckline.
+  'neckFront',
+  'shoulderLeft',
+  'shoulderRight',
+  'armpitLeft',
+  'armpitRight',
+  'hemLeft',
+  'hemRight',
+  // Corners of each short-sleeve opening, so the sleeves get the photo too.
+  'sleeveOuterLeft',
+  'sleeveInnerLeft',
+  'sleeveOuterRight',
+  'sleeveInnerRight',
+] as const;
+export type TopLandmarkName = (typeof TOP_LANDMARKS)[number];
+
+/**
+ * A front product photo, and where the garment's landmarks are in it.
+ * Used to warp the photo onto the drawn outline of whichever size is worn.
+ */
+export interface GarmentImage {
+  /**
+   * Path under app/public, e.g. "garments/gildan-5000-front.png". Local files only;
+   * product photos are not committed (see app/photo-sources/README.md), so the
+   * file may be missing and the garment then draws in its flat colour.
+   */
+  file: string;
+  /**
+   * The size the photographed garment was, or null when unknown (one photo used
+   * for every size). The warp fits the photo to each size's outline either way.
+   */
+  photographedSize: string | null;
+  /** Image pixel coordinates, origin top-left. */
+  landmarks: Record<TopLandmarkName, { x: number; y: number }>;
+}
+
 export interface GarmentSource {
   /** true = invented numbers for development. Replace before trusting any fit result. */
   placeholder: boolean;
@@ -76,8 +116,8 @@ interface GarmentBase {
   category: GarmentCategory;
   type: GarmentType;
   sizing: GarmentSizing;
-  /** Product image URL, or null to draw it from `color`. v1 seeds use null. */
-  image: string | null;
+  /** A front product photo to texture the garment with. Without one we draw it in `color`. */
+  image?: GarmentImage;
   /** Main colour, used to draw the garment on the mannequin. */
   color: string;
   /** Tops only. */

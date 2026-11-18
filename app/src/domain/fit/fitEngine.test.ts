@@ -18,7 +18,6 @@ const seedTeeBase: SeedGarment = {
   category: 'top',
   type: 'tee',
   sizing: 'mens',
-  image: null,
   color: '#000000',
   sleeve: 'short',
   stretch: 'none',

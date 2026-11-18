@@ -35,7 +35,7 @@ app/src/
     fit/         fitGarment(body, garment, size) -> per-zone fit results
   ui/            React
     screens/     BodyScreen (input), FittingRoom (browse + size + fit)
-    components/  Mannequin/ (pure geometry.ts + SVG), GarmentCarousel, SizePicker,
+    components/  Mannequin/ (pure geometry.ts, topShape.ts, photoWarp.ts + SVG), GarmentCarousel, SizePicker,
                  FitReadout, TapeScale, SegmentedControl
     state/       usePersistentState (localStorage), stored.ts (keys + guards), outfit.ts
     fitText.ts   all user-facing fit wording

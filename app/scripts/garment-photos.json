@@ -1,0 +1,14 @@
+{
+  "_readme": "Inputs for scripts/garment-photos.mjs. crop is in source-image pixels (left, top, width, height); seed is a point on the garment inside the crop. match sets how close a pixel's hue/saturation/value must be to the garment's colour. bleed (px) smears the edge colours outward; changing it moves the garment inside the PNG, so shift the landmarks by the same amount. Landmarks in seed.json are in pixels of the cut-out PNG this produces.",
+  "photos": [
+    {
+      "id": "gildan-5000",
+      "source": "photo-sources/gildan-5000.webp",
+      "out": "public/garments/gildan-5000-front.png",
+      "crop": { "left": 90, "top": 330, "width": 580, "height": 720 },
+      "seed": [290, 270],
+      "match": { "hueTolerance": 5, "minSaturation": 0.6, "minValue": 0.12 },
+      "bleed": 24
+    }
+  ]
+}
