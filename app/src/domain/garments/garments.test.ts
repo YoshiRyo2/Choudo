@@ -111,6 +111,10 @@ describe('garment photos', () => {
       armpitRight: { x: 740, y: 360 },
       hemLeft: { x: 265, y: 980 },
       hemRight: { x: 735, y: 980 },
+      sleeveOuterLeft: { x: 120, y: 420 },
+      sleeveInnerLeft: { x: 220, y: 470 },
+      sleeveOuterRight: { x: 880, y: 420 },
+      sleeveInnerRight: { x: 780, y: 470 },
     },
   };
 
@@ -120,6 +124,10 @@ describe('garment photos', () => {
 
   it('is optional', () => {
     expect(validateSeed([base])).toEqual([]);
+  });
+
+  it('allows an unknown photographed size', () => {
+    expect(validateSeed([{ ...base, image: { ...photo, photographedSize: null } }])).toEqual([]);
   });
 
   it('rejects remote files, unknown sizes and missing landmarks', () => {
@@ -145,9 +153,11 @@ describe('garment photos', () => {
       collarLeft: photo.landmarks.collarRight,
       collarRight: photo.landmarks.collarLeft,
       hemLeft: { x: 265, y: 100 },
+      sleeveOuterRight: { x: 700, y: 420 },
     };
     const problems = validateSeed([{ ...base, image: { ...photo, landmarks: swapped } }]).join('\n');
     expect(problems).toMatch(/collarLeft must be left of collarRight/);
     expect(problems).toMatch(/left side must run/);
+    expect(problems).toMatch(/right sleeve opening/);
   });
 });

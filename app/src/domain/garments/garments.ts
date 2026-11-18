@@ -97,7 +97,7 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'categor
   if (!/^garments\/[\w.-]+\.(png|jpe?g|webp)$/i.test(image.file)) {
     problems.push(`file must be a png/jpg/webp under garments/, got "${image.file}"`);
   }
-  if (!g.sizes.some((s) => s.label === image.photographedSize)) {
+  if (image.photographedSize !== null && !g.sizes.some((s) => s.label === image.photographedSize)) {
     problems.push(`photographedSize "${image.photographedSize}" is not one of the garment's sizes`);
   }
   if (g.category !== 'top') problems.push('photo textures are only supported for tops');
@@ -112,13 +112,18 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'categor
     return problems;
   }
   const l = image.landmarks;
-  for (const part of ['collar', 'shoulder', 'armpit', 'hem'] as const) {
+  for (const part of ['collar', 'shoulder', 'armpit', 'hem', 'sleeveOuter', 'sleeveInner'] as const) {
     if (!(l[`${part}Left`].x < l[`${part}Right`].x)) problems.push(`${part}Left must be left of ${part}Right`);
   }
   for (const side of ['Left', 'Right'] as const) {
     const [c, s, a, h] = [l[`collar${side}`], l[`shoulder${side}`], l[`armpit${side}`], l[`hem${side}`]];
     if (!(c.y < a.y && s.y < a.y && a.y < h.y)) {
       problems.push(`${side.toLowerCase()} side must run collar/shoulder above armpit above hem`);
+    }
+    const [out, inn] = [l[`sleeveOuter${side}`], l[`sleeveInner${side}`]];
+    const outward = side === 'Left' ? -1 : 1;
+    if (!(out.y > s.y && (out.x - inn.x) * outward > 0)) {
+      problems.push(`${side.toLowerCase()} sleeve opening must sit below the shoulder, outer corner outside the inner`);
     }
   }
   return problems;

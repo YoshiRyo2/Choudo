@@ -70,6 +70,11 @@ export const TOP_LANDMARKS = [
   'armpitRight',
   'hemLeft',
   'hemRight',
+  // Corners of each short-sleeve opening, so the sleeves get the photo too.
+  'sleeveOuterLeft',
+  'sleeveInnerLeft',
+  'sleeveOuterRight',
+  'sleeveInnerRight',
 ] as const;
 export type TopLandmarkName = (typeof TOP_LANDMARKS)[number];
 
@@ -78,10 +83,17 @@ export type TopLandmarkName = (typeof TOP_LANDMARKS)[number];
  * Used to warp the photo onto the drawn outline of whichever size is worn.
  */
 export interface GarmentImage {
-  /** Path under app/public, e.g. "garments/gildan-5000-front.png". Local files only. */
+  /**
+   * Path under app/public, e.g. "garments/gildan-5000-front.png". Local files only;
+   * product photos are not committed (see app/photo-sources/README.md), so the
+   * file may be missing and the garment then draws in its flat colour.
+   */
   file: string;
-  /** The size the photographed garment was. */
-  photographedSize: string;
+  /**
+   * The size the photographed garment was, or null when unknown (one photo used
+   * for every size). The warp fits the photo to each size's outline either way.
+   */
+  photographedSize: string | null;
   /** Image pixel coordinates, origin top-left. */
   landmarks: Record<TopLandmarkName, { x: number; y: number }>;
 }
