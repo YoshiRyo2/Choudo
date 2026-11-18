@@ -1,0 +1,136 @@
+@import '@fontsource/barlow/400.css';
+@import '@fontsource/barlow/500.css';
+@import '@fontsource/barlow/600.css';
+@import '@fontsource/barlow-condensed/500.css';
+@import '@fontsource/barlow-condensed/600.css';
+
+/*
+ * Nimbus tokens. A tailor's fitting room: cool pattern-paper white, blue-black
+ * ink, a linen dress form, tailor's-chalk colours for fit, and tape-measure yellow
+ * as the one loud colour.
+ */
+:root {
+  --paper: #f1f3f6;
+  --paper-raised: #ffffff;
+  --ink: #1b2433;
+  --muted: #667085;
+  --line: #d5dae2;
+  --form: #d9d1c3;
+  --form-edge: #b4aa98;
+  --tape: #f2c12e;
+  --chalk-good: #2f7d5b;
+  --chalk-warn: #b5651d;
+  --chalk-bad: #c2362f;
+  --focus: #2f5bd3;
+
+  --font-text: 'Barlow', system-ui, sans-serif;
+  --font-numeric: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
+
+  /* Type scale (1.2 ratio) */
+  --step--1: 0.833rem;
+  --step-0: 1rem;
+  --step-1: 1.2rem;
+  --step-2: 1.44rem;
+  --step-3: 1.728rem;
+
+  --radius-s: 6px;
+  --radius-m: 14px;
+
+  color-scheme: light;
+  font-family: var(--font-text);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  min-height: 100dvh;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.15;
+  font-weight: 600;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.num {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- shared pieces ---------- */
+
+.wordmark {
+  margin: 0;
+  font-family: var(--font-numeric);
+  font-weight: 600;
+  font-size: var(--step-1);
+  letter-spacing: 0.02em;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button--primary {
+  background: var(--ink);
+  color: var(--paper-raised);
+}
+.button--primary[aria-disabled='true'] {
+  background: color-mix(in srgb, var(--ink) 35%, var(--paper));
+}
+
+.button--quiet {
+  background: transparent;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0 12px;
+}
+
+.field-error {
+  margin: 6px 0 0;
+  font-size: var(--step--1);
+  color: var(--chalk-bad);
+}

@@ -1,0 +1,240 @@
+.body-screen {
+  display: grid;
+  gap: 24px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+
+@media (min-width: 760px) {
+  .body-screen {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+    gap: 48px;
+    padding-top: 40px;
+    align-items: start;
+  }
+  .body-screen__preview {
+    position: sticky;
+    top: 24px;
+  }
+}
+
+.body-screen__form {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+
+.body-screen__intro h1 {
+  margin-top: 18px;
+  font-size: var(--step-3);
+}
+
+.body-screen__lede {
+  margin: 8px 0 0;
+  color: var(--muted);
+  max-width: 38ch;
+}
+
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+}
+
+.measure {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.measure legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.measure__pair {
+  display: flex;
+  gap: 10px;
+}
+
+/* ---------- number input: a box with the unit printed inside, like a gauge ---------- */
+
+.number-input__label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.number-input__hint {
+  display: block;
+  font-weight: 400;
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+.number-input__box {
+  display: flex;
+  align-items: baseline;
+  max-width: 200px;
+  background: var(--paper-raised);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-s);
+  padding: 0 12px;
+}
+
+.number-input__box:focus-within {
+  border-color: var(--ink);
+}
+
+.number-input__box.is-invalid {
+  border-color: var(--chalk-bad);
+}
+
+.number-input__box input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 10px 0;
+  font-size: var(--step-2);
+  font-weight: 600;
+  outline: none;
+}
+
+.number-input__box input::placeholder {
+  color: color-mix(in srgb, var(--muted) 55%, transparent);
+  font-weight: 500;
+}
+
+.number-input__unit {
+  font-family: var(--font-numeric);
+  color: var(--muted);
+  font-size: var(--step-0);
+}
+
+/* ---------- optional tape-measure section ---------- */
+
+.tape-section {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.tape-section__toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+  padding: 14px 0;
+  background: none;
+  border: 0;
+  text-align: left;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.tape-section__chevron {
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-3px);
+  transition: transform 160ms ease;
+}
+[aria-expanded='true'] > .tape-section__chevron {
+  transform: rotate(-135deg) translateY(-2px);
+}
+
+.tape-section__body {
+  padding-bottom: 18px;
+}
+
+.tape-section__note {
+  margin: 0 0 14px;
+  font-size: var(--step--1);
+  color: var(--muted);
+  max-width: 52ch;
+}
+
+.tape-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+/* ---------- actions ---------- */
+
+.body-screen__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.body-screen__actions .field-error {
+  flex-basis: 100%;
+}
+
+.body-screen__privacy {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+/* ---------- preview ---------- */
+
+.body-screen__preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: end;
+  padding: 16px;
+  background: var(--paper-raised);
+  border-radius: var(--radius-m);
+}
+
+.body-screen__figure {
+  height: min(52dvh, 460px);
+}
+
+.body-screen__empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 48px 8px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.estimates {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.estimates__row dt {
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+.estimates__row dd {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.estimates__row .num {
+  font-size: var(--step-1);
+  font-weight: 600;
+}
+
+.estimates__source {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tape-section__chevron { transition: none; }
+}

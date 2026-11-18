@@ -1,0 +1,83 @@
+.sizes {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.sizes__legend {
+  padding: 0;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.sizes__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 14px; /* room for the "Suggested" caption */
+}
+
+.size-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 52px;
+  min-height: 44px;
+  padding: 0 12px;
+  justify-content: center;
+  background: var(--paper-raised);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+
+.size-chip input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.size-chip.is-selected {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper-raised);
+}
+
+.size-chip:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.size-chip__label {
+  font-size: var(--step-1);
+  font-weight: 600;
+}
+
+.size-chip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.size-chip__dot.tone-unknown {
+  background: transparent;
+  border: 1.5px solid currentColor;
+}
+.size-chip.is-selected .size-chip__dot {
+  box-shadow: 0 0 0 1.5px var(--paper-raised);
+}
+
+.size-chip__suggested {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translate(-50%, 2px);
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ink);
+}

@@ -1,0 +1,72 @@
+.mannequin {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.mannequin__form {
+  fill: var(--form);
+  stroke: var(--form-edge);
+  stroke-width: 0.35;
+}
+
+.mannequin__seam {
+  stroke: var(--form-edge);
+  stroke-width: 0.3;
+  stroke-dasharray: 1 1.2;
+}
+
+.mannequin__floor {
+  stroke: var(--line);
+  stroke-width: 0.4;
+}
+
+.mannequin__garment {
+  stroke: color-mix(in srgb, var(--ink) 55%, transparent);
+  stroke-width: 0.35;
+  stroke-linejoin: round;
+  transition: d 220ms ease;
+}
+
+/* The chart didn't say flat vs. full circumference: dashed edge = width is our guess. */
+.mannequin__garment.is-approximate {
+  stroke-dasharray: 1.4 1;
+  stroke-width: 0.45;
+}
+
+.mannequin__pin line {
+  stroke: currentColor;
+  stroke-width: 0.45;
+}
+.mannequin__pin circle {
+  fill: currentColor;
+  stroke: var(--paper);
+  stroke-width: 0.6;
+}
+
+.tone-good { color: var(--chalk-good); }
+.tone-warn { color: var(--chalk-warn); }
+.tone-bad { color: var(--chalk-bad); }
+.tone-unknown { color: var(--muted); }
+
+/* Height tape */
+.tape__strip { fill: var(--tape); }
+.tape__tick { stroke: var(--ink); stroke-width: 0.25; }
+.tape__num {
+  font-family: var(--font-numeric);
+  font-size: 2.6px;
+  font-weight: 600;
+  fill: var(--ink);
+}
+.tape__mark { stroke: var(--ink); stroke-width: 0.4; }
+.tape__reading {
+  font-family: var(--font-numeric);
+  font-size: 3.6px;
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mannequin__garment { transition: none; }
+}

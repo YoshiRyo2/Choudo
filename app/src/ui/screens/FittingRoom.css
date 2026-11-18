@@ -1,0 +1,80 @@
+.fitting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'bar'
+    'stage'
+    'panel';
+  max-width: 1040px;
+  margin: 0 auto;
+  min-height: 100dvh;
+}
+
+.fitting__bar {
+  grid-area: bar;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px 0;
+}
+
+.fitting__edit {
+  margin-left: auto;
+  min-height: 40px;
+}
+
+.fitting__stage {
+  grid-area: stage;
+  height: min(48dvh, 520px);
+  padding: 8px 16px 0;
+}
+
+.fitting__panel {
+  grid-area: panel;
+  display: grid;
+  /* minmax(0, …) stops the carousel's long track from widening the column */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-content: start;
+  min-width: 0;
+  padding: 16px 16px 40px;
+  background: var(--paper-raised);
+  border-radius: var(--radius-m) var(--radius-m) 0 0;
+  box-shadow: 0 -1px 0 var(--line);
+}
+
+/* The browse switch shows the current pick, so let long names shrink. */
+.fitting__panel > .segmented .segmented__track {
+  display: flex;
+  max-width: 100%;
+}
+.fitting__panel > .segmented .segmented__option {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+@media (min-width: 820px) {
+  .fitting {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      'bar bar'
+      'stage panel';
+    column-gap: 24px;
+  }
+  .fitting__bar { padding: 20px 24px 0; }
+  .fitting__stage {
+    position: sticky;
+    top: 0;
+    height: calc(100dvh - 80px);
+    padding: 16px 0 24px 24px;
+  }
+  .fitting__panel {
+    margin: 16px 24px 24px 0;
+    border-radius: var(--radius-m);
+    box-shadow: none;
+  }
+}

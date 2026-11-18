@@ -1,0 +1,157 @@
+.readout {
+  display: grid;
+  gap: 16px;
+}
+
+.readout__summary {
+  padding-left: 12px;
+  border-left: 4px solid currentColor;
+}
+
+.readout__headline {
+  font-size: var(--step-2);
+  color: var(--ink);
+}
+
+.readout__size {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.readout__detail {
+  margin: 4px 0 0;
+  color: var(--ink);
+}
+
+.readout__zones {
+  display: grid;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.zone {
+  display: grid;
+  gap: 6px;
+}
+
+.zone__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.zone__name {
+  font-weight: 600;
+}
+
+.zone__label {
+  font-weight: 600;
+}
+
+.zone__diff {
+  margin-left: auto;
+  font-size: var(--step-1);
+  font-weight: 600;
+}
+
+.zone__text {
+  margin: 0;
+  max-width: 48ch;
+}
+
+.zone__numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+.zone__numbers .num {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.zone__est {
+  font-style: italic;
+}
+
+.readout__estimates,
+.readout__source {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--muted);
+  max-width: 56ch;
+}
+
+.readout__source {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.readout__source.is-placeholder {
+  color: var(--chalk-warn);
+}
+
+.readout__source a,
+.link-button {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+/* ---------- tape scale ---------- */
+
+.tape-scale {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.tape-scale__band.tone-good { fill: var(--chalk-good); }
+.tape-scale__band.tone-warn { fill: var(--chalk-warn); }
+.tape-scale__band.tone-bad { fill: var(--chalk-bad); }
+
+.tape-scale__tape { fill: var(--tape); }
+
+.tape-scale__tick {
+  stroke: var(--ink);
+  stroke-width: 0.8;
+}
+
+.tape-scale__num {
+  font-family: var(--font-numeric);
+  font-size: 8px;
+  font-weight: 600;
+  fill: var(--ink);
+}
+
+.tape-scale__zero {
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+.tape-scale__needle line {
+  stroke: var(--ink);
+  stroke-width: 2.4;
+}
+.tape-scale__needle path {
+  fill: var(--ink);
+}
+
+.readout__source-note {
+  display: block;
+  margin-top: 4px;
+}
