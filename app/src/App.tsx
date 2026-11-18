@@ -1,33 +1,33 @@
-import { estimateBody } from './domain/body';
-import { fitGarment, recommendSize } from './domain/fit';
-import { findGarment } from './domain/garments';
-import { Mannequin } from './ui/components/Mannequin/Mannequin';
+import { useState } from 'react';
+import type { BodyInput } from './domain/body';
+import { BodyScreen } from './ui/screens/BodyScreen';
+import { FittingRoom } from './ui/screens/FittingRoom';
+import { usePersistentState } from './ui/state/usePersistentState';
+import { isStoredBody, isUnitSystem, STORAGE_KEYS, type UnitSystem } from './ui/state/stored';
 
-// Temporary preview page for the mannequin; replaced by the real screens next.
-const bodies = [
-  { heightCm: 165, weightKg: 58 },
-  { heightCm: 176, weightKg: 85 },
-  { heightCm: 190, weightKg: 110 },
-].map((b) => estimateBody({ ...b, sizing: 'mens' }));
-
+/**
+ * Two screens: enter your body, then the fitting room. Everything the user
+ * enters is kept in this browser's localStorage — nothing leaves the device.
+ */
 export function App() {
-  const top = findGarment('knightweave-tee')!;
-  const bottom = findGarment('corvo-slim-jean')!;
-  return (
-    <main style={{ display: 'flex', gap: 8, padding: 16, height: '90dvh' }}>
-      {bodies.map((body, i) => {
-        const topSize = recommendSize(body, top) ?? top.sizes[0]!.label;
-        const bottomSize = recommendSize(body, bottom) ?? bottom.sizes[0]!.label;
-        return (
-          <div key={i} style={{ flex: 1 }}>
-            <Mannequin
-              body={body.measurements}
-              top={{ garment: top, sizeLabel: topSize, fit: fitGarment(body, top, topSize) }}
-              bottom={{ garment: bottom, sizeLabel: bottomSize, fit: fitGarment(body, bottom, bottomSize) }}
-            />
-          </div>
-        );
-      })}
-    </main>
-  );
+  const [body, setBody] = usePersistentState<BodyInput | null>(STORAGE_KEYS.body, null, isStoredBody);
+  const [units, setUnits] = usePersistentState<UnitSystem>(STORAGE_KEYS.units, 'metric', isUnitSystem);
+  const [editing, setEditing] = useState(false);
+
+  if (!body || editing) {
+    return (
+      <BodyScreen
+        initial={body}
+        units={units}
+        onDone={(input, u) => {
+          setBody(input);
+          setUnits(u);
+          setEditing(false);
+        }}
+        onCancel={body ? () => setEditing(false) : undefined}
+      />
+    );
+  }
+
+  return <FittingRoom body={body} units={units} onUnitsChange={setUnits} onEditBody={() => setEditing(true)} />;
 }

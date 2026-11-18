@@ -90,3 +90,47 @@ select {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* ---------- shared pieces ---------- */
+
+.wordmark {
+  margin: 0;
+  font-family: var(--font-numeric);
+  font-weight: 600;
+  font-size: var(--step-1);
+  letter-spacing: 0.02em;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button--primary {
+  background: var(--ink);
+  color: var(--paper-raised);
+}
+.button--primary[aria-disabled='true'] {
+  background: color-mix(in srgb, var(--ink) 35%, var(--paper));
+}
+
+.button--quiet {
+  background: transparent;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0 12px;
+}
+
+.field-error {
+  margin: 6px 0 0;
+  font-size: var(--step--1);
+  color: var(--chalk-bad);
+}
