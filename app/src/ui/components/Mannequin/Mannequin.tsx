@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import type { BodyMeasurements } from '../../../domain/body';
 import type { GarmentFit, ZoneFit } from '../../../domain/fit';
 import type { Garment } from '../../../domain/garments';
-import { bodyGeometry, bottomShape, topShape, type Marker } from './geometry';
+import { bodyGeometry, bottomShape, type Marker } from './geometry';
+import { topShape } from './topShape';
 import './Mannequin.css';
 
 export interface WornGarment {
@@ -90,10 +91,27 @@ export function Mannequin({ body, top, bottom, showFit = true, className }: Mann
         />
       )}
       {topDraw && top && (
-        <g className={garmentClass(topDraw.approximate)} style={{ fill: top.garment.color }}>
-          <path d={topDraw.sleeves[0]} />
-          <path d={topDraw.sleeves[1]} />
-          <path d={topDraw.body} />
+        <g>
+          <g className={garmentClass(topDraw.approximate)} style={{ fill: top.garment.color }}>
+            <path d={topDraw.body} />
+          </g>
+          <g className="mannequin__creases" aria-hidden="true">
+            {topDraw.folds.map((d, i) => (
+              <path key={`fold-${i}`} className="mannequin__fold" d={d} />
+            ))}
+            {topDraw.strain.map((d, i) => (
+              <path key={`strain-${i}`} className="mannequin__strain" d={d} />
+            ))}
+          </g>
+          {/* Relaxed arms hang in front of the shirt's sides; the sleeves then cover their tops. */}
+          <g className="mannequin__form">
+            <path d={topDraw.arms[0]} />
+            <path d={topDraw.arms[1]} />
+          </g>
+          <g className={garmentClass(topDraw.approximate)} style={{ fill: top.garment.color }}>
+            <path d={topDraw.sleeves[0]} />
+            <path d={topDraw.sleeves[1]} />
+          </g>
         </g>
       )}
 

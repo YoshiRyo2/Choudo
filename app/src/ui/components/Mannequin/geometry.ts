@@ -43,15 +43,15 @@ export function smoothPath(pts: Pt[], closed: boolean, k = 1 / 6): string {
 }
 
 /** Right-side outline (top to bottom) + its mirror image back up the left side. */
-function mirrored(right: Pt[]): Pt[] {
+export function mirrored(right: Pt[]): Pt[] {
   const left = [...right].reverse().map((p) => ({ ...p, x: -p.x }));
   return [...right, ...left];
 }
 
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 /** Linear interpolation of x along a top-to-bottom list of points. */
-function xAt(points: Pt[], y: number): number {
+export function xAt(points: Pt[], y: number): number {
   if (y <= points[0]!.y) return points[0]!.x;
   for (let i = 1; i < points.length; i++) {
     const a = points[i - 1]!;
@@ -100,8 +100,8 @@ export interface BodyGeometry {
   };
   half: { neck: number; shoulder: number; chest: number; waist: number; hip: number };
   head: { cx: number; cy: number; rx: number; ry: number };
-  /** Right arm (mirror for the left). */
-  arm: Limb;
+  /** Right arm (mirror for the left), with the elbow's distance down it. */
+  arm: Limb & { elbowCm: number };
   /** Right leg centre line at knee and ankle (mirror for the left). */
   leg: { kneeX: number; kneeHalf: number; ankleX: number; ankleHalf: number };
   /** Right-side torso outline, top to bottom, for width lookups. */
@@ -182,11 +182,14 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
 
   const armTop: Pt = { x: half.shoulder - 4.2, y: y.shoulder + 3 };
   const wristX = Math.max(half.hip, half.waist) + 5.5;
-  const arm: Limb = {
+  const armBottom = { x: wristX, y: armTop.y + m.armLengthCm * 0.97 };
+  const arm = {
     top: armTop,
-    bottom: { x: wristX, y: armTop.y + m.armLengthCm * 0.97 },
+    bottom: armBottom,
     halfTop: 5.2 * Math.sqrt(m.chestCm / 104),
     halfBottom: 2.8 * s,
+    // The upper arm is a little over half of shoulder-to-wrist.
+    elbowCm: 0.53 * Math.hypot(armBottom.x - armTop.x, armBottom.y - armTop.y),
   };
 
   return {
@@ -229,18 +232,24 @@ export function limbPoint(l: Limb, t: number): Pt {
   return { x: lerp(l.top.x, l.bottom.x, t), y: lerp(l.top.y, l.bottom.y, t) };
 }
 
-const limbHalf = (l: Limb, t: number) => lerp(l.halfTop, l.halfBottom, Math.min(t, 1));
+export const limbHalf = (l: Limb, t: number) => lerp(l.halfTop, l.halfBottom, Math.min(t, 1));
+
+/** A limb's length, its unit direction (top to bottom) and its outward normal. */
+export function limbFrame(l: Limb): { len: number; dir: Pt; normal: Pt } {
+  const dx = l.bottom.x - l.top.x;
+  const dy = l.bottom.y - l.top.y;
+  const len = Math.hypot(dx, dy) || 1;
+  return { len, dir: { x: dx / len, y: dy / len }, normal: { x: dy / len, y: -dx / len } };
+}
 
 /**
  * Outline of a limb segment from t0 to t1 (0 = shoulder, 1 = wrist), widened by
  * `padTop` / `padEnd` cm — sleeves are the arm plus a little room.
  */
 export function limbPath(l: Limb, t0: number, t1: number, padTop: number, padEnd: number): string {
-  const dx = l.bottom.x - l.top.x;
-  const dy = l.bottom.y - l.top.y;
-  const len = Math.hypot(dx, dy) || 1;
-  const nx = dy / len; // normal pointing outwards/right
-  const ny = -dx / len;
+  const { normal } = limbFrame(l);
+  const nx = normal.x; // pointing outwards/right
+  const ny = normal.y;
   const at = (t: number, side: 1 | -1, pad: number, corner = false): Pt => {
     const p = limbPoint(l, t);
     const w = limbHalf(l, t) + pad;
@@ -274,77 +283,6 @@ export function mirrorPath(d: string): string {
 export interface Marker {
   x: number;
   y: number;
-}
-
-export interface TopShape {
-  body: string;
-  sleeves: [string, string];
-  /** Where to pin each zone's fit marker. */
-  markers: Partial<Record<'chest' | 'waist' | 'length' | 'sleeve', Marker>>;
-  /** True when we couldn't trust the chart's girths, so the drawn width is a guess. */
-  approximate: boolean;
-}
-
-const SHORT_SLEEVE_CM = 20;
-const DRAPE = 0.97; // garment length is measured over the body, so it hangs a bit shorter
-
-export function topShape(g: BodyGeometry, garment: Garment, size: SizeMeasurements, bodyChestCm: number): TopShape {
-  const approximate = !garment.girthVerified || size.chest === undefined;
-  const chestCirc = approximate ? bodyChestCm * 1.08 : size.chest!;
-  const chestHalf = Math.max(halfWidth.chest(chestCirc), g.half.chest + 0.6);
-  const waistHalf =
-    !approximate && size.waist !== undefined
-      ? Math.max(halfWidth.waist(size.waist), g.half.waist + 0.6)
-      : Math.max(chestHalf * 0.97, g.half.waist + 0.6);
-  const shoulderHalf = Math.max((size.shoulder ?? g.half.shoulder * 2) / 2, g.half.shoulder - 1);
-
-  const lengthCm = size.length ?? g.y.hip - g.y.hps;
-  const hemY = g.y.hps + lengthCm * DRAPE;
-  const hemHalf = Math.max(hemY > g.y.waist ? waistHalf : chestHalf, bodyHalfAt(g, hemY) + 0.8);
-
-  const collarX = g.half.neck + 0.8;
-  const necklineDip = garment.type === 'button-up' || garment.type === 'polo' ? 1.5 : 3.5;
-
-  const right: Pt[] = [
-    { x: collarX, y: g.y.hps, corner: true },
-    { x: shoulderHalf, y: g.y.shoulder + 1.5 },
-    { x: chestHalf, y: g.y.armpit + 1 },
-    { x: chestHalf, y: g.y.chest },
-  ];
-  if (hemY > g.y.waist + 3) right.push({ x: waistHalf, y: g.y.waist });
-  right.push({ x: hemHalf, y: hemY, corner: true });
-
-  const left = [...right].reverse().map((p) => ({ ...p, x: -p.x }));
-  const body = smoothPath(
-    [...right, ...left, { x: 0, y: g.y.neckBase + necklineDip }],
-    true,
-  );
-
-  // Sleeves start at the garment's shoulder seam, which may sit lower on the arm
-  // than the body's shoulder (dropped shoulders on boxy cuts).
-  const armLen = Math.hypot(g.arm.bottom.x - g.arm.top.x, g.arm.bottom.y - g.arm.top.y);
-  const drop = Math.max(0, shoulderHalf - g.half.shoulder);
-  const long = garment.sleeve === 'long';
-  const sleeveCm = long
-    ? garment.sleeveDefinition === 'shoulder_to_cuff' && size.sleeve !== undefined
-      ? size.sleeve
-      : armLen + 1
-    : SHORT_SLEEVE_CM;
-  const tEnd = Math.min((sleeveCm + drop) / armLen, 1.12);
-  const sleeve = limbPath(g.arm, 0, tEnd, 1.8, long ? 0.9 : 2.4);
-  const cuff = limbPoint(g.arm, tEnd);
-
-  return {
-    body,
-    sleeves: [sleeve, mirrorPath(sleeve)],
-    markers: {
-      chest: { x: chestHalf, y: g.y.chest },
-      waist: { x: waistHalf, y: g.y.waist },
-      length: { x: hemHalf, y: hemY },
-      sleeve: { x: cuff.x + limbHalf(g.arm, tEnd) + 1, y: cuff.y },
-    },
-    approximate,
-  };
 }
 
 export interface BottomShape {

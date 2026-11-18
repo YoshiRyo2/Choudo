@@ -29,6 +29,21 @@
   transition: d 220ms ease;
 }
 
+/* Folds and pull lines: darker or lighter than whatever colour the garment is. */
+.mannequin__creases {
+  fill: none;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.mannequin__fold {
+  stroke: color-mix(in srgb, var(--ink) 22%, transparent);
+  stroke-width: 0.35;
+}
+.mannequin__strain {
+  stroke: color-mix(in srgb, var(--ink) 40%, transparent);
+  stroke-width: 0.3;
+}
+
 /* The chart didn't say flat vs. full circumference: dashed edge = width is our guess. */
 .mannequin__garment.is-approximate {
   stroke-dasharray: 1.4 1;
