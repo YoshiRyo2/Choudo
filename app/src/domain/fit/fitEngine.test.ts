@@ -142,6 +142,20 @@ describe('fitGarment', () => {
     expect(fit.zones[1]?.bodySource).toBe('estimated');
   });
 
+  it('returns bands that agree with the label for every zone', () => {
+    for (const id of ['knightweave-tee', 'fieldline-oxford', 'fieldline-jogger', 'corvo-slim-jean']) {
+      const g = findGarment(id)!;
+      for (const fit of fitAllSizes(body, g)) {
+        for (const z of fit.zones) {
+          if (z.diffCm === null) continue;
+          const band = z.bands.find((b) => z.diffCm! >= b.from && z.diffCm! <= b.to);
+          expect(band?.label, `${id} ${fit.sizeLabel} ${z.zone}`).toBe(z.label);
+          expect(band?.tone).toBe(z.tone);
+        }
+      }
+    }
+  });
+
   it('throws for a size the garment does not have', () => {
     expect(() => fitGarment(body, findGarment('knightweave-tee')!, 'XXXL')).toThrow();
   });

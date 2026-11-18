@@ -41,6 +41,18 @@ export interface ZoneFit {
   bodySource: MeasurementSource;
   /** Plain-language reason, set when label is "unknown". */
   note?: string;
+  /**
+   * The label ranges for this zone, in cm of difference, lowest first. Lets the UI
+   * draw a scale without knowing the rules. Ends are ±Infinity.
+   */
+  bands: FitBand[];
+}
+
+export interface FitBand {
+  from: number;
+  to: number;
+  label: Exclude<FitLabel, 'unknown'>;
+  tone: Exclude<FitTone, 'unknown'>;
 }
 
 export interface GarmentFit {
@@ -131,11 +143,38 @@ function unknownReason(spec: ZoneSpec, garment: Garment, garmentCm: number | und
   return null;
 }
 
+function bandsFor(rule: GirthRule | LengthRule, tightAllowanceCm: number): FitBand[] {
+  if (rule.kind === 'girth') {
+    const tight = rule.tightBelow - tightAllowanceCm;
+    return [
+      { from: -Infinity, to: tight, label: 'tight', tone: 'bad' },
+      { from: tight, to: rule.fittedMax, label: 'fitted', tone: 'good' },
+      { from: rule.fittedMax, to: rule.relaxedMax, label: 'relaxed', tone: 'good' },
+      { from: rule.relaxedMax, to: Infinity, label: 'loose', tone: 'warn' },
+    ];
+  }
+  const far = LENGTH_FAR_MULTIPLIER;
+  return [
+    { from: -Infinity, to: rule.shortBelow * far, label: 'short', tone: 'bad' },
+    { from: rule.shortBelow * far, to: rule.shortBelow, label: 'short', tone: 'warn' },
+    { from: rule.shortBelow, to: rule.longAbove, label: 'good', tone: 'good' },
+    { from: rule.longAbove, to: rule.longAbove * far, label: 'long', tone: 'warn' },
+    { from: rule.longAbove * far, to: Infinity, label: 'long', tone: 'bad' },
+  ];
+}
+
 function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, size: SizeMeasurements): ZoneFit {
   const bodyCm = body.measurements[spec.bodyKey];
   const bodySource = body.sources[spec.bodyKey];
   const garmentCm = size[spec.garmentKey];
-  const base = { zone: spec.zone, kind: spec.rule.kind, bodyCm, bodySource } as const;
+  const tightAllowanceCm = STRETCH_ALLOWANCE[garment.stretch] * bodyCm;
+  const base = {
+    zone: spec.zone,
+    kind: spec.rule.kind,
+    bodyCm,
+    bodySource,
+    bands: bandsFor(spec.rule, tightAllowanceCm),
+  } as const;
 
   const reason = unknownReason(spec, garment, garmentCm);
   if (reason !== null || garmentCm === undefined) {
@@ -152,7 +191,7 @@ function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, size: SizeMe
   const diffCm = garmentCm - bodyCm;
   const label =
     spec.rule.kind === 'girth'
-      ? labelGirth(diffCm, spec.rule, STRETCH_ALLOWANCE[garment.stretch] * bodyCm)
+      ? labelGirth(diffCm, spec.rule, tightAllowanceCm)
       : labelLength(diffCm, spec.rule);
   return { ...base, label, tone: toneFor(label, diffCm, spec.rule), diffCm, garmentCm };
 }
