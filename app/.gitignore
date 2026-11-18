@@ -1,3 +1,8 @@
 node_modules
 dist
 *.tsbuildinfo
+
+# Product photos: not ours to redistribute. See photo-sources/README.md.
+/photo-sources/*
+!/photo-sources/README.md
+/public/garments/

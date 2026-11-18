@@ -8,7 +8,25 @@
       "category": "top",
       "type": "tee",
       "sizing": "unisex",
-      "color": "#a7a9ac",
+      "color": "#bb643b",
+      "image": {
+        "file": "garments/gildan-5000-front.png",
+        "photographedSize": null,
+        "landmarks": {
+          "collarLeft": { "x": 193, "y": 9 },
+          "collarRight": { "x": 311, "y": 9 },
+          "shoulderLeft": { "x": 72, "y": 72 },
+          "shoulderRight": { "x": 428, "y": 72 },
+          "armpitLeft": { "x": 114, "y": 279 },
+          "armpitRight": { "x": 391, "y": 279 },
+          "hemLeft": { "x": 101, "y": 593 },
+          "hemRight": { "x": 411, "y": 593 },
+          "sleeveOuterLeft": { "x": 4, "y": 223 },
+          "sleeveInnerLeft": { "x": 108, "y": 271 },
+          "sleeveOuterRight": { "x": 502, "y": 222 },
+          "sleeveInnerRight": { "x": 400, "y": 272 }
+        }
+      },
       "sleeve": "short",
       "stretch": "none",
       "chart": { "unit": "in", "girth": "flat" },
