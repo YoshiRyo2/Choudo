@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
 import { fitAllSizes, recommendSize, type GarmentFit } from '../../domain/fit';
 import { findGarment, garmentsByCategory, type Garment, type GarmentCategory } from '../../domain/garments';
+import { FitReadout } from '../components/FitReadout';
 import { GarmentCarousel } from '../components/GarmentCarousel';
 import { Mannequin, type WornGarment } from '../components/Mannequin/Mannequin';
 import { SegmentedControl } from '../components/SegmentedControl';
@@ -115,12 +116,15 @@ export function FittingRoom({ body, units, onUnitsChange, onEditBody }: FittingR
         />
 
         {active && (
-          <SizePicker
-            fits={active.fits}
-            selected={active.size}
-            recommended={active.recommended}
-            onSelect={chooseSize}
-          />
+          <>
+            <SizePicker
+              fits={active.fits}
+              selected={active.size}
+              recommended={active.recommended}
+              onSelect={chooseSize}
+            />
+            <FitReadout garment={active.garment} fit={active.fit} units={units} onEditBody={onEditBody} />
+          </>
         )}
       </section>
     </div>

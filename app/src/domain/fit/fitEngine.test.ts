@@ -106,6 +106,8 @@ describe('fitGarment', () => {
     expect(chest.diffCm).toBeNull();
     expect(chest.note).toMatch(/flat or all the way round/);
     expect(fit.zones.find((z) => z.zone === 'length')?.label).not.toBe('unknown');
+    // A good length alone must not make the size look like a good fit.
+    expect(fit.overall).toBe('unknown');
   });
 
   it('scores waist and sleeve when a long-sleeve shirt lists them', () => {

@@ -59,7 +59,7 @@ export interface GarmentFit {
   garmentId: string;
   sizeLabel: string;
   zones: ZoneFit[];
-  /** Worst tone across zones we could score. */
+  /** Worst tone across zones; "unknown" if a girth couldn't be checked. See overallTone. */
   overall: FitTone;
 }
 
@@ -207,11 +207,22 @@ export function fitGarment(body: BodyModel, garment: Garment, sizeLabel: string)
   const zones = zonesFor(garment, size.measurements).map((spec) =>
     fitZone(spec, body, garment, size.measurements),
   );
-  const overall = zones.reduce<FitTone>(
-    (worst, z) => (TONE_RANK[z.tone] > TONE_RANK[worst] ? z.tone : worst),
+  return { garmentId: garment.id, sizeLabel, zones, overall: overallTone(zones) };
+}
+
+/**
+ * Worst tone across the zones — except that we never call a size "good" or
+ * "warn" when a girth couldn't be checked, since girth is what decides whether a
+ * size fits at all. A definite "bad" (say, far too short) is still reported.
+ */
+export function overallTone(zones: ZoneFit[]): FitTone {
+  const worst = zones.reduce<FitTone>(
+    (acc, z) => (TONE_RANK[z.tone] > TONE_RANK[acc] ? z.tone : acc),
     'unknown',
   );
-  return { garmentId: garment.id, sizeLabel, zones, overall };
+  if (worst === 'bad') return 'bad';
+  if (zones.some((z) => z.kind === 'girth' && z.label === 'unknown')) return 'unknown';
+  return worst;
 }
 
 /** fitGarment for every size, in chart order. */

@@ -25,18 +25,19 @@ Anyone shopping for clothes online who wants to know how a size will fit before 
 
 ## v1 scope
 
-- One category: crew-neck tees
-- Three brands: [brand 1], [brand 2], [brand 3]
-- Seven body measurements: height, chest, waist, hips, shoulder width, sleeve length, inseam
+- Tops and bottoms (tees, long sleeves, polos, button-ups, jeans, chinos, joggers, trousers)
+- Body input: height and weight, plus optional chest, waist, hips and inseam to replace our estimates
+- A 2D mannequin scaled to the body, wearing the chosen top and bottom
+- Fit per zone (chest, waist, hips, length, sleeve, inseam) with the difference in cm or inches
 - Guest mode only, with data stored on the device
-- Size comparison with a confidence label
+- Size comparison with a confidence label (estimated vs. measured body numbers)
 
 ## Non-goals for v1
 
 - Photos, camera, or AR
 - User accounts
-- Categories beyond tees
 - Automated scraping of brand sites
+- Photo-based or 3D avatars (the mannequin is one component so it can be swapped later)
 
 ## Success criteria
 
@@ -45,8 +46,28 @@ Anyone shopping for clothes online who wants to know how a size will fit before 
 
 ## Status
 
-Planning. See the [scope document](link) and the [issues](link) for the phase plan.
+v1 slice works end to end: body input -> swipe tops and bottoms -> pick a size -> see the fit.
+Garment data is a hand-made seed: the Knightweave and Lands' End tees are real (copied from
+`data/tees.csv`); everything else is marked placeholder and must be replaced with real charts.
 
 ## Getting started
 
-[Setup instructions go here once the project has code.]
+The web app lives in `app/` (React + TypeScript + Vite). You need Node 20 or newer.
+
+```bash
+cd app
+npm install
+npm run dev      # open the printed URL; use the "Network" URL to try it on your phone
+npm test         # unit tests (body model, garment data, fit engine, UI helpers)
+npm run check    # typecheck + tests — run before every commit
+```
+
+Where things live:
+
+- `app/src/domain/body/` — height + weight -> body measurements (swap the estimator here)
+- `app/src/domain/garments/seed.json` — garment size charts
+- `app/src/domain/fit/` — the fit engine; thresholds are in `rules.ts`
+- `app/src/ui/` — screens and components
+
+The original Python chest-fit script is still in `src/` and `tests/` as the reference spec
+(`python -m pytest`). See `CLAUDE.md` for project rules and conventions.
