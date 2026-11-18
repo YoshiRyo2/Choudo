@@ -14,6 +14,12 @@
  * The cut-out keeps pixels whose hue and saturation match the garment — a model's
  * skin is the same hue as an orange tee but far less saturated — then keeps only
  * the region connected to a seed point on the garment and fills small holes.
+ *
+ * Optionally (`bleed` in the config) the garment's edge colours are smeared
+ * outward that many pixels, filling the background, the neck opening and any
+ * notches where hands covered the hem. The app warps the photo onto outlines
+ * that never match the photo's exactly; the bleed means a slightly larger
+ * outline still gets cloth texture at its edges instead of a gap.
  */
 
 import { readFile } from 'node:fs/promises';
@@ -92,9 +98,12 @@ async function cutOut(photo) {
       x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
     }
   }
-  const m = 4;
-  x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m);
-  x1 = Math.min(w - 1, x1 + m); y1 = Math.min(h - 1, y1 + m);
+  const bleed = photo.bleed ?? 0;
+  const m = 4 + bleed;
+  if (x0 - m < 0 || y0 - m < 0 || x1 + m > w - 1 || y1 + m > h - 1) {
+    throw new Error(`${photo.id}: crop leaves no room for a ${m}px margin around the garment; widen it`);
+  }
+  x0 -= m; y0 -= m; x1 += m; y1 += m;
   const ow = x1 - x0 + 1;
   const oh = y1 - y0 + 1;
   const out = Buffer.alloc(ow * oh * 4);
@@ -106,11 +115,76 @@ async function cutOut(photo) {
       out[di + 3] = mask[(y + y0) * w + x + x0] ? 255 : 0;
     }
   }
+  if (bleed > 0) bleedOut(out, ow, oh, bleed);
   const file = join(APP, photo.out);
   await sharp(out, { raw: { width: ow, height: oh, channels: 4 } }).png().toFile(file);
   const hex = `#${median.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
-  console.log(`${photo.id}: wrote ${photo.out} (${ow}×${oh}), garment colour ${hex}`);
+  console.log(`${photo.id}: wrote ${photo.out} (${ow}×${oh}, garment from ${x0 + m},${y0 + m} in the crop), garment colour ${hex}`);
   return file;
+}
+
+/**
+ * Grow opaque pixels outward one ring at a time, `rings` times. Each new pixel
+ * takes the average colour of its opaque 8-neighbours.
+ */
+function bleedOut(rgba, w, h, rings) {
+  // The garment's outermost pixels are usually in shadow, and smearing them
+  // makes dark streaks; start from a little way inside the edge instead.
+  const EDGE = 3;
+  const garment = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) garment[i] = rgba[i * 4 + 3] ? 1 : 0;
+  for (let k = 0; k < EDGE; k++) {
+    const edge = [];
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        if (rgba[i * 4 + 3] && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => !rgba[((y + dy) * w + x + dx) * 4 + 3])) edge.push(i);
+      }
+    }
+    for (const i of edge) rgba[i * 4 + 3] = 0;
+  }
+  rings += EDGE;
+  for (let ring = 0; ring < rings; ring++) {
+    const fills = [];
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (rgba[(y * w + x) * 4 + 3]) continue;
+        let [r, g, b, n] = [0, 0, 0, 0];
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx, ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+            const j = (ny * w + nx) * 4;
+            if (!rgba[j + 3]) continue;
+            r += rgba[j]; g += rgba[j + 1]; b += rgba[j + 2]; n++;
+          }
+        }
+        if (n) fills.push([(y * w + x) * 4, r / n, g / n, b / n]);
+      }
+    }
+    for (const [i, r, g, b] of fills) {
+      rgba[i] = r; rgba[i + 1] = g; rgba[i + 2] = b; rgba[i + 3] = 255;
+    }
+  }
+  // Soften the smeared part (outside the original garment) so it reads as plain cloth.
+  for (let pass = 0; pass < 3; pass++) {
+    const copy = Uint8ClampedArray.from(rgba);
+    for (let y = 2; y < h - 2; y++) {
+      for (let x = 2; x < w - 2; x++) {
+        if (garment[y * w + x] || !rgba[(y * w + x) * 4 + 3]) continue;
+        for (let c = 0; c < 3; c++) {
+          let sum = 0, n = 0;
+          for (let dy = -2; dy <= 2; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
+              const j = ((y + dy) * w + x + dx) * 4;
+              if (copy[j + 3]) { sum += copy[j + c]; n++; }
+            }
+          }
+          rgba[(y * w + x) * 4 + c] = sum / n;
+        }
+      }
+    }
+  }
 }
 
 /** 4-connected flood fill from the start points over cells where test(value) holds. */
@@ -146,15 +220,16 @@ async function overlay(photo, file) {
   const pt = (name) => lm[name];
   const outline = [
     'collarRight', 'shoulderRight', 'sleeveOuterRight', 'sleeveInnerRight', 'armpitRight', 'hemRight',
-    'hemLeft', 'armpitLeft', 'sleeveInnerLeft', 'sleeveOuterLeft', 'shoulderLeft', 'collarLeft',
+    'hemLeft', 'armpitLeft', 'sleeveInnerLeft', 'sleeveOuterLeft', 'shoulderLeft', 'collarLeft', 'neckFront',
   ].map((n) => `${pt(n).x},${pt(n).y}`).join(' ');
   const marks = Object.entries(lm).map(([name, { x, y }]) => {
     const right = name.endsWith('Right');
-    const tx = right ? x + 12 : x - 12;
+    const centre = !right && !name.endsWith('Left');
+    const tx = centre ? x : right ? x + 12 : x - 12;
     // Armpit and sleeve-inner points sit close together: label one below, one above.
-    const dy = name.startsWith('armpit') ? 22 : name.startsWith('sleeveInner') ? -6 : 5;
+    const dy = name.startsWith('armpit') ? 22 : name.startsWith('sleeveInner') ? -6 : centre ? 26 : 5;
     return `<circle cx="${x}" cy="${y}" r="6" fill="#f2c12e" stroke="#1b2433" stroke-width="2.5"/>
-      <text x="${tx}" y="${y + dy}" text-anchor="${right ? 'start' : 'end'}" font-family="Helvetica, Arial" font-size="17" font-weight="700" fill="#1b2433" stroke="#ffffff" stroke-width="4" paint-order="stroke">${name}</text>`;
+      <text x="${tx}" y="${y + dy}" text-anchor="${centre ? 'middle' : right ? 'start' : 'end'}" font-family="Helvetica, Arial" font-size="17" font-weight="700" fill="#1b2433" stroke="#ffffff" stroke-width="4" paint-order="stroke">${name}</text>`;
   }).join('\n');
   const pad = 190;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width + 2 * pad}" height="${height + 40}">

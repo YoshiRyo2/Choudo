@@ -115,6 +115,10 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'categor
   for (const part of ['collar', 'shoulder', 'armpit', 'hem', 'sleeveOuter', 'sleeveInner'] as const) {
     if (!(l[`${part}Left`].x < l[`${part}Right`].x)) problems.push(`${part}Left must be left of ${part}Right`);
   }
+  const n = l.neckFront;
+  if (!(n.x > l.collarLeft.x && n.x < l.collarRight.x && n.y > Math.max(l.collarLeft.y, l.collarRight.y))) {
+    problems.push('neckFront must sit between the collar points and below them');
+  }
   for (const side of ['Left', 'Right'] as const) {
     const [c, s, a, h] = [l[`collar${side}`], l[`shoulder${side}`], l[`armpit${side}`], l[`hem${side}`]];
     if (!(c.y < a.y && s.y < a.y && a.y < h.y)) {

@@ -105,6 +105,7 @@ describe('garment photos', () => {
     landmarks: {
       collarLeft: { x: 380, y: 60 },
       collarRight: { x: 620, y: 60 },
+      neckFront: { x: 500, y: 120 },
       shoulderLeft: { x: 230, y: 110 },
       shoulderRight: { x: 770, y: 110 },
       armpitLeft: { x: 260, y: 360 },
@@ -153,11 +154,13 @@ describe('garment photos', () => {
       collarLeft: photo.landmarks.collarRight,
       collarRight: photo.landmarks.collarLeft,
       hemLeft: { x: 265, y: 100 },
+      neckFront: { x: 500, y: 40 },
       sleeveOuterRight: { x: 700, y: 420 },
     };
     const problems = validateSeed([{ ...base, image: { ...photo, landmarks: swapped } }]).join('\n');
     expect(problems).toMatch(/collarLeft must be left of collarRight/);
     expect(problems).toMatch(/left side must run/);
     expect(problems).toMatch(/right sleeve opening/);
+    expect(problems).toMatch(/neckFront must sit between/);
   });
 });

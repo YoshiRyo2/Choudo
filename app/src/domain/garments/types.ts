@@ -64,6 +64,8 @@ export interface GarmentSize {
 export const TOP_LANDMARKS = [
   'collarLeft',
   'collarRight',
+  // Bottom of the front neckline, on the centre line, so the collar lands on the drawn neckline.
+  'neckFront',
   'shoulderLeft',
   'shoulderRight',
   'armpitLeft',
