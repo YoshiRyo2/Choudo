@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../../../domain/body';
 import { findGarment } from '../../../domain/garments';
 import { bodyGeometry } from './geometry';
-import { applyAffine, triangleAffine, warpPieces, type XY } from './photoWarp';
+import { SLEEVE_STRIPS, applyAffine, sleeveStrips, triangleAffine, warpPieces, type XY } from './photoWarp';
 import { topShape } from './topShape';
 
 const tri = (...p: number[]): [XY, XY, XY] => [
@@ -46,8 +46,9 @@ describe('warpPieces for the Gildan 5000 photo', () => {
     it(`sends every photo landmark to its outline point at ${label}`, () => {
       const size = garment.sizes.find((s) => s.label === label)!.measurements;
       const shape = topShape(g, garment, size, body.chestCm);
-      const pieces = warpPieces(photo, shape.landmarks, shape.sleeveArmpits);
+      const pieces = warpPieces(photo, shape.landmarks, shape.sleeveEdges);
       expect(pieces.filter((p) => p.region === 'body')).toHaveLength(12);
+      // A worn tee photographed with the arms down: no real inner sleeve edge, so one quad per sleeve.
       expect(pieces.filter((p) => p.region === 'sleeveRight')).toHaveLength(2);
       expect(pieces.filter((p) => p.region === 'sleeveLeft')).toHaveLength(2);
 
@@ -73,7 +74,7 @@ describe('warpPieces for the Gildan 5000 photo', () => {
   it('stretches only the outer pieces past the landmark outline', () => {
     const size = garment.sizes.find((s) => s.label === 'XL')!.measurements;
     const shape = topShape(g, garment, size, body.chestCm);
-    const pieces = warpPieces(photo, shape.landmarks, shape.sleeveArmpits);
+    const pieces = warpPieces(photo, shape.landmarks, shape.sleeveEdges);
     const torso = pieces.filter((p) => p.region === 'body');
     // The pieces on the centre line under the neck and across the chest touch no outside edge.
     expect(torso.filter((p) => p.clip.length === 3)).toHaveLength(4);
@@ -87,8 +88,44 @@ describe('warpPieces for the Gildan 5000 photo', () => {
   it('keeps the photo the right way up and unmirrored', () => {
     const size = garment.sizes.find((s) => s.label === 'M')!.measurements;
     const shape = topShape(g, garment, size, body.chestCm);
-    for (const p of warpPieces(photo, shape.landmarks, shape.sleeveArmpits)) {
+    for (const p of warpPieces(photo, shape.landmarks, shape.sleeveEdges)) {
       expect(p.transform.a * p.transform.d - p.transform.b * p.transform.c).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('warpPieces for a long sleeve laid flat (the black henley)', () => {
+  const garment = findGarment('ryo-black-henley')!;
+  const photo = garment.image!.landmarks;
+  const body = estimateBody({ heightCm: 176, weightKg: 78, sizing: 'mens' }).measurements;
+  const shape = topShape(bodyGeometry(body), garment, garment.sizes[0]!.measurements, body.chestCm);
+  const pieces = warpPieces(photo, shape.landmarks, shape.sleeveEdges);
+
+  it('cuts each sleeve into strips', () => {
+    expect(sleeveStrips(photo, 'Left')).toBe(SLEEVE_STRIPS);
+    expect(pieces.filter((p) => p.region === 'sleeveRight')).toHaveLength(2 * SLEEVE_STRIPS);
+    expect(pieces.filter((p) => p.region === 'sleeveLeft')).toHaveLength(2 * SLEEVE_STRIPS);
+  });
+
+  it('maps the whole photo sleeve onto the whole drawn sleeve, root to cuff', () => {
+    const near = (p: XY, q: XY) => Math.hypot(p.x - q.x, p.y - q.y) < 1e-6;
+    for (const side of ['Left', 'Right'] as const) {
+      const region = `sleeve${side}`;
+      const edges = side === 'Left' ? shape.sleeveEdges.left : shape.sleeveEdges.right;
+      const sends = (from: XY, to: XY) =>
+        pieces.some((p) => p.region === region && near(applyAffine(p.transform, from), to));
+      expect(sends(photo[`shoulder${side}`], edges.outer[0]!)).toBe(true);
+      expect(sends(photo[`sleeveOuter${side}`], edges.outer[SLEEVE_STRIPS]!)).toBe(true);
+      expect(sends(photo[`sleeveInner${side}`], edges.inner[SLEEVE_STRIPS]!)).toBe(true);
+      // Halfway along the photo's outer edge lands halfway down the drawn sleeve.
+      const half = { x: (photo[`shoulder${side}`].x + photo[`sleeveOuter${side}`].x) / 2, y: (photo[`shoulder${side}`].y + photo[`sleeveOuter${side}`].y) / 2 };
+      expect(sends(half, edges.outer[SLEEVE_STRIPS / 2]!)).toBe(true);
+    }
+    // The cuff reaches the wrist end of the arm, well below the armpit.
+    expect(shape.sleeveEdges.right.outer[SLEEVE_STRIPS]!.y).toBeGreaterThan(shape.landmarks.hemRight.y - 20);
+  });
+
+  it('keeps every piece the right way up', () => {
+    for (const p of pieces) expect(p.transform.a * p.transform.d - p.transform.b * p.transform.c).toBeGreaterThan(0);
   });
 });
