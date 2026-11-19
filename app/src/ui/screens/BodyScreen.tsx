@@ -30,6 +30,8 @@ interface BodyScreenProps {
   onCancel?: () => void;
   /** Edit body only: the tee or style other tops are judged against. */
   fitReference?: FitReferenceProps;
+  /** Edit body only: the hidden switch for the 10-person fit test. */
+  testMode?: { on: boolean; onChange: (on: boolean) => void };
 }
 
 interface FitReferenceProps {
@@ -96,7 +98,7 @@ function errorMessages(input: BodyInput | null, units: UnitSystem): Partial<Reco
   return out;
 }
 
-export function BodyScreen({ initial, units, onDone, onCancel, fitReference }: BodyScreenProps) {
+export function BodyScreen({ initial, units, onDone, onCancel, fitReference, testMode }: BodyScreenProps) {
   const [form, setForm] = useState<BodyForm>(() =>
     initial ? inputToForm(initial, units) : { ...EMPTY_FORM, units },
   );
@@ -295,6 +297,16 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference }: B
         <p id={`${formId}-privacy`} className="body-screen__privacy">
           Saved on this device only. No account, no photos, nothing sent anywhere.
         </p>
+
+        {testMode && (
+          <details className="testers" open={testMode.on}>
+            <summary>For fit testers</summary>
+            <label className="testers__switch">
+              <input type="checkbox" checked={testMode.on} onChange={(e) => testMode.onChange(e.target.checked)} />
+              Test mode: record how clothes really fit, and download the results
+            </label>
+          </details>
+        )}
       </form>
 
       <aside className="body-screen__preview" aria-live="polite">

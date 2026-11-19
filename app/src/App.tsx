@@ -16,11 +16,14 @@ import { usePersistentState } from './ui/state/usePersistentState';
 import {
   EMPTY_OUTFIT,
   isAnchor,
+  isBoolean,
   isFitStyle,
+  isFitTestList,
   isOutfit,
   isStoredBody,
   isUnitSystem,
   STORAGE_KEYS,
+  type FitTestRecord,
   type Outfit,
   type UnitSystem,
 } from './ui/state/stored';
@@ -37,6 +40,8 @@ export function App() {
   const [anchor, setAnchor] = usePersistentState<Anchor | null>(STORAGE_KEYS.anchor, null, isAnchor);
   const [fitStyle, setFitStyle] = usePersistentState<FitStyle | null>(STORAGE_KEYS.fitStyle, null, isFitStyle);
   const preference = useMemo(() => preferenceSpec(anchor, fitStyle), [anchor, fitStyle]);
+  const [testMode, setTestMode] = usePersistentState<boolean>(STORAGE_KEYS.testMode, false, isBoolean);
+  const [fitTests, setFitTests] = usePersistentState<FitTestRecord[]>(STORAGE_KEYS.fitTests, [], isFitTestList);
   const closet = useCloset();
   /** The main tabs, Edit body, or the fit-reference step (and where it goes back to). */
   const [screen, setScreen] = useState<'tabs' | 'body' | 'fit'>('tabs');
@@ -78,6 +83,7 @@ export function App() {
           }
         }}
         onCancel={body ? () => setScreen('tabs') : undefined}
+        testMode={body ? { on: testMode, onChange: setTestMode } : undefined}
         fitReference={
           body
             ? {
@@ -124,6 +130,16 @@ export function App() {
           nextOutfitName={nextOutfitName(closet.outfits)}
           onUnitsChange={setUnits}
           onEditBody={editBody}
+          testing={
+            testMode
+              ? {
+                  records: fitTests,
+                  anchor,
+                  onAdd: (record) => setFitTests([...fitTests, record]),
+                  onClear: () => setFitTests([]),
+                }
+              : undefined
+          }
         />
       )}
       {tab === 'discover' && (

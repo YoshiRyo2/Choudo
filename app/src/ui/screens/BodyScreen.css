@@ -205,3 +205,24 @@
   gap: 8px;
   align-items: center;
 }
+
+/* ---------- hidden switch for fit testers ---------- */
+
+.testers {
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+.testers summary {
+  cursor: pointer;
+  width: max-content;
+}
+.testers__switch {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 8px;
+  color: var(--ink);
+}
+.testers__switch input {
+  margin-top: 3px;
+}

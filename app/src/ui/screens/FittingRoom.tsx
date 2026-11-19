@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
-import { fitAllSizes, measurementHint, type GarmentFit, type GarmentOdds, type PreferenceSpec } from '../../domain/fit';
+import { fitAllSizes, measurementHint, type Anchor, type GarmentFit, type GarmentOdds, type PreferenceSpec } from '../../domain/fit';
 import { findGarment, garmentsByCategory, type Garment, type GarmentCategory } from '../../domain/garments';
 import { FitReadout } from '../components/FitReadout';
 import { FitSheet } from '../components/FitSheet';
@@ -10,9 +10,12 @@ import { NameForm } from '../components/NameForm';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Sheet } from '../components/Sheet';
 import { SizePicker } from '../components/SizePicker';
+import { makeId } from '../state/closet';
+import { makeFitTest, predictionFor } from '../state/fitTests';
 import { garmentOdds } from '../state/odds';
 import { defaultSize, resolveOutfit } from '../state/outfit';
-import type { Outfit, UnitSystem } from '../state/stored';
+import type { FitTestRecord, Outfit, UnitSystem } from '../state/stored';
+import { FitTestPanel } from './FitTestPanel';
 import './FittingRoom.css';
 
 interface FittingRoomProps {
@@ -29,6 +32,14 @@ interface FittingRoomProps {
   nextOutfitName: string;
   onUnitsChange: (units: UnitSystem) => void;
   onEditBody: () => void;
+  /** Present when Test mode is on. */
+  testing?: {
+    records: FitTestRecord[];
+    /** The stored anchor, so a result says what the prediction was compared with. */
+    anchor: Anchor | null;
+    onAdd: (record: FitTestRecord) => void;
+    onClear: () => void;
+  };
 }
 
 const TOPS = garmentsByCategory('top');
@@ -53,6 +64,7 @@ export function FittingRoom({
   nextOutfitName,
   onUnitsChange,
   onEditBody,
+  testing,
 }: FittingRoomProps) {
   const model = useMemo(() => estimateBody(body), [body]);
   const outfit = useMemo(() => resolveOutfit(saved, model, preference), [saved, model, preference]);
@@ -190,6 +202,28 @@ export function FittingRoom({
               onEditBody={onEditBody}
             />
           </>
+        )}
+
+        {testing && (
+          <FitTestPanel
+            garment={browsing === 'top' && top ? top.garment : null}
+            size={browsing === 'top' && top ? top.size : null}
+            records={testing.records}
+            onClear={testing.onClear}
+            onSave={(answers) => {
+              if (!top) return;
+              const prediction = predictionFor({
+                body,
+                model,
+                garment: top.garment,
+                size: top.size,
+                preference,
+                anchor: testing.anchor,
+                odds: top.odds,
+              });
+              testing.onAdd(makeFitTest(makeId(), new Date().toISOString(), top.garment.id, top.size, answers, prediction));
+            }}
+          />
         )}
 
         {showDetails && active && (
