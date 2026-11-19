@@ -6,3 +6,7 @@ dist
 /photo-sources/*
 !/photo-sources/README.md
 /public/garments/
+
+# Size-chart snapshots: also not ours to redistribute. See chart-snapshots/README.md.
+/chart-snapshots/*
+!/chart-snapshots/README.md

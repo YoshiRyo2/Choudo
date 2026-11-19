@@ -2,45 +2,32 @@
  * Turning seed rows into app-ready garments, and checking the seed is sane.
  */
 
-import { inToCm } from '../units';
 import seed from './seed.json';
-import { TOP_LANDMARKS, type Garment, type GarmentCategory, type GarmentImage, type SeedGarment, type SizeMeasurements } from './types';
-
-const GIRTH_KEYS = ['chest', 'waist', 'hips'] as const;
-const LENGTH_KEYS = ['length', 'sleeve', 'shoulder', 'inseam', 'rise'] as const;
-
-/** Convert one size's numbers to cm, with girths as full circumferences. */
-export function normalizeMeasurements(
-  raw: SizeMeasurements,
-  chart: SeedGarment['chart'],
-): SizeMeasurements {
-  const toCm = (v: number) => (chart.unit === 'in' ? inToCm(v) : v);
-  const out: SizeMeasurements = {};
-  for (const key of GIRTH_KEYS) {
-    const v = raw[key];
-    if (v === undefined) continue;
-    // Flat measurements are half the circumference (same rule as src/fit.py).
-    // For "unknown" we keep the printed value but mark the garment unverified.
-    out[key] = toCm(chart.girth === 'flat' ? v * 2 : v);
-  }
-  for (const key of LENGTH_KEYS) {
-    const v = raw[key];
-    if (v !== undefined) out[key] = toCm(v);
-  }
-  return out;
-}
+import { normalizeSize } from './normalize';
+import {
+  MEASUREMENT_ORIGINS,
+  SOURCE_TIERS,
+  TOP_LANDMARKS,
+  type FitIntent,
+  type Garment,
+  type GarmentCategory,
+  type GarmentImage,
+  type LengthDefinition,
+  type MeasuredValue,
+  type SeedGarment,
+  type SizeMeasurements,
+} from './types';
 
 export function normalizeGarment(seedGarment: SeedGarment): Garment {
-  const { chart, ...rest } = seedGarment;
-  return {
+  const { chart, sizes, ...rest } = seedGarment;
+  const garment: Garment = {
     ...rest,
     girthVerified: chart.girth !== 'unknown',
-    sleeveDefinition: chart.sleeveDefinition,
-    sizes: seedGarment.sizes.map((s) => ({
-      label: s.label,
-      measurements: normalizeMeasurements(s.measurements, chart),
-    })),
+    sizes: sizes.map((s) => normalizeSize(s, chart)),
   };
+  if (chart.lengthDefinition !== undefined) garment.lengthDefinition = chart.lengthDefinition;
+  if (chart.sleeveDefinition !== undefined) garment.sleeveDefinition = chart.sleeveDefinition;
+  return garment;
 }
 
 /** Required measurements per category — without these we can't say anything useful. */
@@ -63,9 +50,7 @@ export function validateSeed(garments: SeedGarment[]): string[] {
     if (!/^#[0-9a-f]{6}$/i.test(g.color)) problems.push(`${where}: color must be #rrggbb`);
     if (g.category === 'top' && !g.sleeve) problems.push(`${where}: tops need a sleeve type`);
     if (g.category === 'bottom' && g.sleeve) problems.push(`${where}: bottoms can't have a sleeve`);
-    if (!g.source.placeholder && !g.source.url) {
-      problems.push(`${where}: real (non-placeholder) data must cite a source url`);
-    }
+    problems.push(...validateProvenance(g).map((p) => `${where}: ${p}`));
     if (g.sizes.length === 0) problems.push(`${where}: no sizes`);
     if (g.image !== undefined) {
       problems.push(...validateImage(g.image, g).map((p) => `${where} image: ${p}`));
@@ -80,13 +65,78 @@ export function validateSeed(garments: SeedGarment[]): string[] {
       for (const key of REQUIRED[g.category]) {
         if (size.measurements[key] === undefined) problems.push(`${at}: missing ${key}`);
       }
-      for (const [key, value] of Object.entries(size.measurements)) {
-        if (typeof value !== 'number' || !(value > 0)) {
-          problems.push(`${at}: ${key} must be a positive number`);
-        }
+      for (const [key, raw] of Object.entries(size.measurements)) {
+        problems.push(...validateValue(raw).map((p) => `${at}: ${key} ${p}`));
       }
     }
   }
+  return problems;
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const SNAPSHOT_FILE = /^chart-snapshots\/[\w.-]+\.(pdf|png|jpe?g|webp|html?)$/i;
+const FIT_INTENTS: readonly FitIntent[] = ['slim', 'regular', 'relaxed', 'oversized'];
+const LENGTH_DEFINITIONS: readonly LengthDefinition[] = ['hps', 'center_back', 'unknown'];
+
+/** Problems with where a garment's numbers came from (empty = OK). */
+export function validateProvenance(g: SeedGarment): string[] {
+  const problems: string[] = [];
+  const { source, chart, audit } = g;
+  if (!FIT_INTENTS.includes(g.fitIntent)) problems.push(`fitIntent must be one of ${FIT_INTENTS.join(', ')}`);
+
+  if (source.placeholder) {
+    if (source.tier !== undefined) problems.push('placeholder data has no source tier');
+  } else {
+    if (source.tier === undefined || !SOURCE_TIERS.includes(source.tier)) {
+      problems.push('real (non-placeholder) data needs a source tier, A to G');
+    }
+    // A user-measured garment (E) has no page to cite; every other tier does.
+    if (source.tier !== 'E' && !source.url) problems.push('real (non-placeholder) data must cite a source url');
+    if (!source.capturedOn) problems.push('real (non-placeholder) data needs capturedOn');
+  }
+  if (source.capturedOn !== undefined && !ISO_DATE.test(source.capturedOn)) {
+    problems.push(`capturedOn must be YYYY-MM-DD, got "${source.capturedOn}"`);
+  }
+  if (source.snapshot !== undefined && !SNAPSHOT_FILE.test(source.snapshot)) {
+    problems.push(`snapshot must be a pdf/image/html file under chart-snapshots/, got "${source.snapshot}"`);
+  }
+
+  if (g.category === 'top') {
+    if (chart.lengthDefinition === undefined || !LENGTH_DEFINITIONS.includes(chart.lengthDefinition)) {
+      problems.push(`tops need chart.lengthDefinition (${LENGTH_DEFINITIONS.join(', ')})`);
+    }
+  } else if (chart.lengthDefinition !== undefined) {
+    problems.push('bottoms have no top length: leave out chart.lengthDefinition');
+  }
+
+  if (audit !== undefined) {
+    if (!g.sizes.some((s) => s.label === audit.measuredSize)) {
+      problems.push(`audit measuredSize "${audit.measuredSize}" is not one of the garment's sizes`);
+    }
+    if (!ISO_DATE.test(audit.measuredOn)) problems.push(`audit measuredOn must be YYYY-MM-DD, got "${audit.measuredOn}"`);
+    if (typeof audit.afterWash !== 'boolean') problems.push('audit afterWash must be true or false');
+    if (audit.unit !== 'cm' && audit.unit !== 'in') problems.push('audit unit must be cm or in');
+    const entries = Object.entries(audit.measurements);
+    if (entries.length === 0) problems.push('audit has no measurements');
+    for (const [key, v] of entries) {
+      if (typeof v !== 'number' || !(v > 0)) problems.push(`audit ${key} must be a positive number`);
+    }
+  }
+  return problems;
+}
+
+/** Problems with one seed value: a positive number, or `{ value, origin, how? }`. */
+export function validateValue(raw: unknown): string[] {
+  if (typeof raw === 'number') return raw > 0 ? [] : ['must be a positive number'];
+  if (typeof raw !== 'object' || raw === null) return ['must be a positive number'];
+  const { value, origin, how } = raw as Partial<MeasuredValue>;
+  const problems: string[] = [];
+  if (typeof value !== 'number' || !(value > 0)) problems.push('must be a positive number');
+  if (origin === undefined || !MEASUREMENT_ORIGINS.includes(origin)) {
+    problems.push(`origin must be one of ${MEASUREMENT_ORIGINS.join(', ')}`);
+  }
+  if (origin === 'estimated' && !how) problems.push('is estimated: say how in "how"');
+  if (how !== undefined && typeof how !== 'string') problems.push('"how" must be text');
   return problems;
 }
 
@@ -133,7 +183,7 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'categor
   return problems;
 }
 
-const seedGarments = seed.garments as SeedGarment[];
+const seedGarments = seed.garments as unknown as SeedGarment[];
 
 /** Every garment in the catalogue, normalized. */
 export const GARMENTS: readonly Garment[] = seedGarments.map(normalizeGarment);

@@ -19,7 +19,8 @@ const base: SeedGarment = {
   color: '#000000',
   sleeve: 'short',
   stretch: 'none',
-  chart: { unit: 'in', girth: 'flat' },
+  fitIntent: 'regular',
+  chart: { unit: 'in', girth: 'flat', lengthDefinition: 'hps' },
   source: { placeholder: true },
   sizes: [{ label: 'M', measurements: { chest: 19, length: 28 } }],
 };
@@ -43,6 +44,19 @@ describe('seed.json', () => {
     expect(m?.measurements.length).toBeCloseTo(29 * 2.54);
   });
 
+  it('records where each Knightweave number came from', () => {
+    const m = findGarment('knightweave-tee')?.sizes.find((s) => s.label === 'M');
+    expect(m?.provenance.chest).toMatchObject({ origin: 'chart', printed: 20, unit: 'in' });
+    expect(m?.provenance.chest?.conversions).toHaveLength(2);
+  });
+
+  it('cites a tier and date for every real row', () => {
+    for (const g of GARMENTS.filter((g) => !g.source.placeholder)) {
+      expect(g.source.tier, g.id).toBeDefined();
+      expect(g.source.capturedOn, g.id).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
   it('marks the Lands’ End chest as unverified', () => {
     expect(findGarment('landsend-super-t')?.girthVerified).toBe(false);
   });
@@ -59,14 +73,14 @@ describe('normalizeGarment', () => {
   it('passes circumference cm values through', () => {
     const g = normalizeGarment({
       ...base,
-      chart: { unit: 'cm', girth: 'circumference' },
+      chart: { unit: 'cm', girth: 'circumference', lengthDefinition: 'hps' },
       sizes: [{ label: 'M', measurements: { chest: 100, length: 70 } }],
     });
     expect(g.sizes[0]?.measurements).toEqual({ chest: 100, length: 70 });
   });
 
   it('does not double an unknown-method girth and marks it unverified', () => {
-    const g = normalizeGarment({ ...base, chart: { unit: 'in', girth: 'unknown' } });
+    const g = normalizeGarment({ ...base, chart: { unit: 'in', girth: 'unknown', lengthDefinition: 'hps' } });
     expect(g.sizes[0]?.measurements.chest).toBeCloseTo(19 * 2.54);
     expect(g.girthVerified).toBe(false);
   });
@@ -90,6 +104,68 @@ describe('validateSeed', () => {
     const problems = validateSeed([dupSizes, base]);
     expect(problems).toContain('garment "test-tee" size M: duplicate size label');
     expect(problems).toContain('garment "test-tee": duplicate id');
+  });
+
+  it('flags real data without a tier or date', () => {
+    const problems = validateSeed([{ ...base, source: { placeholder: false, url: 'https://example.com' } }]);
+    expect(problems).toContain('garment "test-tee": real (non-placeholder) data needs a source tier, A to G');
+    expect(problems).toContain('garment "test-tee": real (non-placeholder) data needs capturedOn');
+  });
+
+  it('accepts a user-measured garment (tier E) without a url', () => {
+    expect(validateSeed([{ ...base, source: { placeholder: false, tier: 'E', capturedOn: '2026-11-18' } }])).toEqual([]);
+  });
+
+  it('rejects a tier on placeholder data, a bad date and a snapshot outside chart-snapshots/', () => {
+    const problems = validateSeed([
+      { ...base, source: { placeholder: true, tier: 'B', capturedOn: '18/11/2026', snapshot: '/tmp/chart.pdf' } },
+    ]).join('\n');
+    expect(problems).toMatch(/placeholder data has no source tier/);
+    expect(problems).toMatch(/capturedOn must be YYYY-MM-DD/);
+    expect(problems).toMatch(/snapshot must be/);
+  });
+
+  it('needs a length definition on tops and none on bottoms', () => {
+    const { lengthDefinition: _l, ...noLength } = base.chart;
+    expect(validateSeed([{ ...base, chart: noLength }])).toEqual([
+      'garment "test-tee": tops need chart.lengthDefinition (hps, center_back, unknown)',
+    ]);
+    const bottom: SeedGarment = {
+      ...base,
+      category: 'bottom',
+      type: 'chinos',
+      sleeve: undefined,
+      sizes: [{ label: '32', measurements: { waist: 82, inseam: 81 } }],
+      chart: { unit: 'cm', girth: 'circumference', lengthDefinition: 'hps' },
+    };
+    expect(validateSeed([bottom])).toEqual([
+      'garment "test-tee": bottoms have no top length: leave out chart.lengthDefinition',
+    ]);
+  });
+
+  it('accepts an origin object and checks it', () => {
+    const ok = { ...base, sizes: [{ label: 'M', measurements: { chest: { value: 19, origin: 'audited' as const }, length: 28 } }] };
+    expect(validateSeed([ok])).toEqual([]);
+    const bad = {
+      ...base,
+      sizes: [{ label: 'M', measurements: { chest: { value: 19, origin: 'estimated' as const }, length: { value: 0, origin: 'guess' } } }],
+    } as unknown as SeedGarment;
+    expect(validateSeed([bad])).toEqual([
+      'garment "test-tee" size M: chest is estimated: say how in "how"',
+      'garment "test-tee" size M: length must be a positive number',
+      'garment "test-tee" size M: length origin must be one of chart, estimated, audited',
+    ]);
+  });
+
+  it('checks the audit record', () => {
+    const problems = validateSeed([
+      {
+        ...base,
+        audit: { measuredSize: 'XL', measuredOn: '2026-11-18', afterWash: true, unit: 'in', measurements: { chest: -2 } },
+      },
+    ]).join('\n');
+    expect(problems).toMatch(/audit measuredSize "XL"/);
+    expect(problems).toMatch(/audit chest must be a positive number/);
   });
 
   it('flags non-positive numbers', () => {
