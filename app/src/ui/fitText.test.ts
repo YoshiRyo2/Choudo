@@ -174,6 +174,12 @@ describe('verdictLine', () => {
     });
   });
 
+  it('never says a 0% or 100% chance', () => {
+    const odds = oddsOf(sizeOdds('S', { 'too-tight': 1 }), sizeOdds('M', { fits: 1 }));
+    expect(verdictLine(odds, 'S', top).detail).toBe('<1% chance it fits how you like.');
+    expect(verdictLine(odds, 'M', top).detail).toBe('>99% chance it fits how you like.');
+  });
+
   it('can’t check a fit that is mostly unknown', () => {
     expect(verdictLine(oddsOf(sizeOdds('M', { unknown: 1 })), 'M', top)).toMatchObject({ headline: 'Can’t check this fit', detail: null });
   });
@@ -184,8 +190,17 @@ describe('odds wording', () => {
     expect(formatPercent(0.473)).toBe('47%');
     expect(formatPercent(0.002)).toBe('<1%');
     expect(formatPercent(0.998)).toBe('>99%');
-    expect(formatPercent(0)).toBe('0%');
-    expect(formatPercent(1)).toBe('100%');
+  });
+
+  it('never says 0% or 100%', () => {
+    expect(formatPercent(0)).toBe('<1%');
+    expect(formatPercent(0.004)).toBe('<1%');
+    expect(formatPercent(0.005)).toBe('1%');
+    expect(formatPercent(0.01)).toBe('1%');
+    expect(formatPercent(0.99)).toBe('99%');
+    expect(formatPercent(0.994)).toBe('99%');
+    expect(formatPercent(0.995)).toBe('>99%'); // would round to 100
+    expect(formatPercent(1)).toBe('>99%');
   });
 
   const chest: ZoneOdds = {
