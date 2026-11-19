@@ -12,8 +12,10 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import type { Plugin } from 'vite';
 import type { GarmentImage, SeedGarment } from '../src/domain/garments/types';
-import { validateImage } from '../src/domain/garments/validate';
-import { writeGarmentImage } from '../src/dev/landmarks/seedWrite';
+// App modules are loaded through Vite at request time (ssrLoadModule), not
+// imported here, so the config itself stays plain Node-loadable.
+type SeedWrite = typeof import('../src/dev/landmarks/seedWrite');
+type Validate = typeof import('../src/domain/garments/validate');
 
 const SEED = 'src/domain/garments/seed.json';
 const PHOTOS = 'scripts/garment-photos.json';
@@ -57,7 +59,9 @@ export function landmarksDevServer(): Plugin {
         }
         if (req.method === 'POST' && url === '/__dev/landmarks') {
           readBody(req)
-            .then((body) => {
+            .then(async (body) => {
+              const { writeGarmentImage } = (await server.ssrLoadModule('/src/dev/landmarks/seedWrite.ts')) as SeedWrite;
+              const { validateImage } = (await server.ssrLoadModule('/src/domain/garments/validate.ts')) as Validate;
               const { id, file, landmarks } = body as { id: string; file: string; landmarks: GarmentImage['landmarks'] };
               const path = join(root, SEED);
               const text = readFileSync(path, 'utf8');
