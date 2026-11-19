@@ -5,16 +5,24 @@ import { findGarment, garmentsByCategory, type Garment, type GarmentCategory } f
 import { FitReadout } from '../components/FitReadout';
 import { GarmentCarousel } from '../components/GarmentCarousel';
 import { Mannequin, type WornGarment } from '../components/Mannequin/Mannequin';
+import { NameForm } from '../components/NameForm';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { Sheet } from '../components/Sheet';
 import { SizePicker } from '../components/SizePicker';
 import { defaultSize, resolveOutfit } from '../state/outfit';
-import { EMPTY_OUTFIT, isOutfit, STORAGE_KEYS, type Outfit, type UnitSystem } from '../state/stored';
-import { usePersistentState } from '../state/usePersistentState';
+import type { Outfit, UnitSystem } from '../state/stored';
 import './FittingRoom.css';
 
 interface FittingRoomProps {
   body: BodyInput;
   units: UnitSystem;
+  /** The outfit on the mannequin, as stored (may be stale; it's resolved here). */
+  outfit: Outfit;
+  onOutfitChange: (outfit: Outfit) => void;
+  /** Save what's on the mannequin to the Closet under a name. */
+  onSaveOutfit: (outfit: Outfit, name: string) => void;
+  /** Default name for the next saved outfit, e.g. "Outfit 3". */
+  nextOutfitName: string;
   onUnitsChange: (units: UnitSystem) => void;
   onEditBody: () => void;
 }
@@ -30,11 +38,20 @@ interface Slot {
   recommended: string | null;
 }
 
-export function FittingRoom({ body, units, onUnitsChange, onEditBody }: FittingRoomProps) {
+export function FittingRoom({
+  body,
+  units,
+  outfit: saved,
+  onOutfitChange: setSaved,
+  onSaveOutfit,
+  nextOutfitName,
+  onUnitsChange,
+  onEditBody,
+}: FittingRoomProps) {
   const model = useMemo(() => estimateBody(body), [body]);
-  const [saved, setSaved] = usePersistentState<Outfit>(STORAGE_KEYS.outfit, EMPTY_OUTFIT, isOutfit);
   const outfit = useMemo(() => resolveOutfit(saved, model), [saved, model]);
   const [browsing, setBrowsing] = useState<GarmentCategory>('top');
+  const [saving, setSaving] = useState<'naming' | 'saved' | null>(null);
 
   const slot = (id: string | null, size: string | null): Slot | null => {
     const garment = id ? findGarment(id) : undefined;
@@ -93,7 +110,30 @@ export function FittingRoom({ body, units, onUnitsChange, onEditBody }: FittingR
 
       <section className="fitting__stage" aria-label="Mannequin">
         <Mannequin body={model.measurements} top={worn(top)} bottom={worn(bottom)} />
+        <button type="button" className="button button--outline button--small fitting__save" onClick={() => setSaving('naming')}>
+          Save outfit
+        </button>
       </section>
+
+      {saving && (
+        <Sheet title={saving === 'saved' ? 'Saved to your Closet' : 'Save this outfit'} onClose={() => setSaving(null)}>
+          {saving === 'naming' ? (
+            <NameForm
+              label="Name"
+              submitLabel="Save"
+              placeholder={nextOutfitName}
+              allowBlank
+              autoFocus
+              onSubmit={(name) => {
+                onSaveOutfit(outfit, name);
+                setSaving('saved');
+              }}
+            />
+          ) : (
+            <p className="fitting__saved">Find it under Closet → Outfits.</p>
+          )}
+        </Sheet>
+      )}
 
       <section className="fitting__panel" aria-label="Choose clothes">
         <SegmentedControl

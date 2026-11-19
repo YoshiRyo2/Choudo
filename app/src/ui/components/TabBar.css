@@ -1,0 +1,48 @@
+.tabbar {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 4px 8px calc(4px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--paper-raised) 94%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 -1px 0 var(--line);
+}
+
+.tabbar__tab {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-height: 52px;
+  padding: 6px 4px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: var(--step--1);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.tabbar__tab svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tabbar__tab.is-current {
+  color: var(--ink);
+  font-weight: 600;
+}
+/* A strip of tape over the current section. */
+.tabbar__tab.is-current svg {
+  border-bottom: 3px solid var(--tape);
+  padding-bottom: 1px;
+}
+
+/* Room under every screen so the bar never covers the last thing on it. */
+.app-shell {
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}

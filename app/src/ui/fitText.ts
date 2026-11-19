@@ -136,3 +136,8 @@ function sentence(parts: string[]): string {
   const text = parts.join(', ');
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}.`;
 }
+
+/** The size line on a Discover card or Closet tile. */
+export function sizeLine(size: string, recommended: boolean): string {
+  return recommended ? `Your size: ${size}` : `Size ${size} · we couldn’t pick one for you`;
+}

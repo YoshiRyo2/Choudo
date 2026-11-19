@@ -34,10 +34,13 @@ app/src/
     garments/    schema types, seed.json, validator
     fit/         fitGarment(body, garment, size) -> per-zone fit results
   ui/            React
-    screens/     BodyScreen (input), FittingRoom (browse + size + fit)
-    components/  Mannequin/ (pure geometry.ts, topShape.ts, photoWarp.ts + SVG), GarmentCarousel, SizePicker,
-                 FitReadout, TapeScale, SegmentedControl
-    state/       usePersistentState (localStorage), stored.ts (keys + guards), outfit.ts
+    screens/     BodyScreen (input), FittingRoom (browse + size + fit), Discover (swipe feed),
+                 Closet + closet/ (Liked, Folders, Outfits tabs)
+    components/  Mannequin/ (pure geometry.ts, topShape.ts, photoWarp.ts + SVG), SwipeCard/ (pure swipe.ts),
+                 GarmentCarousel, SizePicker, FitReadout, FitSheet, Sheet (<dialog>), TabBar, NameForm,
+                 ConfirmButton, TapeScale, SegmentedControl
+    state/       usePersistentState (localStorage), stored.ts (keys + guards), outfit.ts,
+                 feed.ts (likes/passes, feed order), closet.ts (folders, saved outfits), useCloset.ts
     fitText.ts   all user-facing fit wording
     styles.css   design tokens (colours, type scale)
 src/, tests/, data/   (repo root) original Python chest-fit engine + real tee CSV.
@@ -70,7 +73,18 @@ npm run build      # typecheck + production build
 ```
 Logic that can be pure (geometry, form parsing, wording) lives in its own `.ts` file with
 tests; components stay thin. localStorage keys are versioned (`nimbus.body.v1`): bump the
-version when a stored shape changes.
+version when a stored shape changes. Keys today: `body`, `units`, `outfit` (fitting room),
+`swipes` (one `{garmentId, sizeShown, liked, at}` per garment), `folders`, `outfits` (saved).
+
+## Discover + Closet
+- Navigation is a bottom `TabBar` (Fitting room / Discover / Closet) with plain state in
+  `App.tsx`; the fitting-room outfit and the closet data live in `App` so any screen can
+  put clothes on the mannequin.
+- Discover feed (`buildFeed`): unseen garments in catalogue order, then passed ones oldest
+  first; liked ones are left out. The feed is fixed when the screen opens; at the end it
+  says there are no more garments. Cards show the recommended size, or the middle size
+  (labelled as such) when `recommendSize` returns null.
+- Unliking a garment or deleting an outfit removes it from every folder.
 Python reference (repo root): `python -m pytest`, `python -m src.report --chest 38`.
 
 ## Working agreements

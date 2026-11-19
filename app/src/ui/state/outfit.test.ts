@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../../domain/body';
 import { recommendSize } from '../../domain/fit';
 import { findGarment, garmentsByCategory } from '../../domain/garments';
-import { defaultSize, resolveOutfit } from './outfit';
+import { defaultSize, resolveOutfit, suggestedFit, wearGarment } from './outfit';
 import { EMPTY_OUTFIT } from './stored';
 
 const body = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens' });
@@ -33,5 +33,37 @@ describe('defaultSize', () => {
   it('falls back to the middle size when nothing can be scored', () => {
     const le = findGarment('landsend-super-t')!;
     expect(defaultSize(body, le)).toBe('L'); // S M [L] XL XXL
+  });
+});
+
+describe('wearGarment', () => {
+  const current = { topId: 'knightweave-tee', topSize: 'M', bottomId: 'corvo-slim-jean', bottomSize: '32x32' };
+
+  it('swaps only the slot the garment belongs to', () => {
+    expect(wearGarment(current, findGarment('fieldline-oxford')!, 'L')).toEqual({ ...current, topId: 'fieldline-oxford', topSize: 'L' });
+    expect(wearGarment(current, findGarment('fieldline-jogger')!, 'S')).toEqual({ ...current, bottomId: 'fieldline-jogger', bottomSize: 'S' });
+  });
+});
+
+describe('defaultSize', () => {
+  it('falls back to the middle size when no size can be recommended', () => {
+    const tee = findGarment('landsend-super-t')!;
+    expect(recommendSize(body, tee)).toBeNull();
+    expect(defaultSize(body, tee)).toBe('L'); // S M [L] XL XXL
+  });
+});
+
+describe('suggestedFit', () => {
+  it('uses the recommended size when there is one', () => {
+    const tee = findGarment('gildan-5000')!;
+    const { fit, recommended } = suggestedFit(body, tee);
+    expect(recommended).toBe(true);
+    expect(fit.sizeLabel).toBe(recommendSize(body, tee));
+  });
+
+  it('falls back to the middle size and says so', () => {
+    const { fit, recommended } = suggestedFit(body, findGarment('landsend-super-t')!);
+    expect(recommended).toBe(false);
+    expect(fit.sizeLabel).toBe('L');
   });
 });
