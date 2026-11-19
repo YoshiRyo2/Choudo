@@ -8,7 +8,7 @@
  * changes; it reads the same BodyMeasurements / Garment / SizeMeasurements.
  */
 
-import type { BodyMeasurements } from '../../../domain/body';
+import type { BodyMeasurements, BodyType } from '../../../domain/body';
 import type { Garment, GarmentType, SizeMeasurements } from '../../../domain/garments';
 
 export interface Pt {
@@ -119,13 +119,29 @@ export interface BodyGeometry {
   paths: { torso: string; arms: [string, string]; feet: { cx: number; cy: number; rx: number; ry: number }[] };
 }
 
+/**
+ * What differs between the men's and women's silhouettes. The widths still come
+ * from the body's own chest/bust, waist and hips; this only shapes the curves.
+ *  - chestY: the fullest point of the chest / bust, as a fraction of height.
+ *  - underBust: a point between bust and waist (t down from the bust, how far in
+ *    towards the waist width), so a fuller bust curves in beneath it. null = none.
+ *  - hipCurve: how far towards the hip width the outline is half way down from
+ *    the waist (higher = rounder hips).
+ *  - neck, upperArm: width multipliers for a slighter neck and upper arm.
+ */
+const SILHOUETTE: Record<BodyType, { chestY: number; underBust: { t: number; in: number } | null; hipCurve: number; neck: number; upperArm: number }> = {
+  mens: { chestY: 0.27, underBust: null, hipCurve: 0.75, neck: 1, upperArm: 1 },
+  womens: { chestY: 0.28, underBust: { t: 0.28, in: 0.55 }, hipCurve: 0.88, neck: 0.88, upperArm: 0.9 },
+};
+
 export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
+  const shape = SILHOUETTE[m.bodyType];
   const H = m.heightCm;
   const s = H / 176; // general scale vs. the reference body
   const girthScale = m.hipsCm / 103;
 
   const half = {
-    neck: 6 * Math.sqrt(m.chestCm / 104),
+    neck: 6 * Math.sqrt(m.chestCm / 104) * shape.neck,
     shoulder: m.shoulderWidthCm / 2,
     chest: halfWidth.chest(m.chestCm),
     waist: halfWidth.waist(m.waistCm),
@@ -142,7 +158,7 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
     hps: 0.165 * H,
     shoulder: 0.19 * H,
     armpit: 0.235 * H,
-    chest: 0.27 * H,
+    chest: shape.chestY * H,
     waist: 0.385 * H,
     hip,
     // Entered inseams can be anything plausible; keep the crotch between hip and knee.
@@ -179,9 +195,12 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
     { x: half.shoulder - 1.5, y: y.shoulder },
     { x: half.chest + 0.8, y: y.armpit },
     { x: half.chest, y: y.chest },
+    ...(shape.underBust
+      ? [{ x: lerp(half.chest, half.waist, shape.underBust.in), y: lerp(y.chest, y.waist, shape.underBust.t) }]
+      : []),
     { x: lerp(half.chest, half.waist, 0.65), y: lerp(y.chest, y.waist, 0.5) },
     { x: half.waist, y: y.waist },
-    { x: lerp(half.waist, half.hip, 0.75), y: lerp(y.waist, y.hip, 0.5) },
+    { x: lerp(half.waist, half.hip, shape.hipCurve), y: lerp(y.waist, y.hip, 0.5) },
     { x: half.hip, y: y.hip },
     { x: half.hip * 0.97, y: y.crotch },
   ];
@@ -212,7 +231,7 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
   const arm = {
     top: armTop,
     bottom: armBottom,
-    halfTop: 5.2 * Math.sqrt(m.chestCm / 104),
+    halfTop: 5.2 * Math.sqrt(m.chestCm / 104) * shape.upperArm,
     halfBottom: 2.8 * s,
     // The upper arm is a little over half of shoulder-to-wrist.
     elbowCm: 0.53 * Math.hypot(armBottom.x - armTop.x, armBottom.y - armTop.y),
