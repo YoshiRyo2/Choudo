@@ -15,9 +15,6 @@ well-named modules over clever ones.
   chest / waist / hips / inseam overrides.
 - **No AR, body scanning, or photo avatars yet.** Keep the mannequin behind one component
   so a 3D/SMPL renderer can replace it later — but don't build it.
-- **No scraping.** Garment data comes from the hand-made seed file
-  `app/src/domain/garments/seed.json`. Rows not taken from a real, cited size chart are
-  marked `"placeholder": true`. To add a garment, follow `docs/adding-garments.md`.
 
 ## Stack
 - React + TypeScript + Vite (web app, mobile-first), in `app/`.
@@ -70,6 +67,8 @@ inputs/outputs and unit tests. UI only calls their public functions.
 - Woven shirts currently use the tee chest thresholds — likely too strict; tune in `rules.ts`.
 
 ## Garment data rules (source of truth is `domain/garments/`)
+- Garments live in `app/src/domain/garments/seed.json`. To add one by hand, follow
+  `docs/adding-garments.md`.
 - Every real row has a source tier (A brand spec … G photo only), `url`, `capturedOn`, and
   optionally a `snapshot` of the chart. Placeholders have `placeholder: true` and no tier.
 - Seed values are copied as printed. A value is a plain number (from the chart) or

@@ -5,8 +5,6 @@ Nimbus only trusts numbers it can trace. Every garment row in
 and which numbers (if any) are ours rather than the brand's. Follow this checklist
 for each new garment. It takes about 15 minutes.
 
-The seed is hand-made: we copy charts by hand, we don't scrape them.
-
 ## 1. Find the chart
 
 Look for **garment measurements**: the clothes themselves, laid flat. A chart of
