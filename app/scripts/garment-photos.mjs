@@ -22,7 +22,7 @@
  * every size's outline the shirt's own colour rather than a shaded band.
  */
 
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -124,6 +124,8 @@ async function cutOut(photo) {
     keep: lm && { x0: lm.collarLeft.x - 6, x1: lm.collarRight.x + 6, y1: lm.neckFront.y + 4 },
   });
   const file = join(APP, photo.out);
+  // public/garments/ is git-ignored, so a fresh clone doesn't have it yet.
+  await mkdir(dirname(file), { recursive: true });
   await sharp(out, { raw: { width: ow, height: oh, channels: 4 } }).png().toFile(file);
   const hex = `#${median.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
   console.log(`${photo.id}: wrote ${photo.out} (${ow}×${oh}, garment from ${x0 + m},${y0 + m} in the crop), garment colour ${hex}`);
