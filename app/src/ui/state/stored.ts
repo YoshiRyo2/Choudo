@@ -9,6 +9,9 @@ export const STORAGE_KEYS = {
   body: 'nimbus.body.v1',
   units: 'nimbus.units.v1',
   outfit: 'nimbus.outfit.v1',
+  swipes: 'nimbus.swipes.v1',
+  folders: 'nimbus.folders.v1',
+  outfits: 'nimbus.outfits.v1',
 } as const;
 
 /** Display units. Metric = cm + kg, imperial = in + lb. Storage is always metric. */
@@ -19,6 +22,34 @@ export interface Outfit {
   topSize: string | null;
   bottomId: string | null;
   bottomSize: string | null;
+}
+
+/** One like or pass in Discover. `at` is an ISO timestamp. */
+export interface Swipe {
+  garmentId: string;
+  /** The size the card showed when it was swiped. */
+  sizeShown: string;
+  liked: boolean;
+  at: string;
+}
+
+/** What a folder can hold: a liked garment or a saved outfit, by id. */
+export interface FolderItem {
+  kind: 'garment' | 'outfit';
+  id: string;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  items: FolderItem[];
+}
+
+/** A named top + bottom (with sizes) saved from the fitting room. */
+export interface SavedOutfit extends Outfit {
+  id: string;
+  name: string;
+  savedAt: string;
 }
 
 export const EMPTY_OUTFIT: Outfit = { topId: null, topSize: null, bottomId: null, bottomSize: null };
@@ -46,3 +77,31 @@ export function isOutfit(v: unknown): v is Outfit {
     isStringOrNull(v.bottomSize)
   );
 }
+
+const isString = (v: unknown): v is string => typeof v === 'string';
+const isArrayOf =
+  <T>(guard: (item: unknown) => item is T) =>
+  (v: unknown): v is T[] =>
+    Array.isArray(v) && v.every(guard);
+
+function isSwipe(v: unknown): v is Swipe {
+  return (
+    isRecord(v) && isString(v.garmentId) && isString(v.sizeShown) && typeof v.liked === 'boolean' && isString(v.at)
+  );
+}
+
+function isFolderItem(v: unknown): v is FolderItem {
+  return isRecord(v) && (v.kind === 'garment' || v.kind === 'outfit') && isString(v.id);
+}
+
+function isFolder(v: unknown): v is Folder {
+  return isRecord(v) && isString(v.id) && isString(v.name) && isArrayOf(isFolderItem)(v.items);
+}
+
+function isSavedOutfit(v: unknown): v is SavedOutfit {
+  return isOutfit(v) && isRecord(v) && isString(v.id) && isString(v.name) && isString(v.savedAt);
+}
+
+export const isSwipeList = isArrayOf(isSwipe);
+export const isFolderList = isArrayOf(isFolder);
+export const isSavedOutfitList = isArrayOf(isSavedOutfit);
