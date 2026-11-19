@@ -37,12 +37,17 @@ export function GarmentCarousel({ label, garments, selectedId, onSelect }: Garme
     settleTimer.current = window.setTimeout(() => {
       const track = trackRef.current;
       if (!track) return;
-      const middle = track.scrollLeft + track.clientWidth / 2;
+      // Measure cards against the track itself, not with offsetLeft: offsetLeft
+      // counts from the nearest positioned ancestor, which on wide screens sits
+      // hundreds of pixels left of the track, so the first card always looked
+      // closest to the middle and every new choice snapped back to it.
+      const trackRect = track.getBoundingClientRect();
+      const middle = trackRect.left + trackRect.width / 2;
       let closest = 0;
       let best = Infinity;
       Array.from(track.children).forEach((child, i) => {
-        const el = child as HTMLElement;
-        const distance = Math.abs(el.offsetLeft + el.offsetWidth / 2 - middle);
+        const r = child.getBoundingClientRect();
+        const distance = Math.abs(r.left + r.width / 2 - middle);
         if (distance < best) {
           best = distance;
           closest = i;
