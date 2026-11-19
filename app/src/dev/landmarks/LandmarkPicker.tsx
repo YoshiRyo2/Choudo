@@ -44,9 +44,13 @@ const complete = (p: Points): p is Record<TopLandmarkName, XY> => TOP_LANDMARKS.
 
 /** Read the PNG's alpha and suggest landmarks from its outline. */
 async function suggestFor(src: string, inset: number): Promise<{ size: XY; points: Points | null }> {
+  // A load event, not img.decode(): the browser may hold decode() back while the tab is hidden.
   const img = new Image();
-  img.src = src;
-  await img.decode();
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error('the PNG did not load'));
+    img.src = src;
+  });
   const canvas = document.createElement('canvas');
   canvas.width = img.naturalWidth;
   canvas.height = img.naturalHeight;
