@@ -126,18 +126,22 @@ export function erode(mask, w, h, r) {
  * pixel within `pad` px outside the mask copies the colour of the nearest
  * garment pixel. Everything else is transparent. Returns RGBA.
  *
+ * With `toward` ([r, g, b]), the padding fades from the nearest colour into
+ * that one (the garment's median) the further out it is, so where a drawn size
+ * reaches past the photo it shows plain fabric rather than streaks.
+ *
  * The app warps the photo onto outlines that never match the photo's exactly,
  * so the padding keeps every size's edge the garment's own colour, never floor.
  */
-export function padNearest(rgb, channels, mask, w, h, pad) {
+export function padNearest(rgb, channels, mask, w, h, pad, toward = null) {
   const { dist, src } = spread(mask, w, h, pad);
   const out = new Uint8Array(w * h * 4);
   for (let i = 0; i < w * h; i++) {
-    if (dist[i] === -1) continue;
+    const d = dist[i];
+    if (d === -1) continue;
     const s = src[i] * channels;
-    out[i * 4] = rgb[s];
-    out[i * 4 + 1] = rgb[s + 1];
-    out[i * 4 + 2] = rgb[s + 2];
+    const t = toward && d > 0 ? Math.min(1, d / pad) : 0;
+    for (let c = 0; c < 3; c++) out[i * 4 + c] = Math.round(rgb[s + c] + ((toward?.[c] ?? 0) - rgb[s + c]) * t);
     out[i * 4 + 3] = 255;
   }
   return out;
@@ -166,24 +170,30 @@ export function outputScale(box, maxSide, margin) {
   return Math.min(1, (maxSide - 2 * margin) / Math.max(box.width, box.height));
 }
 
-/** Median colour of the garment pixels, as #rrggbb. */
-export function medianColour(rgba, mask) {
-  const channels = [[], [], []];
+/** Median colour of the garment pixels in an image with `channels` bytes per pixel, as [r, g, b]; null if none. */
+export function medianRgb(pixels, channels, mask) {
+  const values = [[], [], []];
   for (let i = 0; i < mask.length; i++) {
     if (!mask[i]) continue;
-    for (let c = 0; c < 3; c++) channels[c].push(rgba[i * 4 + c]);
+    for (let c = 0; c < 3; c++) values[c].push(pixels[i * channels + c]);
   }
-  if (!channels[0].length) return null;
-  const median = channels.map((v) => v.sort((a, b) => a - b)[v.length >> 1]);
-  return `#${median.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+  if (!values[0].length) return null;
+  return values.map((v) => v.sort((a, b) => a - b)[v.length >> 1]);
+}
+
+/** Median colour of the garment pixels (RGBA), as #rrggbb. */
+export function medianColour(rgba, mask) {
+  const median = medianRgb(rgba, 4, mask);
+  return median && `#${median.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
 }
 
 /**
  * The whole clean-up for a model's soft mask at output size: threshold, keep the
- * biggest piece, fill holes, erode, then pad with the nearest garment colour.
+ * biggest piece, fill holes, erode, then pad with the nearest garment colour,
+ * fading into the garment's median colour further out.
  * `rgb` and `alpha` are the same w×h; the result is RGBA plus the eroded mask.
  */
 export function cleanCutOut(rgb, channels, alpha, w, h, { erodePx, padPx }) {
   const mask = erode(fillHoles(largestRegion(threshold(alpha), w, h), w, h), w, h, erodePx);
-  return { rgba: padNearest(rgb, channels, mask, w, h, padPx), mask };
+  return { rgba: padNearest(rgb, channels, mask, w, h, padPx, medianRgb(rgb, channels, mask)), mask };
 }

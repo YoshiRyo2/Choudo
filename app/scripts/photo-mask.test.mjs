@@ -6,6 +6,7 @@ import {
   fillHoles,
   largestRegion,
   medianColour,
+  medianRgb,
   outputScale,
   padNearest,
   threshold,
@@ -91,6 +92,18 @@ describe('padNearest', () => {
   });
 });
 
+describe('padNearest fading', () => {
+  it('fades from the nearest colour into `toward`, reaching it at pad px', () => {
+    const { mask, w, h } = grid('#....');
+    const rgb = Uint8Array.from([200, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    const out = padNearest(rgb, 3, mask, w, h, 4, [0, 0, 100]);
+    const px = (x) => [...out.slice(x * 4, x * 4 + 3)];
+    expect(px(0)).toEqual([200, 0, 0]); // the garment itself is untouched
+    expect(px(2)).toEqual([100, 0, 50]); // halfway out
+    expect(px(4)).toEqual([0, 0, 100]);
+  });
+});
+
 describe('boundingBox and outputScale', () => {
   it('finds the garment box', () => {
     const { mask, w, h } = grid('.....', '..##.', '.###.', '.....');
@@ -108,6 +121,7 @@ describe('medianColour', () => {
     const rgba = Uint8Array.from([10, 20, 30, 255, 12, 22, 32, 255, 200, 200, 200, 255, 11, 21, 31, 255]);
     expect(medianColour(rgba, Uint8Array.from([1, 1, 0, 1]))).toBe('#0b151f');
     expect(medianColour(rgba, new Uint8Array(4))).toBeNull();
+    expect(medianRgb(Uint8Array.from([1, 2, 3, 9, 9, 9, 5, 6, 7]), 3, Uint8Array.from([1, 0, 1]))).toEqual([5, 6, 7]);
   });
 });
 
@@ -133,7 +147,7 @@ describe('cleanCutOut', () => {
     expect(mask[0]).toBe(0);
     expect(mask[5 * w + 5]).toBe(1); // hole filled
     expect(mask[2 * w + 2]).toBe(0); // fringe eroded
-    // The fringe is now padding, in garment green.
+    // The fringe is now padding, in garment green (the nearest colour and the median agree here).
     expect([...rgba.slice((2 * w + 5) * 4, (2 * w + 5) * 4 + 4)]).toEqual([0, 160, 0, 255]);
     // Far outside stays transparent.
     expect(rgba[(0 * w + 11) * 4 + 3]).toBe(0);
