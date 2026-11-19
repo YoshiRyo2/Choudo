@@ -28,7 +28,7 @@ import {
   type Verdict,
 } from './preference';
 import { normal, seededRng } from './random';
-import { BOTTOM_HIPS, BOTTOM_WAIST, TOP_WAIST } from './rules';
+import { BOTTOM_HIPS, BOTTOM_WAIST, TOP_GIRTH_RULES } from './rules';
 import {
   ENTERED_BODY_SD_CM,
   BRA_BUST_SD_CM,
@@ -136,7 +136,7 @@ export function bodySdCm(body: BodyModel, key: BodyKey): number {
 
 /** The ideal ease the engine aims for on girth zones without a personal target. */
 function idealEaseCm(garment: Garment, zone: ZoneId): number {
-  if (garment.category === 'top') return TOP_WAIST.ideal;
+  if (garment.category === 'top') return TOP_GIRTH_RULES[garment.sizing].waist.ideal;
   return zone === 'hips' ? BOTTOM_HIPS.ideal : BOTTOM_WAIST.ideal;
 }
 

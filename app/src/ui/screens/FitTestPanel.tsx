@@ -1,5 +1,7 @@
 import { useId, useState, type FormEvent } from 'react';
+import type { BodyType } from '../../domain/body';
 import type { Garment } from '../../domain/garments';
+import { zoneName } from '../fitText';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { csvFileName, fitTestsCsv, type TesterAnswers } from '../state/fitTests';
 import { CHEST_ANSWERS, LENGTH_ANSWERS, type ChestAnswer, type FitTestRecord, type LengthAnswer } from '../state/stored';
@@ -12,6 +14,8 @@ interface FitTestPanelProps {
   records: FitTestRecord[];
   onSave: (answers: TesterAnswers) => void;
   onClear: () => void;
+  /** The chest question says "Bust" for a women's body. */
+  bodyType: BodyType;
 }
 
 const CHEST_TEXT: Record<ChestAnswer, string> = {
@@ -27,7 +31,7 @@ const LENGTH_TEXT: Record<LengthAnswer, string> = {
 const NONE = '__none__';
 
 /** Test mode: record how the garment on the mannequin actually fits the tester. */
-export function FitTestPanel({ garment, size, records, onSave, onClear }: FitTestPanelProps) {
+export function FitTestPanel({ garment, size, records, onSave, onClear, bodyType }: FitTestPanelProps) {
   const [tester, setTester] = useState(() => records[records.length - 1]?.tester ?? '');
   const [chest, setChest] = useState<ChestAnswer | null>(null);
   const [length, setLength] = useState<LengthAnswer | null>(null);
@@ -70,7 +74,7 @@ export function FitTestPanel({ garment, size, records, onSave, onClear }: FitTes
             Tester
             <input value={tester} onChange={(e) => setTester(e.target.value)} placeholder="e.g. T03" autoComplete="off" />
           </label>
-          <Choices legend="Chest" name={`${id}-chest`} options={CHEST_ANSWERS.map((a) => [a, CHEST_TEXT[a]])} value={chest} onChange={setChest} />
+          <Choices legend={zoneName('chest', bodyType)} name={`${id}-chest`} options={CHEST_ANSWERS.map((a) => [a, CHEST_TEXT[a]])} value={chest} onChange={setChest} />
           <Choices legend="Length" name={`${id}-length`} options={LENGTH_ANSWERS.map((a) => [a, LENGTH_TEXT[a]])} value={length} onChange={setLength} />
           <Choices
             legend="Which size would they keep?"

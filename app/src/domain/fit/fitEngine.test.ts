@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody, type BodyModel } from '../body';
 import { findGarment, normalizeGarment, type Garment, type SeedGarment } from '../garments';
-import { inToCm } from '../units';
+import { cmToIn, inToCm } from '../units';
 import { fitAllSizes, fitGarment, labelGirth, labelLength } from './fitEngine';
-import { BOTTOM_WAIST, INSEAM, TOP_CHEST } from './rules';
+import { BOTTOM_WAIST, INSEAM, TOP_CHEST, WOMENS_TOP_CHEST } from './rules';
 import { UNKNOWN_CHEST_TEE } from '../garments/testFixtures';
 
 /** A body with exact, entered measurements so tests don't depend on the estimator. */
@@ -37,6 +37,39 @@ function seedTee(chestFlatIn: number): Garment {
 }
 
 const chestOf = (fit: ReturnType<typeof fitGarment>) => fit.zones.find((z) => z.zone === 'chest')!;
+
+describe('women’s top thresholds (by the garment’s sizing)', () => {
+  it.each([
+    [-1.01, 'tight'],
+    [-1.0, 'fitted'],
+    [1.0, 'fitted'],
+    [1.01, 'relaxed'],
+    [3.0, 'relaxed'],
+    [3.01, 'loose'],
+  ] as const)('ease %s in -> %s', (easeIn, expected) => {
+    expect(labelGirth(inToCm(easeIn), WOMENS_TOP_CHEST)).toBe(expected);
+  });
+
+  it('runs closer to the body than men’s, which are unchanged', () => {
+    expect(WOMENS_TOP_CHEST.fittedMax).toBeLessThan(TOP_CHEST.fittedMax);
+    expect(WOMENS_TOP_CHEST.relaxedMax).toBeLessThan(TOP_CHEST.relaxedMax);
+    expect(WOMENS_TOP_CHEST.tightBelow).toBe(TOP_CHEST.tightBelow);
+    expect(cmToIn(TOP_CHEST.tightBelow)).toBeCloseTo(-1);
+    expect(cmToIn(TOP_CHEST.fittedMax)).toBeCloseTo(2);
+    expect(cmToIn(TOP_CHEST.relaxedMax)).toBeCloseTo(4);
+  });
+
+  it('a women’s tee uses them; a unisex tee keeps the men’s on any body', () => {
+    // 1.5 in of ease: relaxed in a women’s cut, fitted in a men’s or unisex one.
+    const womens = estimateBody({ heightCm: 165, weightKg: 60, bodyType: 'womens', overrides: { chestCm: inToCm(36) } });
+    const tee = (sizing: 'womens' | 'unisex' | 'mens') =>
+      normalizeGarment({ ...seedTeeBase, sizing, sizes: [{ label: 'M', measurements: { chest: 18.75, length: 25 } }] });
+    expect(chestOf(fitGarment(womens, tee('womens'), 'M')).label).toBe('relaxed');
+    expect(chestOf(fitGarment(womens, tee('unisex'), 'M')).label).toBe('fitted');
+    expect(chestOf(fitGarment(womens, tee('mens'), 'M')).label).toBe('fitted');
+    expect(fitGarment(womens, tee('womens'), 'M').bodyType).toBe('womens');
+  });
+});
 
 describe('girth labels (ported from tests/test_fit.py)', () => {
   // Same boundaries as the Python suite, which works in inches.

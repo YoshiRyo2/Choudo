@@ -19,6 +19,7 @@ import {
   type ZoneId,
   type ZoneOdds,
 } from '../domain/fit';
+import type { BodyType } from '../domain/body';
 import type { ConfidenceGrade, FitIntent, Garment, SourceTier } from '../domain/garments';
 import { cmToIn } from '../domain/units';
 import type { UnitSystem } from './state/stored';
@@ -53,6 +54,19 @@ const ZONE_PLACE: Record<ZoneId, string> = {
   inseam: 'in the leg',
 };
 
+/**
+ * A zone's name for this body: the engine has one chest zone, which a women's
+ * body calls the bust. "Chest" / "Bust", "Waist", ...
+ */
+export function zoneName(zone: ZoneId, bodyType: BodyType = 'mens'): string {
+  return zone === 'chest' && bodyType === 'womens' ? 'Bust' : ZONE_NAME[zone];
+}
+
+/** "at the chest" / "at the bust", "in length", ... */
+function zonePlace(zone: ZoneId, bodyType: BodyType): string {
+  return zone === 'chest' && bodyType === 'womens' ? 'at the bust' : ZONE_PLACE[zone];
+}
+
 const MINUS = '−';
 
 /** 12.34 cm -> "12.3 cm" or "4.9 in". */
@@ -73,12 +87,12 @@ export function formatDiff(cm: number, units: UnitSystem): string {
 const MATCH_CM = 0.5;
 
 /** One plain sentence about a zone. */
-export function describeZone(z: ZoneFit, units: UnitSystem): string {
+export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType = 'mens'): string {
   if (z.diffCm === null) return z.note ?? 'The size chart doesn’t give us enough to compare.';
   const d = formatLength(Math.abs(z.diffCm), units);
   const over = z.diffCm >= MATCH_CM;
   const under = z.diffCm <= -MATCH_CM;
-  const part = ZONE_NAME[z.zone].toLowerCase();
+  const part = zoneName(z.zone, bodyType).toLowerCase();
 
   switch (z.zone) {
     case 'chest':
@@ -117,7 +131,7 @@ export function summarize(fit: GarmentFit): FitSummary {
   const problems = fit.zones.filter((z) => z.tone === fit.overall && z.tone !== 'good');
   const detail =
     problems.length > 0
-      ? sentence(problems.map((z) => `${LABEL_TEXT[z.label].toLowerCase()} ${ZONE_PLACE[z.zone]}`))
+      ? sentence(problems.map((z) => `${LABEL_TEXT[z.label].toLowerCase()} ${zonePlace(z.zone, fit.bodyType)}`))
       : null;
 
   switch (fit.overall) {
@@ -128,7 +142,7 @@ export function summarize(fit: GarmentFit): FitSummary {
     case 'bad':
       return { headline: 'Probably won’t fit', detail, usesEstimates };
     default: {
-      const unchecked = fit.zones.filter((z) => z.label === 'unknown').map((z) => ZONE_NAME[z.zone].toLowerCase());
+      const unchecked = fit.zones.filter((z) => z.label === 'unknown').map((z) => zoneName(z.zone, fit.bodyType).toLowerCase());
       return {
         headline: 'Can’t check this fit',
         detail:
@@ -359,9 +373,10 @@ const MEASURE_NAME: Record<MeasurableKey, string> = {
   inseamCm: 'inseam',
 };
 
-/** "Measure your chest to decide between M and L." */
-export function measureHintText(hint: MeasureHint): string {
-  return `Measure your ${MEASURE_NAME[hint.key]} to decide between ${listOf(hint.sizes)}.`;
+/** "Measure your chest to decide between M and L." ("bust" for a women's body) */
+export function measureHintText(hint: MeasureHint, bodyType: BodyType = 'mens'): string {
+  const name = hint.key === 'chestCm' && bodyType === 'womens' ? 'bust' : MEASURE_NAME[hint.key];
+  return `Measure your ${name} to decide between ${listOf(hint.sizes)}.`;
 }
 
 /** Objective labels by chance, likeliest first: "Fitted 61% · Relaxed 30% · Tight 9%". Under 1% is left out. */

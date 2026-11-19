@@ -234,6 +234,7 @@ export function FittingRoom({
             size={browsing === 'top' && top ? top.size : null}
             records={testing.records}
             onClear={testing.onClear}
+            bodyType={body.bodyType}
             onSave={(answers) => {
               if (!top) return;
               const prediction = predictionFor({
