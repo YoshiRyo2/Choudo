@@ -310,61 +310,22 @@
       "type": "polo",
       "sizing": "mens",
       "image": {
-        "file": "garments/shirt1-front.png",
+        "file": "garments/ryo-grey-polo-front.png",
         "photographedSize": null,
         "landmarks": {
-          "collarLeft": {
-            "x": 168,
-            "y": 62
-          },
-          "collarRight": {
-            "x": 227,
-            "y": 62
-          },
-          "neckFront": {
-            "x": 198,
-            "y": 105
-          },
-          "shoulderLeft": {
-            "x": 100,
-            "y": 100
-          },
-          "shoulderRight": {
-            "x": 300,
-            "y": 100
-          },
-          "armpitLeft": {
-            "x": 91,
-            "y": 180
-          },
-          "armpitRight": {
-            "x": 295,
-            "y": 193
-          },
-          "hemLeft": {
-            "x": 93,
-            "y": 332
-          },
-          "hemRight": {
-            "x": 295,
-            "y": 337
-          },
-          "sleeveOuterLeft": {
-            "x": 38,
-            "y": 143
-          },
-          "sleeveInnerLeft": {
-            "x": 68,
-            "y": 189
-          },
-          "sleeveOuterRight": {
-            "x": 353,
-            "y": 165
-          },
-          "sleeveInnerRight": {
-            "x": 313,
-            "y": 208
-          }
+          "collarLeft": { "x": 381, "y": 30 },
+          "collarRight": { "x": 531, "y": 29 },
+          "neckFront": { "x": 445, "y": 98 },
+          "shoulderLeft": { "x": 170, "y": 160 },
+          "shoulderRight": { "x": 717, "y": 132 },
+          "armpitLeft": { "x": 170, "y": 370 },
+          "armpitRight": { "x": 717, "y": 421 },
+          "hemLeft": { "x": 172, "y": 749 },
+          "hemRight": { "x": 713, "y": 762 },
+          "sleeveOuterLeft": { "x": 30, "y": 247 },
+          "sleeveInnerLeft": { "x": 105, "y": 372 },
+          "sleeveOuterRight": { "x": 869, "y": 300 },
+          "sleeveInnerRight": { "x": 767, "y": 421 }
         }
       },
       "color": "#b9bcbf",
@@ -406,61 +367,22 @@
       "type": "tee",
       "sizing": "mens",
       "image": {
-        "file": "garments/shirt2-front.png",
+        "file": "garments/ryo-navy-graphic-tee-front.png",
         "photographedSize": null,
         "landmarks": {
-          "collarLeft": {
-            "x": 160,
-            "y": 61
-          },
-          "collarRight": {
-            "x": 213,
-            "y": 62
-          },
-          "neckFront": {
-            "x": 184,
-            "y": 83
-          },
-          "shoulderLeft": {
-            "x": 100,
-            "y": 80
-          },
-          "shoulderRight": {
-            "x": 273,
-            "y": 78
-          },
-          "armpitLeft": {
-            "x": 100,
-            "y": 160
-          },
-          "armpitRight": {
-            "x": 273,
-            "y": 160
-          },
-          "hemLeft": {
-            "x": 99,
-            "y": 297
-          },
-          "hemRight": {
-            "x": 268,
-            "y": 299
-          },
-          "sleeveOuterLeft": {
-            "x": 60,
-            "y": 98
-          },
-          "sleeveInnerLeft": {
-            "x": 78,
-            "y": 156
-          },
-          "sleeveOuterRight": {
-            "x": 312,
-            "y": 99
-          },
-          "sleeveInnerRight": {
-            "x": 293,
-            "y": 157
-          }
+          "collarLeft": { "x": 365, "y": 29 },
+          "collarRight": { "x": 534, "y": 32 },
+          "neckFront": { "x": 439, "y": 94 },
+          "shoulderLeft": { "x": 163, "y": 93 },
+          "shoulderRight": { "x": 740, "y": 98 },
+          "armpitLeft": { "x": 163, "y": 358 },
+          "armpitRight": { "x": 740, "y": 355 },
+          "hemLeft": { "x": 155, "y": 823 },
+          "hemRight": { "x": 719, "y": 830 },
+          "sleeveOuterLeft": { "x": 29, "y": 146 },
+          "sleeveInnerLeft": { "x": 83, "y": 347 },
+          "sleeveOuterRight": { "x": 870, "y": 156 },
+          "sleeveInnerRight": { "x": 806, "y": 355 }
         }
       },
       "color": "#1f2c4c",
@@ -502,61 +424,22 @@
       "type": "tee",
       "sizing": "mens",
       "image": {
-        "file": "garments/shirt3-front.png",
+        "file": "garments/ryo-cream-boxy-tee-front.png",
         "photographedSize": null,
         "landmarks": {
-          "collarLeft": {
-            "x": 167,
-            "y": 61
-          },
-          "collarRight": {
-            "x": 237,
-            "y": 61
-          },
-          "neckFront": {
-            "x": 202,
-            "y": 85
-          },
-          "shoulderLeft": {
-            "x": 100,
-            "y": 83
-          },
-          "shoulderRight": {
-            "x": 300,
-            "y": 82
-          },
-          "armpitLeft": {
-            "x": 100,
-            "y": 168
-          },
-          "armpitRight": {
-            "x": 302,
-            "y": 168
-          },
-          "hemLeft": {
-            "x": 84,
-            "y": 317
-          },
-          "hemRight": {
-            "x": 304,
-            "y": 312
-          },
-          "sleeveOuterLeft": {
-            "x": 31,
-            "y": 106
-          },
-          "sleeveInnerLeft": {
-            "x": 45,
-            "y": 167
-          },
-          "sleeveOuterRight": {
-            "x": 377,
-            "y": 109
-          },
-          "sleeveInnerRight": {
-            "x": 365,
-            "y": 171
-          }
+          "collarLeft": { "x": 361, "y": 29 },
+          "collarRight": { "x": 524, "y": 31 },
+          "neckFront": { "x": 428, "y": 85 },
+          "shoulderLeft": { "x": 183, "y": 91 },
+          "shoulderRight": { "x": 685, "y": 83 },
+          "armpitLeft": { "x": 183, "y": 297 },
+          "armpitRight": { "x": 685, "y": 293 },
+          "hemLeft": { "x": 159, "y": 651 },
+          "hemRight": { "x": 690, "y": 641 },
+          "sleeveOuterLeft": { "x": 28, "y": 140 },
+          "sleeveInnerLeft": { "x": 61, "y": 291 },
+          "sleeveOuterRight": { "x": 869, "y": 147 },
+          "sleeveInnerRight": { "x": 819, "y": 298 }
         }
       },
       "color": "#e9e2d3",
@@ -598,61 +481,22 @@
       "type": "long-sleeve-tee",
       "sizing": "mens",
       "image": {
-        "file": "garments/shirt4-front.png",
+        "file": "garments/ryo-black-henley-front.png",
         "photographedSize": null,
         "landmarks": {
-          "collarLeft": {
-            "x": 180,
-            "y": 61
-          },
-          "collarRight": {
-            "x": 227,
-            "y": 61
-          },
-          "neckFront": {
-            "x": 202,
-            "y": 72
-          },
-          "shoulderLeft": {
-            "x": 133,
-            "y": 77
-          },
-          "shoulderRight": {
-            "x": 267,
-            "y": 76
-          },
-          "armpitLeft": {
-            "x": 130,
-            "y": 143
-          },
-          "armpitRight": {
-            "x": 271,
-            "y": 142
-          },
-          "hemLeft": {
-            "x": 129,
-            "y": 257
-          },
-          "hemRight": {
-            "x": 280,
-            "y": 258
-          },
-          "sleeveOuterLeft": {
-            "x": 30,
-            "y": 184
-          },
-          "sleeveInnerLeft": {
-            "x": 38,
-            "y": 221
-          },
-          "sleeveOuterRight": {
-            "x": 390,
-            "y": 180
-          },
-          "sleeveInnerRight": {
-            "x": 387,
-            "y": 215
-          }
+          "collarLeft": { "x": 385, "y": 29 },
+          "collarRight": { "x": 484, "y": 30 },
+          "neckFront": { "x": 440, "y": 70 },
+          "shoulderLeft": { "x": 282, "y": 62 },
+          "shoulderRight": { "x": 599, "y": 82 },
+          "armpitLeft": { "x": 282, "y": 237 },
+          "armpitRight": { "x": 599, "y": 249 },
+          "hemLeft": { "x": 257, "y": 486 },
+          "hemRight": { "x": 613, "y": 491 },
+          "sleeveOuterLeft": { "x": 28, "y": 321 },
+          "sleeveInnerLeft": { "x": 46, "y": 406 },
+          "sleeveOuterRight": { "x": 871, "y": 306 },
+          "sleeveInnerRight": { "x": 858, "y": 392 }
         }
       },
       "color": "#1b1d22",
