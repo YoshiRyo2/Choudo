@@ -20,6 +20,7 @@
  */
 
 import type { Garment, SizeMeasurements, TopLandmarkName } from '../../../domain/garments';
+import { SLEEVE_STRIPS, type SleeveEdges } from './photoWarp';
 import {
   bodyHalfAt,
   halfWidth,
@@ -80,6 +81,8 @@ export interface TopShape {
    */
   landmarks: Record<TopLandmarkName, Pt>;
   sleeveArmpits: { left: Pt; right: Pt };
+  /** Each sleeve's outer and inner edge, root to opening, for warping the photo's sleeves strip by strip. */
+  sleeveEdges: { left: SleeveEdges; right: SleeveEdges };
   /** Right-side facts, for tests and debugging. */
   right: {
     seam: Pt;
@@ -287,6 +290,13 @@ export function topShape(
 
   // ----- markers -----
   const mirrorPt = (p: Pt): Pt => ({ x: -p.x, y: p.y });
+  // Sleeve edges at even steps from root to opening, matching the drawn outline's ends.
+  const steps = Array.from({ length: SLEEVE_STRIPS + 1 }, (_, k) => k / SLEEVE_STRIPS);
+  const rightEdges: SleeveEdges = {
+    outer: steps.map((t) => (t === 0 ? seam : t === 1 ? outerEnd : outerAt(t))),
+    inner: steps.map((t) => (t === 0 ? innerTop : t === 1 ? innerEnd : innerEdge(lerp(sUnder, sEnd, t)))),
+  };
+  const mirrorEdges = (e: SleeveEdges): SleeveEdges => ({ outer: e.outer.map(mirrorPt), inner: e.inner.map(mirrorPt) });
 
   return {
     body,
@@ -316,6 +326,7 @@ export function topShape(
       sleeveInnerLeft: mirrorPt(innerEnd),
     },
     sleeveArmpits: { right: innerTop, left: mirrorPt(innerTop) },
+    sleeveEdges: { right: rightEdges, left: mirrorEdges(rightEdges) },
     right: {
       seam,
       underarm,

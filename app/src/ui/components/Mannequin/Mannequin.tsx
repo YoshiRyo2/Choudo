@@ -44,7 +44,7 @@ export function Mannequin({ body, top, bottom, showFit = true, className }: Mann
   const photoSrc = photo ? `${import.meta.env.BASE_URL}${photo.file}` : null;
   const photoSize = usePhotoSize(photoSrc);
   const pieces =
-    topDraw && photo && photoSize ? warpPieces(photo.landmarks, topDraw.landmarks, topDraw.sleeveArmpits) : null;
+    topDraw && photo && photoSize ? warpPieces(photo.landmarks, topDraw.landmarks, topDraw.sleeveEdges) : null;
   const clipId = `mq${useId().replace(/[^\w-]/g, '')}`;
   const texture = (region: WarpRegion, outline: string) =>
     pieces && photoSrc && photoSize ? (
