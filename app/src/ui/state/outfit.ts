@@ -3,26 +3,32 @@
  */
 
 import type { BodyModel } from '../../domain/body';
-import { fitGarment, recommendSize, type GarmentFit } from '../../domain/fit';
+import { fitGarment, type GarmentFit, type PreferenceSpec } from '../../domain/fit';
 import { findGarment, garmentsByCategory, type Garment, type GarmentCategory } from '../../domain/garments';
+import { garmentOdds } from './odds';
 import type { Outfit } from './stored';
 
 /** The suggested size, or the middle size when nothing can be scored. */
-export function defaultSize(body: BodyModel, garment: Garment): string {
-  return recommendSize(body, garment) ?? garment.sizes[Math.floor(garment.sizes.length / 2)]!.label;
+export function defaultSize(body: BodyModel, garment: Garment, preference: PreferenceSpec): string {
+  return garmentOdds(body, garment, preference).recommended ?? middleSize(garment);
+}
+
+/** The middle size in chart order (the upper middle for an even count). */
+export function middleSize(garment: Garment): string {
+  return garment.sizes[Math.floor(garment.sizes.length / 2)]!.label;
 }
 
 /**
  * Fill in anything missing or stale in a saved outfit: unknown garment ids fall
  * back to the first garment in that category, unknown sizes to the default size.
  */
-export function resolveOutfit(outfit: Outfit, body: BodyModel): Outfit {
+export function resolveOutfit(outfit: Outfit, body: BodyModel, preference: PreferenceSpec): Outfit {
   const pick = (category: GarmentCategory, id: string | null, size: string | null) => {
     const found = id ? findGarment(id) : undefined;
     const garment = found?.category === category ? found : garmentsByCategory(category)[0];
     if (!garment) return { id: null, size: null };
     const sizeOk = size !== null && garment.sizes.some((s) => s.label === size);
-    return { id: garment.id, size: sizeOk ? size : defaultSize(body, garment) };
+    return { id: garment.id, size: sizeOk ? size : defaultSize(body, garment, preference) };
   };
   const top = pick('top', outfit.topId, outfit.topSize);
   const bottom = pick('bottom', outfit.bottomId, outfit.bottomSize);
@@ -37,7 +43,11 @@ export function wearGarment(outfit: Outfit, garment: Garment, size: string): Out
 }
 
 /** The size we'd show a garment in, and how it fits. `recommended` is false for the middle-size fallback. */
-export function suggestedFit(body: BodyModel, garment: Garment): { fit: GarmentFit; recommended: boolean } {
-  const pick = recommendSize(body, garment);
-  return { fit: fitGarment(body, garment, pick ?? defaultSize(body, garment)), recommended: pick !== null };
+export function suggestedFit(
+  body: BodyModel,
+  garment: Garment,
+  preference: PreferenceSpec,
+): { fit: GarmentFit; recommended: boolean } {
+  const pick = garmentOdds(body, garment, preference).recommended;
+  return { fit: fitGarment(body, garment, pick ?? middleSize(garment)), recommended: pick !== null };
 }

@@ -1,7 +1,8 @@
 /**
  * The fit engine: body + garment + size -> how each zone fits, in cm.
  *
- * Pure functions only. No React, no storage, no randomness.
+ * Pure functions only. No React, no storage, no randomness. Which size to
+ * suggest is decided from sampled odds — see sampleFit.ts.
  */
 
 import type { BodyModel, MeasurementKey, MeasurementSource } from '../body';
@@ -239,48 +240,4 @@ export function overallTone(zones: ZoneFit[]): FitTone {
 /** fitGarment for every size, in chart order. */
 export function fitAllSizes(body: BodyModel, garment: Garment): GarmentFit[] {
   return garment.sizes.map((s) => fitGarment(body, garment, s.label));
-}
-
-const TIGHT_PENALTY = 10;
-/**
- * Body numbers are usually estimates, so when a girth misses its ideal we'd rather
- * miss on the roomy side: falling short of the ideal costs this much more.
- */
-const UNDER_IDEAL_GIRTH_WEIGHT = 1.5;
-
-/**
- * Lower is better. Each scored zone adds its distance from the ideal, scaled by
- * the width of its "fitted"/"good" band so cm in a waistband count for more than
- * cm in a tee chest. Anything tight adds a big penalty.
- */
-export function sizeScore(fit: GarmentFit, garment: Garment): number | null {
-  const scored = fit.zones.filter((z) => z.diffCm !== null);
-  // Never recommend a size on length alone — girth is what makes a size fit.
-  if (!scored.some((z) => z.kind === 'girth')) return null;
-  const size = garment.sizes.find((s) => s.label === fit.sizeLabel)!;
-  const specs = zonesFor(garment, size.measurements);
-  let score = 0;
-  for (const z of scored) {
-    const rule = specs.find((s) => s.zone === z.zone)!.rule;
-    const band = rule.kind === 'girth' ? rule.fittedMax - rule.tightBelow : rule.longAbove - rule.shortBelow;
-    const miss = z.diffCm! - rule.ideal;
-    const weight = rule.kind === 'girth' && miss < 0 ? UNDER_IDEAL_GIRTH_WEIGHT : 1;
-    score += (Math.abs(miss) * weight) / band;
-    if (z.label === 'tight') score += TIGHT_PENALTY;
-  }
-  return score;
-}
-
-/**
- * The size we'd suggest, or null if no girth can be scored (e.g. the chart's
- * chest method is unverified).
- */
-export function recommendSize(body: BodyModel, garment: Garment): string | null {
-  let best: { label: string; score: number } | null = null;
-  for (const fit of fitAllSizes(body, garment)) {
-    const score = sizeScore(fit, garment);
-    if (score === null) continue;
-    if (best === null || score < best.score) best = { label: fit.sizeLabel, score };
-  }
-  return best?.label ?? null;
 }

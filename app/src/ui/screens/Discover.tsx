@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
+import type { PreferenceSpec } from '../../domain/fit';
 import { GARMENTS, type Garment } from '../../domain/garments';
 import { FitSheet } from '../components/FitSheet';
 import { SwipeCard } from '../components/SwipeCard/SwipeCard';
@@ -12,6 +13,7 @@ import './Discover.css';
 
 interface DiscoverProps {
   body: BodyInput;
+  preference: PreferenceSpec;
   units: UnitSystem;
   closet: Closet;
   onTryOn: (garment: Garment, size: string) => void;
@@ -23,7 +25,7 @@ interface DiscoverProps {
 const LEAVE_MS = 220;
 
 /** A feed of garments on your mannequin, one card at a time. */
-export function Discover({ body, units, closet, onTryOn, onEditBody, onOpenCloset }: DiscoverProps) {
+export function Discover({ body, preference, units, closet, onTryOn, onEditBody, onOpenCloset }: DiscoverProps) {
   const model = useMemo(() => estimateBody(body), [body]);
   // The feed is fixed when the screen opens, so swiping doesn't reshuffle it.
   const [feed] = useState(() => buildFeed(GARMENTS, closet.swipes));
@@ -31,7 +33,7 @@ export function Discover({ body, units, closet, onTryOn, onEditBody, onOpenClose
   const [leaving, setLeaving] = useState<SwipeOutcome>(null);
   const [details, setDetails] = useState<Garment | null>(null);
 
-  const card = (garment: Garment | undefined) => (garment ? { garment, ...suggestedFit(model, garment) } : null);
+  const card = (garment: Garment | undefined) => (garment ? { garment, ...suggestedFit(model, garment, preference) } : null);
   const current = card(feed[index]);
   const next = card(feed[index + 1]);
 
@@ -118,6 +120,7 @@ export function Discover({ body, units, closet, onTryOn, onEditBody, onOpenClose
         <FitSheet
           garment={details}
           model={model}
+          preference={preference}
           size={current.fit.sizeLabel}
           units={units}
           onClose={() => setDetails(null)}

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
+import type { PreferenceSpec } from '../../domain/fit';
 import type { Garment } from '../../domain/garments';
 import { FitSheet } from '../components/FitSheet';
 import { SegmentedControl } from '../components/SegmentedControl';
@@ -23,6 +24,7 @@ interface Filing {
 
 interface ClosetProps {
   body: BodyInput;
+  preference: PreferenceSpec;
   units: UnitSystem;
   closet: ClosetState;
   /** The fitting room's outfit, as stored. */
@@ -34,9 +36,9 @@ interface ClosetProps {
 }
 
 /** Liked garments, folders of them, and saved outfits. */
-export function Closet({ body, units, closet, outfit, onTryOn, onWear, onEditBody, onOpenDiscover }: ClosetProps) {
+export function Closet({ body, preference, units, closet, outfit, onTryOn, onWear, onEditBody, onOpenDiscover }: ClosetProps) {
   const model = useMemo(() => estimateBody(body), [body]);
-  const current = useMemo(() => resolveOutfit(outfit, model), [outfit, model]);
+  const current = useMemo(() => resolveOutfit(outfit, model, preference), [outfit, model, preference]);
   const [tab, setTab] = useState<ClosetTab>('liked');
   const [details, setDetails] = useState<Garment | null>(null);
   const [filing, setFiling] = useState<Filing | null>(null);
@@ -65,6 +67,7 @@ export function Closet({ body, units, closet, outfit, onTryOn, onWear, onEditBod
       {tab === 'liked' && (
         <LikedTab
           model={model}
+          preference={preference}
           likedIds={closet.liked}
           onOpen={setDetails}
           onUnlike={closet.unlike}
@@ -114,7 +117,8 @@ export function Closet({ body, units, closet, outfit, onTryOn, onWear, onEditBod
         <FitSheet
           garment={details}
           model={model}
-          size={suggestedFit(model, details).fit.sizeLabel}
+          preference={preference}
+          size={suggestedFit(model, details, preference).fit.sizeLabel}
           units={units}
           onClose={() => setDetails(null)}
           onTryOn={(size) => onTryOn(details, size)}

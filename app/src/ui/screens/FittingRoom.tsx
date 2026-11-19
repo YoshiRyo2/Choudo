@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
-import { fitAllSizes, recommendSize, type GarmentFit } from '../../domain/fit';
+import { fitAllSizes, type GarmentFit, type PreferenceSpec } from '../../domain/fit';
 import { findGarment, garmentsByCategory, type Garment, type GarmentCategory } from '../../domain/garments';
 import { FitReadout } from '../components/FitReadout';
 import { GarmentCarousel } from '../components/GarmentCarousel';
@@ -9,12 +9,15 @@ import { NameForm } from '../components/NameForm';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Sheet } from '../components/Sheet';
 import { SizePicker } from '../components/SizePicker';
+import { garmentOdds } from '../state/odds';
 import { defaultSize, resolveOutfit } from '../state/outfit';
 import type { Outfit, UnitSystem } from '../state/stored';
 import './FittingRoom.css';
 
 interface FittingRoomProps {
   body: BodyInput;
+  /** How the user likes tops to fit. */
+  preference: PreferenceSpec;
   units: UnitSystem;
   /** The outfit on the mannequin, as stored (may be stale; it's resolved here). */
   outfit: Outfit;
@@ -40,6 +43,7 @@ interface Slot {
 
 export function FittingRoom({
   body,
+  preference,
   units,
   outfit: saved,
   onOutfitChange: setSaved,
@@ -49,7 +53,7 @@ export function FittingRoom({
   onEditBody,
 }: FittingRoomProps) {
   const model = useMemo(() => estimateBody(body), [body]);
-  const outfit = useMemo(() => resolveOutfit(saved, model), [saved, model]);
+  const outfit = useMemo(() => resolveOutfit(saved, model, preference), [saved, model, preference]);
   const [browsing, setBrowsing] = useState<GarmentCategory>('top');
   const [saving, setSaving] = useState<'naming' | 'saved' | null>(null);
 
@@ -62,7 +66,7 @@ export function FittingRoom({
       size,
       fits,
       fit: fits.find((f) => f.sizeLabel === size)!,
-      recommended: recommendSize(model, garment),
+      recommended: garmentOdds(model, garment, preference).recommended,
     };
   };
   // A handful of sizes per garment — cheap enough to recompute every render.
@@ -74,7 +78,7 @@ export function FittingRoom({
   function chooseGarment(id: string) {
     const garment = findGarment(id);
     if (!garment) return;
-    const size = defaultSize(model, garment);
+    const size = defaultSize(model, garment, preference);
     setSaved(
       garment.category === 'top'
         ? { ...outfit, topId: id, topSize: size }

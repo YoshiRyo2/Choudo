@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { BodyInput } from './domain/body';
+import { preferenceSpec } from './domain/fit';
 import type { Garment } from './domain/garments';
 import { TabBar, type Tab } from './ui/components/TabBar';
 import { BodyScreen } from './ui/screens/BodyScreen';
@@ -48,6 +49,8 @@ export function App() {
     );
   }
 
+  // Phase 3: replaced by the stored anchor / fit style.
+  const preference = preferenceSpec(null, null);
   const editBody = () => setEditing(true);
   /** Put an outfit on the mannequin and go and look at it. */
   const wear = (next: Outfit) => {
@@ -61,6 +64,7 @@ export function App() {
       {tab === 'fitting' && (
         <FittingRoom
           body={body}
+          preference={preference}
           units={units}
           outfit={outfit}
           onOutfitChange={setOutfit}
@@ -73,6 +77,7 @@ export function App() {
       {tab === 'discover' && (
         <Discover
           body={body}
+          preference={preference}
           units={units}
           closet={closet}
           onTryOn={tryOn}
@@ -83,6 +88,7 @@ export function App() {
       {tab === 'closet' && (
         <Closet
           body={body}
+          preference={preference}
           units={units}
           closet={closet}
           outfit={outfit}

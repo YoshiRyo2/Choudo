@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { BodyModel } from '../../../domain/body';
+import type { PreferenceSpec } from '../../../domain/fit';
 import { findGarment, type Garment, type GarmentCategory } from '../../../domain/garments';
 import { GarmentBadge } from '../../components/GarmentBadge';
 import { GarmentIcon } from '../../components/GarmentIcon';
@@ -12,6 +13,7 @@ type Filter = 'all' | GarmentCategory;
 
 interface LikedTabProps {
   model: BodyModel;
+  preference: PreferenceSpec;
   likedIds: string[];
   onOpen: (garment: Garment) => void;
   onUnlike: (garmentId: string) => void;
@@ -22,7 +24,7 @@ interface LikedTabProps {
 }
 
 /** Everything you've liked, newest first, filterable by tops and bottoms. */
-export function LikedTab({ model, likedIds, onOpen, onUnlike, folderCount, onFolders, onOpenDiscover }: LikedTabProps) {
+export function LikedTab({ model, preference, likedIds, onOpen, onUnlike, folderCount, onFolders, onOpenDiscover }: LikedTabProps) {
   const [filter, setFilter] = useState<Filter>('all');
   // Likes for garments no longer in the catalogue are skipped.
   const liked = likedIds.map((id) => findGarment(id)).filter((g): g is Garment => g !== undefined);
@@ -58,7 +60,7 @@ export function LikedTab({ model, likedIds, onOpen, onUnlike, folderCount, onFol
       ) : (
         <ul className="tile-grid">
           {shown.map((g) => {
-            const { fit, recommended } = suggestedFit(model, g);
+            const { fit, recommended } = suggestedFit(model, g, preference);
             return (
               <li key={g.id} className="tile">
                 <button type="button" className="tile__main" onClick={() => onOpen(g)}>
