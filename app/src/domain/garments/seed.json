@@ -58,7 +58,7 @@
       "color": "#2f3b4c",
       "sleeve": "short",
       "stretch": "none",
-      "chart": { "unit": "in", "girth": "flat", "sleeveDefinition": "shoulder_to_cuff" },
+      "chart": { "unit": "in", "girth": "flat", "sleeveDefinition": "center_back_to_cuff" },
       "source": {
         "placeholder": false,
         "url": "https://knightweave.com/pages/size-guide-tees",
