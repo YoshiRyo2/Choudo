@@ -5,7 +5,7 @@
  * suggest is decided from sampled odds — see sampleFit.ts.
  */
 
-import type { BodyModel, MeasurementKey, MeasurementSource } from '../body';
+import type { BodyModel, BodyType, MeasurementKey, MeasurementSource } from '../body';
 import type { Garment, GarmentSize, MeasurementOrigin, SizeMeasurements } from '../garments';
 import {
   BOTTOM_HIPS,
@@ -14,9 +14,8 @@ import {
   LENGTH_FAR_MULTIPLIER,
   SLEEVE,
   STRETCH_ALLOWANCE,
-  TOP_CHEST,
+  TOP_GIRTH_RULES,
   TOP_LENGTH,
-  TOP_WAIST,
   type GirthRule,
   type LengthRule,
 } from './rules';
@@ -61,6 +60,8 @@ export interface FitBand {
 export interface GarmentFit {
   garmentId: string;
   sizeLabel: string;
+  /** Whose body this was worked out for: the UI calls the chest "Bust" for a women's body. */
+  bodyType: BodyType;
   zones: ZoneFit[];
   /** Worst tone across zones; "unknown" if a girth couldn't be checked. See overallTone. */
   overall: FitTone;
@@ -115,11 +116,12 @@ const TONE_RANK: Record<FitTone, number> = { unknown: 0, good: 1, warn: 2, bad: 
 
 function zonesFor(garment: Garment, size: SizeMeasurements): ZoneSpec[] {
   if (garment.category === 'top') {
+    const girth = TOP_GIRTH_RULES[garment.sizing];
     const specs: ZoneSpec[] = [
-      { zone: 'chest', garmentKey: 'chest', bodyKey: 'chestCm', rule: TOP_CHEST },
+      { zone: 'chest', garmentKey: 'chest', bodyKey: 'chestCm', rule: girth.chest },
     ];
     if (size.waist !== undefined) {
-      specs.push({ zone: 'waist', garmentKey: 'waist', bodyKey: 'waistCm', rule: TOP_WAIST });
+      specs.push({ zone: 'waist', garmentKey: 'waist', bodyKey: 'waistCm', rule: girth.waist });
     }
     specs.push({ zone: 'length', garmentKey: 'length', bodyKey: 'torsoLengthCm', rule: TOP_LENGTH });
     // Short sleeves are a style choice, not a fit issue, so we only score long sleeves.
@@ -219,7 +221,7 @@ export function fitGarment(body: BodyModel, garment: Garment, sizeLabel: string)
   const zones = zonesFor(garment, size.measurements).map((spec) =>
     fitZone(spec, body, garment, size),
   );
-  return { garmentId: garment.id, sizeLabel, zones, overall: overallTone(zones) };
+  return { garmentId: garment.id, sizeLabel, bodyType: body.measurements.bodyType, zones, overall: overallTone(zones) };
 }
 
 /**

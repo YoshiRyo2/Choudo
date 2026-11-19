@@ -4,7 +4,7 @@
 
 import type { BodyModel } from '../../domain/body';
 import { fitGarment, type GarmentFit, type PreferenceSpec } from '../../domain/fit';
-import { findGarment, garmentsByCategory, type Garment, type GarmentCategory } from '../../domain/garments';
+import { findGarment, GARMENTS, type Garment, type GarmentCategory } from '../../domain/garments';
 import { garmentOdds } from './odds';
 import type { Outfit } from './stored';
 
@@ -20,12 +20,20 @@ export function middleSize(garment: Garment): string {
 
 /**
  * Fill in anything missing or stale in a saved outfit: unknown garment ids fall
- * back to the first garment in that category, unknown sizes to the default size.
+ * back to the first garment in that category from `shown` (the garments on show,
+ * the whole catalogue by default), unknown sizes to the default size. A garment
+ * already worn stays on even when `shown` leaves it out. A category with nothing
+ * to show is left empty.
  */
-export function resolveOutfit(outfit: Outfit, body: BodyModel, preference: PreferenceSpec): Outfit {
+export function resolveOutfit(
+  outfit: Outfit,
+  body: BodyModel,
+  preference: PreferenceSpec,
+  shown: readonly Garment[] = GARMENTS,
+): Outfit {
   const pick = (category: GarmentCategory, id: string | null, size: string | null) => {
     const found = id ? findGarment(id) : undefined;
-    const garment = found?.category === category ? found : garmentsByCategory(category)[0];
+    const garment = found?.category === category ? found : shown.find((g) => g.category === category);
     if (!garment) return { id: null, size: null };
     const sizeOk = size !== null && garment.sizes.some((s) => s.label === size);
     return { id: garment.id, size: sizeOk ? size : defaultSize(body, garment, preference) };

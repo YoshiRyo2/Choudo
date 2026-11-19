@@ -39,7 +39,7 @@ describe('triangleAffine', () => {
 describe('warpPieces for the Gildan 5000 photo', () => {
   const garment = findGarment('gildan-5000')!;
   const photo = garment.image!.landmarks;
-  const body = estimateBody({ heightCm: 178, weightKg: 75, sizing: 'mens' }).measurements;
+  const body = estimateBody({ heightCm: 178, weightKg: 75, bodyType: 'mens' }).measurements;
   const g = bodyGeometry(body);
 
   for (const label of ['S', 'XL', '5XL']) {
@@ -94,10 +94,32 @@ describe('warpPieces for the Gildan 5000 photo', () => {
   });
 });
 
+describe('warpPieces on a women’s body', () => {
+  const garment = findGarment('gildan-5000')!;
+  const photo = garment.image!.landmarks;
+  const near = (p: XY, q: XY) => Math.hypot(p.x - q.x, p.y - q.y) < 1e-6;
+
+  for (const bra of [undefined, { band: 34, cup: 'DD', system: 'us' as const }]) {
+    it(`still sends every photo landmark to its outline point${bra ? ' (34DD)' : ''}`, () => {
+      const body = estimateBody({ heightCm: 165, weightKg: 62, bodyType: 'womens', overrides: bra ? { braSize: bra } : undefined }).measurements;
+      const g = bodyGeometry(body);
+      for (const label of ['S', 'L']) {
+        const shape = topShape(g, garment, garment.sizes.find((s) => s.label === label)!.measurements, body.chestCm);
+        const pieces = warpPieces(photo, shape.landmarks, shape.sleeveEdges);
+        for (const name of ['collarLeft', 'collarRight', 'neckFront', 'shoulderLeft', 'shoulderRight', 'armpitLeft', 'armpitRight', 'hemLeft', 'hemRight'] as const) {
+          const hit = pieces.some((p) => p.region === 'body' && near(applyAffine(p.transform, photo[name]), shape.landmarks[name]));
+          expect(hit, `${label} ${name}`).toBe(true);
+        }
+        for (const p of pieces) expect(p.transform.a * p.transform.d - p.transform.b * p.transform.c).toBeGreaterThan(0);
+      }
+    });
+  }
+});
+
 describe('warpPieces for a long sleeve laid flat (the black henley)', () => {
   const garment = findGarment('ryo-black-henley')!;
   const photo = garment.image!.landmarks;
-  const body = estimateBody({ heightCm: 176, weightKg: 78, sizing: 'mens' }).measurements;
+  const body = estimateBody({ heightCm: 176, weightKg: 78, bodyType: 'mens' }).measurements;
   const shape = topShape(bodyGeometry(body), garment, garment.sizes[0]!.measurements, body.chestCm);
   const pieces = warpPieces(photo, shape.landmarks, shape.sleeveEdges);
 

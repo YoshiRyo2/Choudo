@@ -16,7 +16,7 @@
  */
 
 import { inToCm } from '../units';
-import type { FitIntent, Stretch } from '../garments';
+import type { FitIntent, GarmentSizing, Stretch } from '../garments';
 
 export interface GirthRule {
   kind: 'girth';
@@ -47,6 +47,35 @@ export const TOP_CHEST: GirthRule = {
 
 /** Shirt waist (button-ups list it): treated like the chest. */
 export const TOP_WAIST: GirthRule = TOP_CHEST;
+
+/**
+ * Bust on a top cut for women (garment sizing "womens"). Women's fitted tees are
+ * cut closer to the body, so the bands sit nearer zero. ASSUMED, not sourced yet
+ * (no women's charts or fit tests in the data) — replace from fit-test results:
+ *  - tightBelow −1 in: unchanged from men's. Tight is about the body, not the cut.
+ *  - fittedMax +1 in (men's +2): one inch closer, per Ryo's spec that women's
+ *    fitted tees run closer to the body.
+ *  - relaxedMax +3 in (men's +4): the same one-inch shift.
+ *  - ideal +0.5 in (men's +1): half way into the narrower fitted band.
+ * Unisex and men's tops keep the men's numbers, whoever wears them.
+ */
+export const WOMENS_TOP_CHEST: GirthRule = {
+  kind: 'girth',
+  tightBelow: inToCm(-1),
+  fittedMax: inToCm(1),
+  relaxedMax: inToCm(3),
+  ideal: inToCm(0.5),
+};
+
+/** A women's shirt waist: treated like its bust. */
+export const WOMENS_TOP_WAIST: GirthRule = WOMENS_TOP_CHEST;
+
+/** Top chest and waist rules by the garment's sizing. Bottoms use one set for everyone for now. */
+export const TOP_GIRTH_RULES: Record<GarmentSizing, { chest: GirthRule; waist: GirthRule }> = {
+  mens: { chest: TOP_CHEST, waist: TOP_WAIST },
+  unisex: { chest: TOP_CHEST, waist: TOP_WAIST },
+  womens: { chest: WOMENS_TOP_CHEST, waist: WOMENS_TOP_WAIST },
+};
 
 /** Pants waistband: much less room to play with than a shirt. */
 export const BOTTOM_WAIST: GirthRule = {

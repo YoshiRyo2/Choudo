@@ -92,7 +92,7 @@ export function fitTestRow(r: FitTestRecord): Record<FitTestColumn, string> {
     size: r.size,
     height_cm: cm(x.body.heightCm),
     weight_kg: cm(x.body.weightKg),
-    sizing: x.body.sizing,
+    sizing: x.body.bodyType,
     chest_cm: cm(x.chestCm),
     chest_source: x.chestSource,
     torso_cm: cm(x.torsoLengthCm),

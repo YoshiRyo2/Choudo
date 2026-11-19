@@ -14,7 +14,7 @@ import {
   sourceLine,
   summarize,
   verdictLine,
-  ZONE_NAME,
+  zoneName,
 } from '../fitText';
 import { GarmentBadge } from './GarmentBadge';
 import type { UnitSystem } from '../state/stored';
@@ -68,7 +68,7 @@ export function FitReadout({ garment, fit, units, odds, preference, hint, showOd
 
       {hint && (
         <p className="readout__hint">
-          {measureHintText(hint)}{' '}
+          {measureHintText(hint, fit.bodyType)}{' '}
           <button type="button" className="link-button" onClick={onEditBody}>
             Add it
           </button>
@@ -79,12 +79,12 @@ export function FitReadout({ garment, fit, units, odds, preference, hint, showOd
         {fit.zones.map((z) => (
           <li key={z.zone} className="zone">
             <div className="zone__head">
-              <span className="zone__name">{ZONE_NAME[z.zone]}</span>
+              <span className="zone__name">{zoneName(z.zone, fit.bodyType)}</span>
               <span className={`zone__label tone-${z.tone}`}>{LABEL_TEXT[z.label]}</span>
               {z.diffCm !== null && <span className="zone__diff num">{formatDiff(z.diffCm, units)}</span>}
             </div>
             {z.diffCm !== null && <TapeScale diffCm={z.diffCm} bands={z.bands} units={units} kind={z.kind} />}
-            <p className="zone__text">{describeZone(z, units)}</p>
+            <p className="zone__text">{describeZone(z, units, fit.bodyType)}</p>
             {showOdds && <ZoneOddsLines odds={sizeOdds?.zones.find((o) => o.zone === z.zone)} garment={garment} hasLengthPreference={hasLengthPreference} />}
             <p className="zone__numbers">
               <span>

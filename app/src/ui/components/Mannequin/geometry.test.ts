@@ -6,7 +6,7 @@ import { MAX_SIDE_FLARE_CM, topShape } from './topShape';
 import { UNKNOWN_CHEST_TEE } from '../../../domain/garments/testFixtures';
 
 const body = (heightCm: number, weightKg: number) =>
-  estimateBody({ heightCm, weightKg, sizing: 'mens' }).measurements;
+  estimateBody({ heightCm, weightKg, bodyType: 'mens' }).measurements;
 
 describe('bodyGeometry', () => {
   it('scales vertically with height and stands on the floor', () => {
@@ -18,7 +18,7 @@ describe('bodyGeometry', () => {
   });
 
   it('puts the crotch at height minus inseam', () => {
-    const m = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens', overrides: { inseamCm: 80 } });
+    const m = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens', overrides: { inseamCm: 80 } });
     expect(bodyGeometry(m.measurements).y.crotch).toBeCloseTo(96);
   });
 
@@ -27,6 +27,47 @@ describe('bodyGeometry', () => {
     const heavy = bodyGeometry(body(176, 110));
     expect(heavy.half.waist).toBeGreaterThan(slim.half.waist);
     expect(bodyHalfAt(heavy, heavy.y.hip)).toBeGreaterThan(bodyHalfAt(slim, slim.y.hip));
+  });
+});
+
+describe('the women’s silhouette', () => {
+  const womens = (overrides?: { chestCm?: number; waistCm?: number; hipsCm?: number }) =>
+    estimateBody({ heightCm: 165, weightKg: 62, bodyType: 'womens', overrides }).measurements;
+
+  it('uses the same component and fields, with a curve in under the bust', () => {
+    const g = bodyGeometry(womens());
+    const men = bodyGeometry({ ...womens(), bodyType: 'mens' });
+    expect(g.outline.length).toBe(men.outline.length + 1);
+    expect(g.y.chest).toBeGreaterThan(men.y.chest);
+    // Under the bust the outline is narrower than a straight chest-to-waist line.
+    const underY = g.y.chest + (g.y.waist - g.y.chest) * 0.28;
+    const straight = g.half.chest + (g.half.waist - g.half.chest) * 0.28;
+    expect(bodyHalfAt(g, underY)).toBeLessThan(straight);
+    // Rounder hips: wider half way between waist and hip than the men’s curve.
+    const midHip = (g.y.waist + g.y.hip) / 2;
+    expect(bodyHalfAt(g, midHip)).toBeGreaterThan(bodyHalfAt(men, midHip));
+    expect(g.half.neck).toBeLessThan(men.half.neck);
+  });
+
+  it('follows the bust, waist and hips it is given', () => {
+    const base = bodyGeometry(womens({ chestCm: 92, waistCm: 74, hipsCm: 100 }));
+    const fuller = bodyGeometry(womens({ chestCm: 104, waistCm: 74, hipsCm: 100 }));
+    const curvier = bodyGeometry(womens({ chestCm: 92, waistCm: 74, hipsCm: 112 }));
+    expect(fuller.half.chest).toBeGreaterThan(base.half.chest);
+    expect(bodyHalfAt(fuller, fuller.y.chest)).toBeGreaterThan(bodyHalfAt(base, base.y.chest));
+    expect(fuller.half.waist).toBeCloseTo(base.half.waist);
+    expect(bodyHalfAt(curvier, curvier.y.hip)).toBeGreaterThan(bodyHalfAt(base, base.y.hip));
+  });
+
+  it('draws a tee over it without cutting into the body', () => {
+    const m = womens();
+    const g = bodyGeometry(m);
+    const tee = findGarment('gildan-5000')!;
+    const shape = topShape(g, tee, tee.sizes[0]!.measurements, m.chestCm);
+    for (const name of ['chest', 'waist'] as const) {
+      const marker = shape.markers[name];
+      if (marker) expect(marker.x).toBeGreaterThan(bodyHalfAt(g, marker.y));
+    }
   });
 });
 

@@ -17,7 +17,7 @@ import { GARMENT_SD_CM, MEASURED_ANCHOR_SD_CM } from './uncertainty';
 import { UNKNOWN_CHEST_TEE } from '../garments/testFixtures';
 
 function bodyWith(m: Partial<BodyModel['measurements']>): BodyModel {
-  const model = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens' });
+  const model = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
   return { ...model, measurements: { ...model.measurements, ...m } };
 }
 
@@ -199,7 +199,7 @@ describe('personalFit', () => {
 
   it('bottoms use their objective labels', () => {
     const jean = findGarment('corvo-slim-jean')!;
-    const b = estimateBody({ heightCm: 178, weightKg: 75, sizing: 'mens' });
+    const b = estimateBody({ heightCm: 178, weightKg: 75, bodyType: 'mens' });
     for (const s of jean.sizes) {
       const fit = fitGarment(b, jean, s.label);
       const p = personalFit(fit, jean, regular);

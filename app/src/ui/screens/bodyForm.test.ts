@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_FORM, formToInput, inputToForm, parseNumber, switchUnits, type BodyForm } from './bodyForm';
+import { braSizeProblemText, EMPTY_FORM, formToInput, inputToForm, parseNumber, switchUnits, type BodyForm } from './bodyForm';
 
 const metric: BodyForm = { ...EMPTY_FORM, heightCm: '176', weight: '85' };
 
@@ -15,7 +15,7 @@ describe('parseNumber', () => {
 describe('formToInput', () => {
   it('needs height and weight', () => {
     expect(formToInput({ ...metric, weight: '' })).toBeNull();
-    expect(formToInput(metric)).toEqual({ heightCm: 176, weightKg: 85, sizing: 'mens' });
+    expect(formToInput(metric)).toEqual({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
   });
 
   it('converts imperial to cm/kg', () => {
@@ -40,7 +40,7 @@ describe('formToInput', () => {
 
 describe('round trips', () => {
   it('inputToForm -> formToInput keeps the numbers', () => {
-    const input = { heightCm: 176, weightKg: 85, sizing: 'womens' as const, overrides: { inseamCm: 80 } };
+    const input = { heightCm: 176, weightKg: 85, bodyType: 'womens' as const, overrides: { inseamCm: 80 } };
     expect(formToInput(inputToForm(input, 'metric'))).toEqual(input);
   });
 
@@ -50,5 +50,33 @@ describe('round trips', () => {
     const input = formToInput(back)!;
     expect(Math.abs(input.heightCm - 176)).toBeLessThanOrEqual(1);
     expect(Math.abs(input.weightKg - 85)).toBeLessThanOrEqual(0.1);
+  });
+});
+
+describe('bra size', () => {
+  const womens: BodyForm = { ...metric, bodyType: 'womens' };
+
+  it('adds a parsed bra size to a women’s body only', () => {
+    expect(formToInput({ ...womens, braSize: '34dd', braSystem: 'uk' })?.overrides).toEqual({
+      braSize: { band: 34, cup: 'DD', system: 'uk' },
+    });
+    expect(formToInput({ ...metric, braSize: '34DD' })?.overrides).toBeUndefined();
+  });
+
+  it('leaves out a bra size it can’t read, and says why', () => {
+    const form = { ...womens, braSize: '34Q' };
+    expect(formToInput(form)?.overrides).toBeUndefined();
+    expect(braSizeProblemText(form)).toMatch(/^Q isn't a US cup size/);
+    expect(braSizeProblemText({ ...womens, braSize: '' })).toBeUndefined();
+    expect(braSizeProblemText({ ...metric, braSize: '34Q' })).toBeUndefined(); // ignored for men's
+  });
+
+  it('round-trips through inputToForm and keeps it when switching units', () => {
+    const input = { heightCm: 165, weightKg: 60, bodyType: 'womens' as const, overrides: { braSize: { band: 32, cup: 'E', system: 'uk' as const } } };
+    const form = inputToForm(input, 'metric');
+    expect(form.braSize).toBe('32E');
+    expect(form.braSystem).toBe('uk');
+    expect(formToInput(form)).toEqual(input);
+    expect(switchUnits({ ...womens, braSize: '36B' }, 'imperial').braSize).toBe('36B');
   });
 });

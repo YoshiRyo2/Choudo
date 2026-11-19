@@ -28,9 +28,12 @@ import {
   type Verdict,
 } from './preference';
 import { normal, seededRng } from './random';
-import { BOTTOM_HIPS, BOTTOM_WAIST, TOP_WAIST } from './rules';
+import { BOTTOM_HIPS, BOTTOM_WAIST, TOP_GIRTH_RULES } from './rules';
 import {
   ENTERED_BODY_SD_CM,
+  BRA_BUST_SD_CM,
+  CUP_TORSO_FREE_IN,
+  CUP_TORSO_SD_CM_PER_IN,
   ESTIMATED_BODY_SD_CM,
   GARMENT_SD_CM,
   HINT_Z,
@@ -117,14 +120,23 @@ export function garmentSdCm(garment: Garment, size: GarmentSize, key: Measuremen
   return Math.max(GARMENT_SD_CM[grade][kind], gap === undefined ? 0 : Math.abs(gap));
 }
 
-/** 1 SD on one body number: wider when estimated than when typed in. */
+/**
+ * 1 SD on one body number: wider when estimated than when typed in, its own
+ * spread for a bust from a bra size, and a wider torso length for a fuller cup.
+ */
 export function bodySdCm(body: BodyModel, key: BodyKey): number {
-  return body.sources[key] === 'entered' ? ENTERED_BODY_SD_CM : ESTIMATED_BODY_SD_CM[key];
+  const bra = body.bra;
+  let sd = body.sources[key] === 'entered' ? ENTERED_BODY_SD_CM : ESTIMATED_BODY_SD_CM[body.measurements.bodyType][key];
+  if (key === 'chestCm' && body.sources.chestCm === 'estimated' && bra?.setsBust) sd = BRA_BUST_SD_CM;
+  if (key === 'torsoLengthCm' && bra && bra.cupIn > CUP_TORSO_FREE_IN) {
+    sd = Math.hypot(sd, CUP_TORSO_SD_CM_PER_IN * (bra.cupIn - CUP_TORSO_FREE_IN));
+  }
+  return sd;
 }
 
 /** The ideal ease the engine aims for on girth zones without a personal target. */
 function idealEaseCm(garment: Garment, zone: ZoneId): number {
-  if (garment.category === 'top') return TOP_WAIST.ideal;
+  if (garment.category === 'top') return TOP_GIRTH_RULES[garment.sizing].waist.ideal;
   return zone === 'hips' ? BOTTOM_HIPS.ideal : BOTTOM_WAIST.ideal;
 }
 
@@ -303,7 +315,7 @@ export function measurementHint(
     const picks = new Set<string>([current]);
     for (const z of [-HINT_Z, HINT_Z]) {
       const measured: BodyModel = {
-        measurements: { ...body.measurements, [key]: body.measurements[key] + z * ESTIMATED_BODY_SD_CM[key] },
+        measurements: { ...body.measurements, [key]: body.measurements[key] + z * bodySdCm(body, key) },
         sources: { ...body.sources, [key]: 'entered' },
       };
       const pick = recommendSize(measured, garment, spec, options);

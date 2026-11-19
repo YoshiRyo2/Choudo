@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
 import { fitAllSizes, measurementHint, type Anchor, type GarmentFit, type GarmentOdds, type PreferenceSpec } from '../../domain/fit';
-import { findGarment, garmentsByCategory, type Garment, type GarmentCategory } from '../../domain/garments';
+import { catalogueFor, findGarment, GARMENTS, type CatalogueScope, type Garment, type GarmentCategory } from '../../domain/garments';
+import { catalogueOptions, emptyCategoryText } from '../catalogueText';
 import { FitReadout } from '../components/FitReadout';
 import { FitSheet } from '../components/FitSheet';
 import { GarmentCarousel } from '../components/GarmentCarousel';
@@ -26,6 +27,9 @@ interface FittingRoomProps {
   /** The outfit on the mannequin, as stored (may be stale; it's resolved here). */
   outfit: Outfit;
   onOutfitChange: (outfit: Outfit) => void;
+  /** Show garments for the user's body type (plus unisex), or all of them. */
+  catalogue: CatalogueScope;
+  onCatalogueChange: (scope: CatalogueScope) => void;
   /** Save what's on the mannequin to the Closet under a name. */
   onSaveOutfit: (outfit: Outfit, name: string) => void;
   /** Default name for the next saved outfit, e.g. "Outfit 3". */
@@ -42,9 +46,6 @@ interface FittingRoomProps {
   };
 }
 
-const TOPS = garmentsByCategory('top');
-const BOTTOMS = garmentsByCategory('bottom');
-
 interface Slot {
   garment: Garment;
   size: string;
@@ -60,6 +61,8 @@ export function FittingRoom({
   units,
   outfit: saved,
   onOutfitChange: setSaved,
+  catalogue,
+  onCatalogueChange,
   onSaveOutfit,
   nextOutfitName,
   onUnitsChange,
@@ -67,7 +70,8 @@ export function FittingRoom({
   testing,
 }: FittingRoomProps) {
   const model = useMemo(() => estimateBody(body), [body]);
-  const outfit = useMemo(() => resolveOutfit(saved, model, preference), [saved, model, preference]);
+  const shown = useMemo(() => catalogueFor(GARMENTS, body.bodyType, catalogue), [body.bodyType, catalogue]);
+  const outfit = useMemo(() => resolveOutfit(saved, model, preference, shown), [saved, model, preference, shown]);
   const [browsing, setBrowsing] = useState<GarmentCategory>('top');
   const [saving, setSaving] = useState<'naming' | 'saved' | null>(null);
 
@@ -113,6 +117,10 @@ export function FittingRoom({
   function chooseSize(size: string) {
     setSaved(browsing === 'top' ? { ...outfit, topSize: size } : { ...outfit, bottomSize: size });
   }
+
+  // The carousel: what's on show in this category, plus the worn garment if the filter hides it.
+  const inCategory = shown.filter((g) => g.category === browsing);
+  const carousel = active && !inCategory.includes(active.garment) ? [active.garment, ...inCategory] : inCategory;
 
   const worn = (s: Slot | null): WornGarment | undefined =>
     s ? { garment: s.garment, sizeLabel: s.size, fit: s.fit } : undefined;
@@ -175,13 +183,29 @@ export function FittingRoom({
           onChange={setBrowsing}
         />
 
-        <GarmentCarousel
-          key={browsing}
-          label={browsing === 'top' ? 'Tops' : 'Bottoms'}
-          garments={browsing === 'top' ? TOPS : BOTTOMS}
-          selectedId={active?.garment.id ?? null}
-          onSelect={chooseGarment}
+        <SegmentedControl
+          label="Show"
+          value={catalogue}
+          options={catalogueOptions(body.bodyType)}
+          onChange={onCatalogueChange}
         />
+
+        {carousel.length > 0 ? (
+          <GarmentCarousel
+            key={`${browsing}-${catalogue}`}
+            label={browsing === 'top' ? 'Tops' : 'Bottoms'}
+            garments={carousel}
+            selectedId={active?.garment.id ?? null}
+            onSelect={chooseGarment}
+          />
+        ) : (
+          <div className="fitting__empty">
+            <p>{emptyCategoryText(body.bodyType, browsing)}</p>
+            <button type="button" className="button button--outline button--small" onClick={() => onCatalogueChange('all')}>
+              Show all
+            </button>
+          </div>
+        )}
 
         {active && (
           <>
@@ -210,6 +234,7 @@ export function FittingRoom({
             size={browsing === 'top' && top ? top.size : null}
             records={testing.records}
             onClear={testing.onClear}
+            bodyType={body.bodyType}
             onSave={(answers) => {
               if (!top) return;
               const prediction = predictionFor({

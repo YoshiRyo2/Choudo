@@ -96,6 +96,7 @@ Never guess. An unknown definition means that zone can't be scored, and the fit 
 | `lengthDefinition` | `hps`, `center_back`, `unknown` | Tops only. "High point of shoulder" or "from shoulder" means `hps`. "Centre back" or "back neck" means `center_back`. |
 | `sleeveDefinition` | `shoulder_to_cuff`, `center_back_to_cuff`, `top_of_sleeve` | Leave it out if there's no sleeve row. |
 | `fitIntent` | `slim`, `regular`, `relaxed`, `oversized` | How the brand describes the cut. |
+| `sizing` | `mens`, `womens`, `unisex` | Who the size chart is cut for. Decides who sees it by default and, for tops, which chest thresholds apply (women's cuts sit closer). Anything else is an error. |
 
 ## 5. Copy the numbers exactly as printed
 

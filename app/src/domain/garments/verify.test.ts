@@ -59,6 +59,12 @@ describe('checkGarment', () => {
     expect(r.errors.every((e) => e.check === 'structure')).toBe(true);
   });
 
+  it('rejects a sizing other than mens, womens or unisex', () => {
+    const r = checkGarment({ ...tee, sizing: 'kids' as never });
+    expect(r.errors.map((e) => e.message)).toEqual(['sizing must be "mens", "womens" or "unisex"']);
+    for (const sizing of ['mens', 'womens', 'unisex'] as const) expect(checkGarment({ ...tee, sizing }).errors).toEqual([]);
+  });
+
   it('turns a shrinking size into an error', () => {
     const swapped = { ...tee, sizes: [tee.sizes[1]!, tee.sizes[0]!, ...tee.sizes.slice(2)] };
     const r = checkGarment(swapped);

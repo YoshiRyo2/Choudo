@@ -4,6 +4,7 @@
  */
 
 import {
+  GARMENT_SIZINGS,
   MEASUREMENT_ORIGINS,
   SOURCE_TIERS,
   TOP_LANDMARKS,
@@ -30,6 +31,7 @@ export function validateGarment(g: SeedGarment): string[] {
   const problems: string[] = [];
   if (!g.brand || !g.name) problems.push('missing brand or name');
   if (!/^#[0-9a-f]{6}$/i.test(g.color)) problems.push('color must be #rrggbb');
+  if (!GARMENT_SIZINGS.includes(g.sizing)) problems.push('sizing must be "mens", "womens" or "unisex"');
   if (g.category === 'top' && !g.sleeve) problems.push('tops need a sleeve type');
   if (g.category === 'bottom' && g.sleeve) problems.push("bottoms can't have a sleeve");
   problems.push(...validateProvenance(g));

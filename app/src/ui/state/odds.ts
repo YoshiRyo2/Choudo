@@ -12,7 +12,7 @@ const MAX_ENTRIES = 200;
 const cache = new Map<string, GarmentOdds>();
 
 function keyOf(body: BodyModel, garment: Garment, spec: PreferenceSpec): string {
-  return JSON.stringify([garment.id, body.measurements, body.sources, spec]);
+  return JSON.stringify([garment.id, body.measurements, body.sources, body.bra ?? null, spec]);
 }
 
 export function garmentOdds(body: BodyModel, garment: Garment, spec: PreferenceSpec): GarmentOdds {

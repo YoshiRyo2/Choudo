@@ -5,6 +5,7 @@ import { findGarment } from '../domain/garments';
 import { UNKNOWN_CHEST_TEE } from '../domain/garments/testFixtures';
 import {
   describeZone,
+  zoneName,
   fitReferenceLine,
   formatPercent,
   labelOddsText,
@@ -58,19 +59,48 @@ describe('describeZone', () => {
     );
   });
 
+  it('calls the chest the bust for a women’s body', () => {
+    expect(describeZone(zone({ diffCm: 4 }), 'metric', 'womens')).toBe('4.0 cm of room at your bust.');
+    expect(describeZone(zone({ diffCm: -3, label: 'tight' }), 'metric', 'womens')).toBe('3.0 cm smaller than your bust.');
+    expect(describeZone(zone({ zone: 'waist', diffCm: 4 }), 'metric', 'womens')).toBe('4.0 cm of room at your waist.');
+  });
+
   it('passes through the engine’s reason when unknown', () => {
     expect(describeZone(zone({ diffCm: null, label: 'unknown', note: 'No data.' }), 'metric')).toBe('No data.');
   });
 });
 
+describe('zoneName', () => {
+  it('labels the chest zone Bust for a women’s body, and nothing else changes', () => {
+    expect(zoneName('chest', 'womens')).toBe('Bust');
+    expect(zoneName('chest', 'mens')).toBe('Chest');
+    expect(zoneName('chest')).toBe('Chest');
+    expect(zoneName('waist', 'womens')).toBe('Waist');
+    expect(zoneName('length', 'womens')).toBe('Length');
+  });
+});
+
+const UNKNOWN_CHEST_FIT = (b: ReturnType<typeof estimateBody>) => fitGarment(b, UNKNOWN_CHEST_TEE, 'M');
+
 describe('summarize', () => {
-  const body = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens' });
+  const body = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
 
   it('names the problem zones', () => {
-    const tall = estimateBody({ heightCm: 190, weightKg: 110, sizing: 'mens' });
+    const tall = estimateBody({ heightCm: 190, weightKg: 110, bodyType: 'mens' });
     const s = summarize(fitGarment(tall, findGarment('fieldline-straight-chino')!, '30'));
     expect(s.headline).toBe('Probably won’t fit');
     expect(s.detail).toMatch(/^Tight at the waist/);
+  });
+
+  it('says “at the bust” and “the bust” for a women’s body', () => {
+    const womens = estimateBody({ heightCm: 165, weightKg: 60, bodyType: 'womens' });
+    const fit = fitGarment(womens, findGarment('gildan-5000')!, 'S');
+    expect(fit.bodyType).toBe('womens');
+    const tight = { ...fit, overall: 'bad' as const, zones: [{ ...fit.zones[0]!, label: 'tight' as const, tone: 'bad' as const }] };
+    expect(summarize(tight).detail).toBe('Tight at the bust.');
+    expect(summarize({ ...fit, bodyType: 'womens', zones: UNKNOWN_CHEST_FIT(womens).zones, overall: 'unknown' }).detail).toBe(
+      'This size chart doesn’t let us compare the bust.',
+    );
   });
 
   it('says when estimates were used', () => {
@@ -224,6 +254,8 @@ describe('odds wording', () => {
 
   it('names the measurement that would decide the size', () => {
     expect(measureHintText({ key: 'chestCm', sizes: ['M', 'L'] })).toBe('Measure your chest to decide between M and L.');
+    expect(measureHintText({ key: 'chestCm', sizes: ['M', 'L'] }, 'womens')).toBe('Measure your bust to decide between M and L.');
+    expect(measureHintText({ key: 'waistCm', sizes: ['M', 'L'] }, 'womens')).toBe('Measure your waist to decide between M and L.');
     expect(measureHintText({ key: 'inseamCm', sizes: ['30x30', '30x32', '32x32'] })).toBe(
       'Measure your inseam to decide between 30x30, 30x32 and 32x32.',
     );

@@ -11,8 +11,9 @@ well-named modules over clever ones.
 ## Hard constraints (v1)
 - **Guest only.** No accounts, no login, no backend user data. Anything stored stays on
   the device (`localStorage`).
-- **No face, no photo, no camera.** Body input = height + weight, plus optional
-  chest / waist / hips / inseam overrides.
+- **No face, no photo, no camera.** Body input = height + weight + body type ("Size me in
+  women's / men's clothes"), plus optional chest (full bust) / waist / hips / inseam
+  overrides and, for a women's body, an optional bra size.
 - **No AR, body scanning, or photo avatars yet.** Keep the mannequin behind one component
   so a 3D/SMPL renderer can replace it later — but don't build it.
 
@@ -27,10 +28,12 @@ well-named modules over clever ones.
 app/src/
   domain/        pure TypeScript, no React, never imports from ui/
     units.ts     cm/in, kg/lb conversion. Everything internal is cm and kg.
-    body/        estimateBody(input) -> BodyMeasurements
+    body/        estimateBody(input) -> BodyModel (men's power law; women's ANSUR II regressions),
+                 braSize.ts (parse "34DD", US/UK cups, bust estimate)
     garments/    types.ts (schema), seed.json, normalize.ts (printed -> cm + provenance),
                  validate.ts (structure), verify.ts + verifyRules.ts (stage-5 checks),
-                 grade.ts (confidence grade), report.ts (npm run data:check text)
+                 grade.ts (confidence grade), report.ts (npm run data:check text),
+                 catalogue.ts (garments for a body type: its sizing + unisex, or all)
     fit/         fitGarment(body, garment, size) -> per-zone fit results (rules.ts thresholds)
                  preference.ts (anchor tee / fit style -> personal verdict), sampleFit.ts
                  (seeded odds, recommendSize, measurementHint), uncertainty.ts (every spread),
@@ -76,6 +79,23 @@ inputs/outputs and unit tests. UI only calls their public functions.
   (unless something is definitely bad). `recommendSize` never picks a size on length alone.
 - Stretch fabric moves the "tight" boundary (`STRETCH_ALLOWANCE` in `rules.ts`).
 - Woven shirts currently use the tee chest thresholds — likely too strict; tune in `rules.ts`.
+- Top chest/waist thresholds go by the **garment's** sizing (`TOP_GIRTH_RULES`): women's cuts use
+  `WOMENS_TOP_CHEST` (fitted to +1 in, relaxed to +3 in — assumed, not sourced yet); men's and
+  unisex keep the men's numbers on any body. Bottoms use one set for everyone.
+- One chest zone in the engine; `fitText.ts` calls it **Bust** for a women's body
+  (`zoneName`, `describeZone`, `summarize`, `measureHintText`; `GarmentFit.bodyType`).
+
+## Body estimates (source of truth is `domain/body/`)
+- `bodyType: "womens" | "mens"` on the body input (men's is the default and v1's).
+- Men's girths: power law from an ANSUR II-rounded reference body (unchanged since v1).
+- Women's bust, waist, hips and inseam: least-squares on height and weight over the ANSUR II
+  female public data (1,986 women), each coefficient cited with R² and residual SD in
+  `estimateBody.ts`; results are clamped to `INPUT_LIMITS`. ANSUR II's waist is at the navel.
+- Bust, best first: measured full bust → bra size (band + cup inches, A = 1; US and UK letters
+  differ after D) → height + weight. A bra-size bust stays "estimated" (`BodyModel.bra`) with
+  its own spread (`BRA_BUST_SD_CM`).
+- A cup above C widens the torso-length spread (`CUP_TORSO_SD_CM_PER_IN`) — an assumption,
+  never a shift in the length itself.
 
 ## Personal fit and odds (source of truth is `domain/fit/`)
 - Zone labels stay objective. The **verdict** is personal: fits how you like / a bit snugger /
@@ -87,7 +107,8 @@ inputs/outputs and unit tests. UI only calls their public functions.
 - Relaxed and oversized designs win when their ease is above the user's ("Oversized, as
   designed"); slim and regular cuts are sized to the user. Pants have no personal target yet.
 - `sampleFit` draws body, garment and preference 500 times (seed fixed) and returns per-size
-  label, personal and verdict odds. Every spread is in `uncertainty.ts`, each with its source.
+  label, personal and verdict odds. Every spread is in `uncertainty.ts`, each with its source;
+  estimated body spreads are per body type (women's from the ANSUR II residuals).
   One body draw is shared by all sizes and the anchor, so an anchor cancels chest-estimate error.
 - `recommendSize` = highest chance of "fits how you like"; ties go roomier; still null for
   unscored garments or with no girth to score. `measurementHint` names the estimated
@@ -103,9 +124,13 @@ inputs/outputs and unit tests. UI only calls their public functions.
 - Seed values are copied as printed. A value is a plain number (from the chart) or
   `{ value, origin: chart | estimated | audited, how }`. `normalizeGarment` converts to cm
   and keeps each value's origin, printed number and conversions (`GarmentSize.provenance`).
+- Every row has `sizing: "mens" | "womens" | "unisex"` (who the chart is cut for). Gildan 5000
+  and Knightweave are unisex. The Fitting room and Discover show the body type's sizing plus
+  unisex, with a shared "Show: … & unisex | All" toggle (`catalogueFor`); a worn garment
+  stays on even when hidden.
 - `checkGarment` (stage 5) returns errors and warnings. Errors leave the garment out of the
-  catalogue and fail `npm run data:check`: a size smaller than the one before, or a flat
-  girth that looks like a full circumference (or the reverse). Warnings need review:
+  catalogue and fail `npm run data:check`: a sizing other than the three above, a size smaller
+  than the one before, or a flat girth that looks like a full circumference (or the reverse). Warnings need review:
   uneven grading, implausible ranges, chest ease for the fit intent, and audit vs chart.
   Thresholds are in `verifyRules.ts`.
 - Confidence grade (`gradeGarment`), checked in order: **unscored** (girth method or top
@@ -129,18 +154,21 @@ npm run photos     # cut garment photos out into public/garments/ (local only)
 npm run build      # typecheck + production build
 ```
 Logic that can be pure (geometry, form parsing, wording) lives in its own `.ts` file with
-tests; components stay thin. localStorage keys are versioned (`nimbus.body.v1`): bump the
-version when a stored shape changes. Keys today: `body`, `units`, `outfit` (fitting room),
-`swipes` (one `{garmentId, sizeShown, liked, at}` per garment), `folders`, `outfits` (saved),
-`anchor` (tee the user likes), `fitStyle`, `testMode`, `fitTests` (Test mode results).
+tests; components stay thin. localStorage keys are versioned (`nimbus.body.v2`): bump the
+version when a stored shape changes, and move old data in `ui/state/migrate.ts` (runs once at
+start-up). Keys today: `body` (v2: `bodyType`, optional `braSize`), `units`, `outfit` (fitting
+room), `swipes` (one `{garmentId, sizeShown, liked, at}` per garment), `folders`, `outfits`
+(saved), `anchor` (tee the user likes), `fitStyle`, `catalogue` (`matching` | `all`),
+`testMode`, `fitTests` (v2, Test mode results; the CSV column stays `sizing`).
 
 ## Discover + Closet
 - Navigation is a bottom `TabBar` (Fitting room / Discover / Closet) with plain state in
   `App.tsx`; the fitting-room outfit and the closet data live in `App` so any screen can
   put clothes on the mannequin.
 - Discover feed (`buildFeed`): unseen garments in catalogue order, then passed ones oldest
-  first; liked ones are left out. The feed is fixed when the screen opens; at the end it
-  says there are no more garments. Cards show the recommended size, or the middle size
+  first; liked ones are left out, and only garments the catalogue toggle shows. The feed is
+  fixed when the screen opens (or the toggle changes); at the end it says there are no more
+  garments, offering Show all when the toggle hides some. Cards show the recommended size, or the middle size
   (labelled as such) when `recommendSize` returns null.
 - Unliking a garment or deleting an outfit removes it from every folder.
 Python reference (repo root): `python -m pytest`, `python -m src.report --chest 38`.
