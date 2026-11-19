@@ -3,6 +3,7 @@ import { estimateBody } from '../../../domain/body';
 import { findGarment } from '../../../domain/garments';
 import { bodyGeometry, bodyHalfAt, bottomShape, limbFrame, mirrorPath, smoothPath } from './geometry';
 import { MAX_SIDE_FLARE_CM, topShape } from './topShape';
+import { UNKNOWN_CHEST_TEE } from '../../../domain/garments/testFixtures';
 
 const body = (heightCm: number, weightKg: number) =>
   estimateBody({ heightCm, weightKg, sizing: 'mens' }).measurements;
@@ -47,8 +48,8 @@ describe('garment shapes', () => {
   });
 
   it('marks unverified girths as approximate', () => {
-    const le = findGarment('landsend-super-t')!;
-    expect(topShape(g, le, le.sizes[1]!.measurements, 104).approximate).toBe(true);
+    const tee = UNKNOWN_CHEST_TEE;
+    expect(topShape(g, tee, tee.sizes[1]!.measurements, 104).approximate).toBe(true);
   });
 
   it('puts a short inseam hem above a long one, and pools anything past the floor', () => {

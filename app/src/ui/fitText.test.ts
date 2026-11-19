@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../domain/body';
 import { fitGarment, preferenceSpec, VERDICTS, type GarmentOdds, type SizeOdds, type Verdict, type ZoneFit, type ZoneOdds } from '../domain/fit';
 import { findGarment } from '../domain/garments';
+import { UNKNOWN_CHEST_TEE } from '../domain/garments/testFixtures';
 import {
   describeZone,
   fitReferenceLine,
@@ -77,7 +78,7 @@ describe('summarize', () => {
   });
 
   it('says which zones it could not check instead of claiming a good fit', () => {
-    const s = summarize(fitGarment(body, findGarment('landsend-super-t')!, 'M'));
+    const s = summarize(fitGarment(body, UNKNOWN_CHEST_TEE, 'M'));
     expect(s.headline).toBe('Can’t check this fit');
     expect(s.detail).toBe('This size chart doesn’t let us compare the chest.');
   });
@@ -94,7 +95,7 @@ describe('garmentTag', () => {
   it('keeps "Sample data" for placeholders and shows the grade otherwise', () => {
     expect(garmentTag(findGarment('fieldline-oxford')!)).toEqual({ kind: 'sample', text: 'Sample data' });
     expect(garmentTag(findGarment('gildan-5000')!)).toEqual({ kind: 'charted', text: 'From size chart' });
-    expect(garmentTag(findGarment('landsend-super-t')!)).toEqual({ kind: 'unscored', text: 'Can’t score' });
+    expect(garmentTag(UNKNOWN_CHEST_TEE)).toEqual({ kind: 'unscored', text: 'Can’t score' });
     expect(garmentTag({ source: { placeholder: false, tier: 'A' }, grade: 'verified' }).text).toBe('Verified');
     expect(garmentTag({ source: { placeholder: false, tier: 'E' }, grade: 'estimated' }).text).toBe('Estimated');
   });
@@ -173,6 +174,12 @@ describe('verdictLine', () => {
     });
   });
 
+  it('never says a 0% or 100% chance', () => {
+    const odds = oddsOf(sizeOdds('S', { 'too-tight': 1 }), sizeOdds('M', { fits: 1 }));
+    expect(verdictLine(odds, 'S', top).detail).toBe('<1% chance it fits how you like.');
+    expect(verdictLine(odds, 'M', top).detail).toBe('>99% chance it fits how you like.');
+  });
+
   it('can’t check a fit that is mostly unknown', () => {
     expect(verdictLine(oddsOf(sizeOdds('M', { unknown: 1 })), 'M', top)).toMatchObject({ headline: 'Can’t check this fit', detail: null });
   });
@@ -183,8 +190,17 @@ describe('odds wording', () => {
     expect(formatPercent(0.473)).toBe('47%');
     expect(formatPercent(0.002)).toBe('<1%');
     expect(formatPercent(0.998)).toBe('>99%');
-    expect(formatPercent(0)).toBe('0%');
-    expect(formatPercent(1)).toBe('100%');
+  });
+
+  it('never says 0% or 100%', () => {
+    expect(formatPercent(0)).toBe('<1%');
+    expect(formatPercent(0.004)).toBe('<1%');
+    expect(formatPercent(0.005)).toBe('1%');
+    expect(formatPercent(0.01)).toBe('1%');
+    expect(formatPercent(0.99)).toBe('99%');
+    expect(formatPercent(0.994)).toBe('99%');
+    expect(formatPercent(0.995)).toBe('>99%'); // would round to 100
+    expect(formatPercent(1)).toBe('>99%');
   });
 
   const chest: ZoneOdds = {

@@ -297,11 +297,15 @@ const VERDICT_TONE: Record<Verdict, FitTone> = {
   unknown: 'unknown',
 };
 
-/** 0.473 -> "47%", with "<1%" and ">99%" so a tiny chance never reads as none. */
+/**
+ * 0.473 -> "47%". Odds come from sampling, so a chance is never shown as a flat
+ * "0%" or "100%": anything that would round to 0 reads "<1%" and to 100 ">99%".
+ */
 export function formatPercent(p: number): string {
-  if (p > 0 && p < 0.005) return '<1%';
-  if (p < 1 && p > 0.995) return '>99%';
-  return `${Math.round(p * 100)}%`;
+  const rounded = Math.round(p * 100);
+  if (rounded < 1) return '<1%';
+  if (rounded > 99) return '>99%';
+  return `${rounded}%`;
 }
 
 export interface VerdictLine {

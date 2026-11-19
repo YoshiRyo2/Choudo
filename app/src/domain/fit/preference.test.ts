@@ -14,6 +14,7 @@ import {
 } from './preference';
 import { INTENT_EASE } from './rules';
 import { GARMENT_SD_CM, MEASURED_ANCHOR_SD_CM } from './uncertainty';
+import { UNKNOWN_CHEST_TEE } from '../garments/testFixtures';
 
 function bodyWith(m: Partial<BodyModel['measurements']>): BodyModel {
   const model = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens' });
@@ -75,7 +76,8 @@ describe('anchors', () => {
 
   it('only real tops with a trusted chest can be anchors', () => {
     expect(canAnchor(findGarment('gildan-5000')!)).toBe(true);
-    expect(canAnchor(findGarment('landsend-super-t')!)).toBe(false); // chest method unknown
+    expect(canAnchor(findGarment('landsend-super-t')!)).toBe(true);
+    expect(canAnchor(UNKNOWN_CHEST_TEE)).toBe(false); // chest method unknown
     expect(canAnchor(findGarment('fieldline-boxy-tee')!)).toBe(false); // placeholder
     expect(canAnchor(findGarment('corvo-slim-jean')!)).toBe(false); // not a top
   });

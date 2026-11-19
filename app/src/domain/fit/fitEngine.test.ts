@@ -4,6 +4,7 @@ import { findGarment, normalizeGarment, type Garment, type SeedGarment } from '.
 import { inToCm } from '../units';
 import { fitAllSizes, fitGarment, labelGirth, labelLength } from './fitEngine';
 import { BOTTOM_WAIST, INSEAM, TOP_CHEST } from './rules';
+import { UNKNOWN_CHEST_TEE } from '../garments/testFixtures';
 
 /** A body with exact, entered measurements so tests don't depend on the estimator. */
 function bodyWith(m: Partial<BodyModel['measurements']>): BodyModel {
@@ -99,8 +100,14 @@ describe('fitGarment', () => {
     expect(fit.overall).toBe('good');
   });
 
-  it('never guesses an unverified chest (Lands’ End)', () => {
-    const fit = fitGarment(body, findGarment('landsend-super-t')!, 'M');
+  it('scores the Lands’ End chest as a full circumference, not doubled', () => {
+    const chest = chestOf(fitGarment(body, findGarment('landsend-super-t')!, 'M'));
+    expect(chest.diffCm).toBeCloseTo(inToCm(44 - 38));
+    expect(chest.label).toBe('loose');
+  });
+
+  it('never guesses an unverified chest', () => {
+    const fit = fitGarment(body, UNKNOWN_CHEST_TEE, 'M');
     const chest = chestOf(fit);
     expect(chest.label).toBe('unknown');
     expect(chest.diffCm).toBeNull();

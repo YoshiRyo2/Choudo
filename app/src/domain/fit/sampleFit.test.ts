@@ -15,6 +15,7 @@ import {
   type SizeOdds,
 } from './sampleFit';
 import { ENTERED_BODY_SD_CM, ESTIMATED_BODY_SD_CM, GARMENT_SD_CM, SAMPLE_COUNT } from './uncertainty';
+import { UNKNOWN_CHEST_TEE } from '../garments/testFixtures';
 
 const regular = preferenceSpec(null, null);
 const gildan = findGarment('gildan-5000')!;
@@ -183,8 +184,13 @@ describe('recommendSize', () => {
     expect(recommendSize(b, jean, regular)).toBe('32x32');
   });
 
+  it('sizes the Lands’ End tee from its full-circumference chest', () => {
+    // M is 44 in (111.8 cm): +7.8 cm over a 104 cm chest; S would be tight.
+    expect(recommendSize(bodyWith({ chestCm: 104, torsoLengthCm: 72 }), findGarment('landsend-super-t')!, regular)).toBe('M');
+  });
+
   it('gives no answer for an unscored garment or one with no girth to score', () => {
-    expect(recommendSize(bodyWith({ chestCm: 100 }), findGarment('landsend-super-t')!, regular)).toBeNull();
+    expect(recommendSize(bodyWith({ chestCm: 100 }), UNKNOWN_CHEST_TEE, regular)).toBeNull();
     const lengthOnly = tee({ sizes: [{ label: 'M', measurements: { length: 73 } }] });
     expect(recommendSize(bodyWith({ chestCm: 100 }), lengthOnly, regular)).toBeNull();
   });
@@ -228,6 +234,6 @@ describe('measurementHint', () => {
   });
 
   it('says nothing when there is no recommendation', () => {
-    expect(measurementHint(bodyWith({ chestCm: 100 }, 'estimated'), findGarment('landsend-super-t')!, regular)).toBeNull();
+    expect(measurementHint(bodyWith({ chestCm: 100 }, 'estimated'), UNKNOWN_CHEST_TEE, regular)).toBeNull();
   });
 });
