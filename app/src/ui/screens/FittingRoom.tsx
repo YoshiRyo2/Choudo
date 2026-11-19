@@ -8,13 +8,15 @@ import { Mannequin, type WornGarment } from '../components/Mannequin/Mannequin';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { SizePicker } from '../components/SizePicker';
 import { defaultSize, resolveOutfit } from '../state/outfit';
-import { EMPTY_OUTFIT, isOutfit, STORAGE_KEYS, type Outfit, type UnitSystem } from '../state/stored';
-import { usePersistentState } from '../state/usePersistentState';
+import type { Outfit, UnitSystem } from '../state/stored';
 import './FittingRoom.css';
 
 interface FittingRoomProps {
   body: BodyInput;
   units: UnitSystem;
+  /** The outfit on the mannequin, as stored (may be stale; it's resolved here). */
+  outfit: Outfit;
+  onOutfitChange: (outfit: Outfit) => void;
   onUnitsChange: (units: UnitSystem) => void;
   onEditBody: () => void;
 }
@@ -30,9 +32,8 @@ interface Slot {
   recommended: string | null;
 }
 
-export function FittingRoom({ body, units, onUnitsChange, onEditBody }: FittingRoomProps) {
+export function FittingRoom({ body, units, outfit: saved, onOutfitChange: setSaved, onUnitsChange, onEditBody }: FittingRoomProps) {
   const model = useMemo(() => estimateBody(body), [body]);
-  const [saved, setSaved] = usePersistentState<Outfit>(STORAGE_KEYS.outfit, EMPTY_OUTFIT, isOutfit);
   const outfit = useMemo(() => resolveOutfit(saved, model), [saved, model]);
   const [browsing, setBrowsing] = useState<GarmentCategory>('top');
 

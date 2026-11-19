@@ -28,3 +28,10 @@ export function resolveOutfit(outfit: Outfit, body: BodyModel): Outfit {
   const bottom = pick('bottom', outfit.bottomId, outfit.bottomSize);
   return { topId: top.id, topSize: top.size, bottomId: bottom.id, bottomSize: bottom.size };
 }
+
+/** Put one garment on, in a size, keeping whatever is in the other slot. */
+export function wearGarment(outfit: Outfit, garment: Garment, size: string): Outfit {
+  return garment.category === 'top'
+    ? { ...outfit, topId: garment.id, topSize: size }
+    : { ...outfit, bottomId: garment.id, bottomSize: size };
+}

@@ -1,18 +1,36 @@
 import { useState } from 'react';
 import type { BodyInput } from './domain/body';
+import type { Garment } from './domain/garments';
+import { TabBar, type Tab } from './ui/components/TabBar';
 import { BodyScreen } from './ui/screens/BodyScreen';
+import { Closet } from './ui/screens/Closet';
+import { Discover } from './ui/screens/Discover';
 import { FittingRoom } from './ui/screens/FittingRoom';
+import { wearGarment } from './ui/state/outfit';
+import { useCloset } from './ui/state/useCloset';
 import { usePersistentState } from './ui/state/usePersistentState';
-import { isStoredBody, isUnitSystem, STORAGE_KEYS, type UnitSystem } from './ui/state/stored';
+import {
+  EMPTY_OUTFIT,
+  isOutfit,
+  isStoredBody,
+  isUnitSystem,
+  STORAGE_KEYS,
+  type Outfit,
+  type UnitSystem,
+} from './ui/state/stored';
 
 /**
- * Two screens: enter your body, then the fitting room. Everything the user
- * enters is kept in this browser's localStorage — nothing leaves the device.
+ * Enter your body once, then move between the fitting room, the Discover feed
+ * and your Closet. Everything the user enters is kept in this browser's
+ * localStorage — nothing leaves the device.
  */
 export function App() {
   const [body, setBody] = usePersistentState<BodyInput | null>(STORAGE_KEYS.body, null, isStoredBody);
   const [units, setUnits] = usePersistentState<UnitSystem>(STORAGE_KEYS.units, 'metric', isUnitSystem);
+  const [outfit, setOutfit] = usePersistentState<Outfit>(STORAGE_KEYS.outfit, EMPTY_OUTFIT, isOutfit);
+  const closet = useCloset();
   const [editing, setEditing] = useState(false);
+  const [tab, setTab] = useState<Tab>('fitting');
 
   if (!body || editing) {
     return (
@@ -29,5 +47,38 @@ export function App() {
     );
   }
 
-  return <FittingRoom body={body} units={units} onUnitsChange={setUnits} onEditBody={() => setEditing(true)} />;
+  const editBody = () => setEditing(true);
+  /** Put an outfit on the mannequin and go and look at it. */
+  const wear = (next: Outfit) => {
+    setOutfit(next);
+    setTab('fitting');
+  };
+  const tryOn = (garment: Garment, size: string) => wear(wearGarment(outfit, garment, size));
+
+  return (
+    <div className="app-shell">
+      {tab === 'fitting' && (
+        <FittingRoom
+          body={body}
+          units={units}
+          outfit={outfit}
+          onOutfitChange={setOutfit}
+          onUnitsChange={setUnits}
+          onEditBody={editBody}
+        />
+      )}
+      {tab === 'discover' && (
+        <Discover
+          body={body}
+          units={units}
+          closet={closet}
+          onTryOn={tryOn}
+          onEditBody={editBody}
+          onOpenCloset={() => setTab('closet')}
+        />
+      )}
+      {tab === 'closet' && <Closet body={body} closet={closet} />}
+      <TabBar current={tab} onChange={setTab} />
+    </div>
+  );
 }

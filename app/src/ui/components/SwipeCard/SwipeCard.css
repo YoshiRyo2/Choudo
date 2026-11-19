@@ -1,0 +1,100 @@
+.swipe-card {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  background: var(--paper-raised);
+  border-radius: var(--radius-m);
+  box-shadow: 0 1px 2px rgba(27, 36, 51, 0.1), 0 8px 24px rgba(27, 36, 51, 0.08);
+  overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+  transition: transform 220ms ease;
+}
+.swipe-card.is-dragging {
+  transition: none;
+  cursor: grabbing;
+}
+.swipe-card.is-leaving {
+  transition: transform 220ms ease-in;
+  pointer-events: none;
+}
+
+/* The card waiting underneath. */
+.swipe-card.is-next {
+  transform: translateY(10px) scale(0.94);
+  transform-origin: 50% 100%;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.swipe-card__stage {
+  position: relative;
+  min-height: 0;
+  padding: 12px 12px 0;
+  background: linear-gradient(var(--paper), var(--paper-raised));
+}
+
+.swipe-card__stamp {
+  position: absolute;
+  top: 18px;
+  padding: 2px 12px;
+  border: 3px solid currentColor;
+  border-radius: var(--radius-s);
+  font-family: var(--font-numeric);
+  font-weight: 600;
+  font-size: var(--step-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: color-mix(in srgb, var(--paper-raised) 80%, transparent);
+  pointer-events: none;
+}
+.swipe-card__stamp.is-like {
+  left: 16px;
+  color: var(--chalk-good);
+  transform: rotate(-12deg);
+}
+.swipe-card__stamp.is-pass {
+  right: 16px;
+  color: var(--chalk-bad);
+  transform: rotate(12deg);
+}
+
+.swipe-card__info {
+  display: grid;
+  gap: 2px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--line);
+}
+.swipe-card__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+.swipe-card__name { font-size: var(--step-1); }
+.swipe-card__size {
+  margin: 2px 0 0;
+  font-size: var(--step-0);
+}
+.swipe-card__verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+.swipe-card__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe-card,
+  .swipe-card.is-leaving { transition: none; }
+}

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../domain/body';
 import { fitGarment, type ZoneFit } from '../domain/fit';
 import { findGarment } from '../domain/garments';
-import { describeZone, formatDiff, summarize } from './fitText';
+import { describeZone, formatDiff, sizeLine, summarize } from './fitText';
 
 const zone = (patch: Partial<ZoneFit>): ZoneFit => ({
   zone: 'chest',
@@ -65,5 +65,12 @@ describe('summarize', () => {
     const s = summarize(fitGarment(body, findGarment('landsend-super-t')!, 'M'));
     expect(s.headline).toBe('Can’t check this fit');
     expect(s.detail).toBe('This size chart doesn’t let us compare the chest.');
+  });
+});
+
+describe('sizeLine', () => {
+  it('says whether the size was picked for you', () => {
+    expect(sizeLine('M', true)).toBe('Your size: M');
+    expect(sizeLine('L', false)).toBe('Size L · we couldn’t pick one for you');
   });
 });

@@ -32,7 +32,7 @@ export function likedIds(swipes: Swipe[]): string[] {
  * The cards to show: garments never swiped first (catalogue order), then passed
  * ones (oldest pass first). Liked garments live in the Closet, not the feed.
  */
-export function buildFeed<G extends { id: string }>(garments: G[], swipes: Swipe[]): G[] {
+export function buildFeed<G extends { id: string }>(garments: readonly G[], swipes: Swipe[]): G[] {
   const byId = new Map(swipes.map((s) => [s.garmentId, s]));
   const unseen = garments.filter((g) => !byId.has(g.id));
   const passed = garments
