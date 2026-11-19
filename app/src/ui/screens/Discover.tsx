@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
-import { fitGarment, recommendSize } from '../../domain/fit';
 import { GARMENTS, type Garment } from '../../domain/garments';
 import { FitSheet } from '../components/FitSheet';
 import { SwipeCard } from '../components/SwipeCard/SwipeCard';
 import type { SwipeOutcome } from '../components/SwipeCard/swipe';
 import { buildFeed } from '../state/feed';
-import { defaultSize } from '../state/outfit';
+import { suggestedFit } from '../state/outfit';
 import type { UnitSystem } from '../state/stored';
 import type { Closet } from '../state/useCloset';
 import './Discover.css';
@@ -32,12 +31,7 @@ export function Discover({ body, units, closet, onTryOn, onEditBody, onOpenClose
   const [leaving, setLeaving] = useState<SwipeOutcome>(null);
   const [details, setDetails] = useState<Garment | null>(null);
 
-  const card = (garment: Garment | undefined) => {
-    if (!garment) return null;
-    const recommended = recommendSize(model, garment);
-    const size = recommended ?? defaultSize(model, garment);
-    return { garment, recommended: recommended !== null, fit: fitGarment(model, garment, size) };
-  };
+  const card = (garment: Garment | undefined) => (garment ? { garment, ...suggestedFit(model, garment) } : null);
   const current = card(feed[index]);
   const next = card(feed[index + 1]);
 

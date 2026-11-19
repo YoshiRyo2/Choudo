@@ -3,7 +3,7 @@
  */
 
 import type { BodyModel } from '../../domain/body';
-import { recommendSize } from '../../domain/fit';
+import { fitGarment, recommendSize, type GarmentFit } from '../../domain/fit';
 import { findGarment, garmentsByCategory, type Garment, type GarmentCategory } from '../../domain/garments';
 import type { Outfit } from './stored';
 
@@ -34,4 +34,10 @@ export function wearGarment(outfit: Outfit, garment: Garment, size: string): Out
   return garment.category === 'top'
     ? { ...outfit, topId: garment.id, topSize: size }
     : { ...outfit, bottomId: garment.id, bottomSize: size };
+}
+
+/** The size we'd show a garment in, and how it fits. `recommended` is false for the middle-size fallback. */
+export function suggestedFit(body: BodyModel, garment: Garment): { fit: GarmentFit; recommended: boolean } {
+  const pick = recommendSize(body, garment);
+  return { fit: fitGarment(body, garment, pick ?? defaultSize(body, garment)), recommended: pick !== null };
 }

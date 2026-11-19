@@ -1,0 +1,139 @@
+.closet {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.closet__tabs {
+  padding: 4px 16px 12px;
+}
+.closet__tabs .segmented__track {
+  display: flex;
+}
+.closet__tabs .segmented__option {
+  flex: 1;
+  text-align: center;
+}
+
+.closet__section {
+  display: grid;
+  gap: 14px;
+  padding: 0 16px 24px;
+}
+
+.closet__note {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+.closet__note strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.closet__card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: var(--paper-raised);
+  border-radius: var(--radius-m);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+/* ---------- tiles (liked garments, outfits, folder items) ---------- */
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tile {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  position: relative;
+  padding: 10px;
+  background: var(--paper-raised);
+  border-radius: var(--radius-m);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.tile__main {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.tile__main .garment-icon { margin-bottom: 6px; }
+
+.tile__brand {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+.tile__name {
+  font-size: var(--step-0);
+  font-weight: 600;
+  line-height: 1.2;
+}
+.tile__size {
+  margin-top: 4px;
+  font-size: var(--step--1);
+}
+.tile__verdict {
+  font-size: var(--step--1);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.tile__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+.tile__actions .button--quiet { padding: 0 8px; }
+
+/* The filled heart sits in the tile's corner. */
+.tile__unlike {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--chalk-good);
+  cursor: pointer;
+}
+.tile__unlike svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.outfit-figure {
+  height: 190px;
+  margin-bottom: 8px;
+  padding-top: 6px;
+  background: linear-gradient(var(--paper), var(--paper-raised));
+  border-radius: var(--radius-s);
+}
+
+.is-armed {
+  color: var(--chalk-bad);
+}

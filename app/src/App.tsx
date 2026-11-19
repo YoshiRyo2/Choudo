@@ -6,6 +6,7 @@ import { BodyScreen } from './ui/screens/BodyScreen';
 import { Closet } from './ui/screens/Closet';
 import { Discover } from './ui/screens/Discover';
 import { FittingRoom } from './ui/screens/FittingRoom';
+import { nextOutfitName } from './ui/state/closet';
 import { wearGarment } from './ui/state/outfit';
 import { useCloset } from './ui/state/useCloset';
 import { usePersistentState } from './ui/state/usePersistentState';
@@ -63,6 +64,8 @@ export function App() {
           units={units}
           outfit={outfit}
           onOutfitChange={setOutfit}
+          onSaveOutfit={closet.saveOutfit}
+          nextOutfitName={nextOutfitName(closet.outfits)}
           onUnitsChange={setUnits}
           onEditBody={editBody}
         />
@@ -77,7 +80,18 @@ export function App() {
           onOpenCloset={() => setTab('closet')}
         />
       )}
-      {tab === 'closet' && <Closet body={body} closet={closet} />}
+      {tab === 'closet' && (
+        <Closet
+          body={body}
+          units={units}
+          closet={closet}
+          outfit={outfit}
+          onTryOn={tryOn}
+          onWear={wear}
+          onEditBody={editBody}
+          onOpenDiscover={() => setTab('discover')}
+        />
+      )}
       <TabBar current={tab} onChange={setTab} />
     </div>
   );
