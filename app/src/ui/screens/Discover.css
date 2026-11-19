@@ -1,6 +1,7 @@
 .discover {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  /* Header, Show toggle, the card (takes the rest), like / pass buttons. */
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   max-width: 520px;
   margin: 0 auto;
   height: calc(100dvh - 64px - env(safe-area-inset-bottom));
@@ -51,5 +52,5 @@
 .discover__scope {
   display: flex;
   justify-content: center;
-  margin-bottom: 8px;
+  padding: 0 16px 6px;
 }
