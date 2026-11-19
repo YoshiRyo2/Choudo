@@ -8,6 +8,7 @@ import {
   validateSeed,
 } from './garments';
 import type { SeedGarment } from './types';
+import { UNKNOWN_CHEST_TEE } from './testFixtures';
 
 const base: SeedGarment = {
   id: 'test-tee',
@@ -68,6 +69,7 @@ describe('normalizeGarment', () => {
     expect(g.sizes[0]?.measurements.chest).toBeCloseTo(96.52); // 19 flat = 38 in
     expect(g.sizes[0]?.measurements.length).toBeCloseTo(71.12);
     expect(g.girthVerified).toBe(true);
+    expect(UNKNOWN_CHEST_TEE.girthVerified).toBe(false); // chart didn't say flat or full
   });
 
   it('passes circumference cm values through', () => {

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../domain/body';
 import { fitGarment, preferenceSpec, VERDICTS, type GarmentOdds, type SizeOdds, type Verdict, type ZoneFit, type ZoneOdds } from '../domain/fit';
 import { findGarment } from '../domain/garments';
+import { UNKNOWN_CHEST_TEE } from '../domain/garments/testFixtures';
 import {
   describeZone,
   fitReferenceLine,
@@ -77,7 +78,7 @@ describe('summarize', () => {
   });
 
   it('says which zones it could not check instead of claiming a good fit', () => {
-    const s = summarize(fitGarment(body, findGarment('landsend-super-t')!, 'M'));
+    const s = summarize(fitGarment(body, UNKNOWN_CHEST_TEE, 'M'));
     expect(s.headline).toBe('Can’t check this fit');
     expect(s.detail).toBe('This size chart doesn’t let us compare the chest.');
   });
@@ -94,7 +95,7 @@ describe('garmentTag', () => {
   it('keeps "Sample data" for placeholders and shows the grade otherwise', () => {
     expect(garmentTag(findGarment('fieldline-oxford')!)).toEqual({ kind: 'sample', text: 'Sample data' });
     expect(garmentTag(findGarment('gildan-5000')!)).toEqual({ kind: 'charted', text: 'From size chart' });
-    expect(garmentTag(findGarment('landsend-super-t')!)).toEqual({ kind: 'unscored', text: 'Can’t score' });
+    expect(garmentTag(UNKNOWN_CHEST_TEE)).toEqual({ kind: 'unscored', text: 'Can’t score' });
     expect(garmentTag({ source: { placeholder: false, tier: 'A' }, grade: 'verified' }).text).toBe('Verified');
     expect(garmentTag({ source: { placeholder: false, tier: 'E' }, grade: 'estimated' }).text).toBe('Estimated');
   });

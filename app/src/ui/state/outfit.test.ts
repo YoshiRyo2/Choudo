@@ -4,6 +4,7 @@ import { preferenceSpec, recommendSize } from '../../domain/fit';
 import { findGarment, garmentsByCategory } from '../../domain/garments';
 import { defaultSize, resolveOutfit, suggestedFit, wearGarment } from './outfit';
 import { EMPTY_OUTFIT } from './stored';
+import { UNKNOWN_CHEST_TEE } from '../../domain/garments/testFixtures';
 
 const body = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens' });
 const pref = preferenceSpec(null, null);
@@ -30,13 +31,6 @@ describe('resolveOutfit', () => {
   });
 });
 
-describe('defaultSize', () => {
-  it('falls back to the middle size when nothing can be scored', () => {
-    const le = findGarment('landsend-super-t')!;
-    expect(defaultSize(body, le, pref)).toBe('L'); // S M [L] XL XXL
-  });
-});
-
 describe('wearGarment', () => {
   const current = { topId: 'knightweave-tee', topSize: 'M', bottomId: 'corvo-slim-jean', bottomSize: '32x32' };
 
@@ -48,7 +42,7 @@ describe('wearGarment', () => {
 
 describe('defaultSize', () => {
   it('falls back to the middle size when no size can be recommended', () => {
-    const tee = findGarment('landsend-super-t')!;
+    const tee = UNKNOWN_CHEST_TEE;
     expect(recommendSize(body, tee, pref)).toBeNull();
     expect(defaultSize(body, tee, pref)).toBe('L'); // S M [L] XL XXL
   });
@@ -63,7 +57,7 @@ describe('suggestedFit', () => {
   });
 
   it('falls back to the middle size and says so', () => {
-    const { fit, recommended } = suggestedFit(body, findGarment('landsend-super-t')!, pref);
+    const { fit, recommended } = suggestedFit(body, UNKNOWN_CHEST_TEE, pref);
     expect(recommended).toBe(false);
     expect(fit.sizeLabel).toBe('L');
   });

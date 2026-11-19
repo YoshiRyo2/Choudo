@@ -3,6 +3,7 @@ import { findGarment } from './garments';
 import { gradeGarment, hasEstimatedValues } from './grade';
 import type { SeedGarment } from './types';
 import { checkGarment, type GarmentCheck } from './verify';
+import { UNKNOWN_CHEST_TEE } from './testFixtures';
 
 const real: SeedGarment = {
   id: 'tee',
@@ -78,5 +79,9 @@ describe('the seed', () => {
     expect(findGarment('knightweave-tee')?.grade).toBe('charted');
     expect(findGarment('landsend-super-t')?.grade).toBe('unscored');
     expect(findGarment('fieldline-oxford')?.grade).toBe('estimated');
+  });
+
+  it('grades a chart with an unknown chest method as unscored', () => {
+    expect(UNKNOWN_CHEST_TEE.grade).toBe('unscored');
   });
 });
