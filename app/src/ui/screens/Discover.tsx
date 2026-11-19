@@ -6,6 +6,8 @@ import { FitSheet } from '../components/FitSheet';
 import { SwipeCard } from '../components/SwipeCard/SwipeCard';
 import type { SwipeOutcome } from '../components/SwipeCard/swipe';
 import { buildFeed } from '../state/feed';
+import { verdictLine } from '../fitText';
+import { garmentOdds } from '../state/odds';
 import { suggestedFit } from '../state/outfit';
 import type { UnitSystem } from '../state/stored';
 import type { Closet } from '../state/useCloset';
@@ -33,7 +35,12 @@ export function Discover({ body, preference, units, closet, onTryOn, onEditBody,
   const [leaving, setLeaving] = useState<SwipeOutcome>(null);
   const [details, setDetails] = useState<Garment | null>(null);
 
-  const card = (garment: Garment | undefined) => (garment ? { garment, ...suggestedFit(model, garment, preference) } : null);
+  const card = (garment: Garment | undefined) => {
+    if (!garment) return null;
+    const suggested = suggestedFit(model, garment, preference);
+    const verdict = verdictLine(garmentOdds(model, garment, preference), suggested.fit.sizeLabel, garment);
+    return { garment, ...suggested, verdict };
+  };
   const current = card(feed[index]);
   const next = card(feed[index + 1]);
 
@@ -81,6 +88,7 @@ export function Discover({ body, preference, units, closet, onTryOn, onEditBody,
               body={model.measurements}
               fit={current.fit}
               recommended={current.recommended}
+              verdict={current.verdict}
               leaving={leaving}
               interactive={!details}
               onDecide={decide}

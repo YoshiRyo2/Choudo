@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
-import { fitAllSizes, type GarmentFit, type PreferenceSpec } from '../../domain/fit';
+import { fitAllSizes, measurementHint, type GarmentFit, type GarmentOdds, type PreferenceSpec } from '../../domain/fit';
 import { findGarment, garmentsByCategory, type Garment, type GarmentCategory } from '../../domain/garments';
 import { FitReadout } from '../components/FitReadout';
+import { FitSheet } from '../components/FitSheet';
 import { GarmentCarousel } from '../components/GarmentCarousel';
 import { Mannequin, type WornGarment } from '../components/Mannequin/Mannequin';
 import { NameForm } from '../components/NameForm';
@@ -38,6 +39,7 @@ interface Slot {
   size: string;
   fits: GarmentFit[];
   fit: GarmentFit;
+  odds: GarmentOdds;
   recommended: string | null;
 }
 
@@ -61,12 +63,14 @@ export function FittingRoom({
     const garment = id ? findGarment(id) : undefined;
     if (!garment || !size) return null;
     const fits = fitAllSizes(model, garment);
+    const odds = garmentOdds(model, garment, preference);
     return {
       garment,
       size,
       fits,
       fit: fits.find((f) => f.sizeLabel === size)!,
-      recommended: garmentOdds(model, garment, preference).recommended,
+      odds,
+      recommended: odds.recommended,
     };
   };
   // A handful of sizes per garment — cheap enough to recompute every render.
@@ -74,6 +78,14 @@ export function FittingRoom({
   const bottom = slot(outfit.bottomId, outfit.bottomSize);
 
   const active = browsing === 'top' ? top : bottom;
+  const [showDetails, setShowDetails] = useState(false);
+  const activeGarment = active?.garment;
+  const activeRecommended = active?.recommended ?? null;
+  // Re-runs the sampler a few times, so only when the garment, body or preference changes.
+  const hint = useMemo(
+    () => (activeGarment ? measurementHint(model, activeGarment, preference, { current: activeRecommended }) : null),
+    [model, activeGarment, preference, activeRecommended],
+  );
 
   function chooseGarment(id: string) {
     const garment = findGarment(id);
@@ -167,8 +179,35 @@ export function FittingRoom({
               recommended={active.recommended}
               onSelect={chooseSize}
             />
-            <FitReadout garment={active.garment} fit={active.fit} units={units} onEditBody={onEditBody} />
+            <FitReadout
+              garment={active.garment}
+              fit={active.fit}
+              units={units}
+              odds={active.odds}
+              preference={preference}
+              hint={hint}
+              onDetails={() => setShowDetails(true)}
+              onEditBody={onEditBody}
+            />
           </>
+        )}
+
+        {showDetails && active && (
+          <FitSheet
+            key={`${active.garment.id}-${active.size}`}
+            garment={active.garment}
+            model={model}
+            preference={preference}
+            size={active.size}
+            units={units}
+            onClose={() => setShowDetails(false)}
+            onTryOn={(size) => {
+              chooseSize(size);
+              setShowDetails(false);
+            }}
+            actionLabel={(size) => (size === active.size ? 'Done' : `Wear ${size}`)}
+            onEditBody={onEditBody}
+          />
         )}
       </section>
     </div>

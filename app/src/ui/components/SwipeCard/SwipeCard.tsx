@@ -2,7 +2,7 @@ import { useRef, useState, type PointerEvent } from 'react';
 import type { BodyMeasurements } from '../../../domain/body';
 import type { GarmentFit } from '../../../domain/fit';
 import type { Garment } from '../../../domain/garments';
-import { sizeLine, summarize } from '../../fitText';
+import { sizeLine, type VerdictLine } from '../../fitText';
 import { GarmentBadge } from '../GarmentBadge';
 import { Mannequin } from '../Mannequin/Mannequin';
 import { DISTANCE_SHARE, swipeOutcome, tilt, type SwipeOutcome } from './swipe';
@@ -14,6 +14,8 @@ interface SwipeCardProps {
   fit: GarmentFit;
   /** Whether `fit.sizeLabel` is the recommended size (false = fallback). */
   recommended: boolean;
+  /** The personal verdict for the size shown. */
+  verdict: VerdictLine;
   /** Set while the card flies off after a decision. */
   leaving: SwipeOutcome;
   /** Only the top card can be dragged. */
@@ -26,11 +28,10 @@ interface SwipeCardProps {
 const TAP_SLOP = 6;
 
 /** One garment on the user's mannequin. Drag right to like, left to pass, tap for details. */
-export function SwipeCard({ garment, body, fit, recommended, leaving, interactive, onDecide, onOpen }: SwipeCardProps) {
+export function SwipeCard({ garment, body, fit, recommended, verdict, leaving, interactive, onDecide, onOpen }: SwipeCardProps) {
   const ref = useRef<HTMLElement>(null);
   const drag = useRef<{ startX: number; lastX: number; lastT: number; velocity: number } | null>(null);
   const [dx, setDx] = useState(0);
-  const summary = summarize(fit);
   const worn = { garment, sizeLabel: fit.sizeLabel, fit };
 
   function down(e: PointerEvent) {
@@ -108,9 +109,9 @@ export function SwipeCard({ garment, body, fit, recommended, leaving, interactiv
         </p>
         <h2 className="swipe-card__name">{garment.name}</h2>
         <p className="swipe-card__size num">{sizeLine(fit.sizeLabel, recommended)}</p>
-        <p className={`swipe-card__verdict tone-${fit.overall}`}>
+        <p className={`swipe-card__verdict tone-${verdict.tone}`}>
           <span className="swipe-card__dot" aria-hidden="true" />
-          {summary.headline}
+          {verdict.headline}
         </p>
       </div>
     </article>

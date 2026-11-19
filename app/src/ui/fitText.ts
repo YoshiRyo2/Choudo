@@ -3,8 +3,23 @@
  * fit copy lives here so it stays consistent.
  */
 
-import type { Anchor, FitLabel, FitStyle, GarmentFit, ZoneFit, ZoneId } from '../domain/fit';
-import type { ConfidenceGrade, Garment, SourceTier } from '../domain/garments';
+import {
+  VERDICTS,
+  type Anchor,
+  type FitLabel,
+  type FitStyle,
+  type FitTone,
+  type GarmentFit,
+  type GarmentOdds,
+  type MeasurableKey,
+  type MeasureHint,
+  type PreferenceSpec,
+  type Verdict,
+  type ZoneFit,
+  type ZoneId,
+  type ZoneOdds,
+} from '../domain/fit';
+import type { ConfidenceGrade, FitIntent, Garment, SourceTier } from '../domain/garments';
 import { cmToIn } from '../domain/units';
 import type { UnitSystem } from './state/stored';
 
@@ -223,4 +238,161 @@ export function fitReferenceLine(
   }
   if (style) return `You like tees ${FIT_STYLE_TEXT[style].label.toLowerCase()}.`;
   return 'Not set yet, so we assume you like a regular fit.';
+}
+
+// ---------- personal verdicts and odds ----------
+
+/** Odds at or above these get "Very likely" / "Probably"; below, "Might". */
+export const CERTAINTY = { veryLikely: 0.75, probably: 0.5 };
+/** Two sizes this close (and both at least `min`) are a close call: "Could go either way". */
+export const CLOSE_CALL = { min: 0.25, gap: 0.15 };
+
+interface Phrase {
+  /** After "Very likely" / "Probably". */
+  plain: string;
+  /** On its own, when we're less sure. */
+  might: string;
+}
+
+const TOP_PHRASE: Record<Exclude<Verdict, 'unknown' | 'as-designed'>, Phrase> = {
+  fits: { plain: 'fits how you like', might: 'Might fit how you like' },
+  snugger: { plain: 'a bit snugger than you like', might: 'Might be a bit snugger than you like' },
+  'too-tight': { plain: 'too tight', might: 'Might be too tight' },
+  roomier: { plain: 'roomier than you like', might: 'Might be roomier than you like' },
+  'much-roomier': { plain: 'much roomier than you like', might: 'Might be much roomier than you like' },
+  shorter: { plain: 'shorter than you like', might: 'Might be shorter than you like' },
+  longer: { plain: 'longer than you like', might: 'Might be longer than you like' },
+};
+
+/** Bottoms have no personal preference yet, so their words stay objective. */
+const BOTTOM_PHRASE: Record<Exclude<Verdict, 'unknown' | 'as-designed'>, Phrase> = {
+  fits: { plain: 'fits well', might: 'Might fit well' },
+  snugger: { plain: 'snug', might: 'Might be snug' },
+  'too-tight': { plain: 'too tight', might: 'Might be too tight' },
+  roomier: { plain: 'roomy', might: 'Might be roomy' },
+  'much-roomier': { plain: 'very roomy', might: 'Might be very roomy' },
+  shorter: { plain: 'short in the leg', might: 'Might be short in the leg' },
+  longer: { plain: 'long in the leg', might: 'Might be long in the leg' },
+};
+
+const INTENT_WORD: Record<FitIntent, string> = { slim: 'slim', regular: 'regular', relaxed: 'relaxed', oversized: 'oversized' };
+
+function phraseFor(verdict: Exclude<Verdict, 'unknown'>, garment: Pick<Garment, 'category' | 'fitIntent'>): Phrase {
+  if (verdict === 'as-designed') {
+    const word = INTENT_WORD[garment.fitIntent];
+    return { plain: `${word}, as designed`, might: `Might be ${word}, as designed` };
+  }
+  return (garment.category === 'top' ? TOP_PHRASE : BOTTOM_PHRASE)[verdict];
+}
+
+const VERDICT_TONE: Record<Verdict, FitTone> = {
+  fits: 'good',
+  'as-designed': 'good',
+  snugger: 'warn',
+  roomier: 'warn',
+  shorter: 'warn',
+  longer: 'warn',
+  'much-roomier': 'bad',
+  'too-tight': 'bad',
+  unknown: 'unknown',
+};
+
+/** 0.473 -> "47%", with "<1%" and ">99%" so a tiny chance never reads as none. */
+export function formatPercent(p: number): string {
+  if (p > 0 && p < 0.005) return '<1%';
+  if (p < 1 && p > 0.995) return '>99%';
+  return `${Math.round(p * 100)}%`;
+}
+
+export interface VerdictLine {
+  headline: string;
+  /** The chance it fits how you like, in words. null when we can't tell. */
+  detail: string | null;
+  tone: FitTone;
+  verdict: Verdict;
+}
+
+/**
+ * The headline for one size: the most likely verdict, worded by how sure we are,
+ * or "Could go either way: M or L" when this size and another are close.
+ */
+export function verdictLine(odds: GarmentOdds, sizeLabel: string, garment: Pick<Garment, 'category' | 'fitIntent'>): VerdictLine {
+  const size = odds.sizes.find((s) => s.sizeLabel === sizeLabel);
+  if (!size || size.verdicts.unknown >= 0.5) {
+    return { headline: 'Can’t check this fit', detail: null, tone: 'unknown', verdict: 'unknown' };
+  }
+  const liked = garment.category === 'top' ? 'fits how you like' : 'fits well';
+  const detail = `${formatPercent(size.likes)} chance it ${liked}.`;
+
+  const known = VERDICTS.filter((v): v is Exclude<Verdict, 'unknown'> => v !== 'unknown');
+  const modal = known.reduce((best, v) => (size.verdicts[v] > size.verdicts[best] ? v : best), known[0]!);
+
+  const ranked = [...odds.sizes].sort((a, b) => b.likes - a.likes);
+  const [first, second] = ranked;
+  if (
+    first &&
+    second &&
+    (first.sizeLabel === sizeLabel || second.sizeLabel === sizeLabel) &&
+    second.likes >= CLOSE_CALL.min &&
+    first.likes - second.likes <= CLOSE_CALL.gap
+  ) {
+    const order = odds.sizes.map((s) => s.sizeLabel);
+    const pair = [first.sizeLabel, second.sizeLabel].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    return { headline: `Could go either way: ${pair[0]} or ${pair[1]}`, detail, tone: 'warn', verdict: modal };
+  }
+
+  const p = size.verdicts[modal];
+  const phrase = phraseFor(modal, garment);
+  const headline =
+    p >= CERTAINTY.veryLikely ? `Very likely ${phrase.plain}` : p >= CERTAINTY.probably ? `Probably ${phrase.plain}` : phrase.might;
+  return { headline, detail, tone: VERDICT_TONE[modal], verdict: modal };
+}
+
+const MEASURE_NAME: Record<MeasurableKey, string> = {
+  chestCm: 'chest',
+  waistCm: 'waist',
+  hipsCm: 'hips',
+  inseamCm: 'inseam',
+};
+
+/** "Measure your chest to decide between M and L." */
+export function measureHintText(hint: MeasureHint): string {
+  return `Measure your ${MEASURE_NAME[hint.key]} to decide between ${listOf(hint.sizes)}.`;
+}
+
+/** Objective labels by chance, likeliest first: "Fitted 61% · Relaxed 30% · Tight 9%". Under 1% is left out. */
+export function labelOddsText(z: ZoneOdds): string {
+  return Object.entries(z.labels)
+    .filter(([, p]) => p >= 0.01)
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, p]) => `${LABEL_TEXT[label as FitLabel]} ${formatPercent(p)}`)
+    .join(' · ');
+}
+
+const PERSONAL_WORDS: Partial<Record<ZoneId, Record<'under' | 'right' | 'over', string>>> = {
+  chest: { under: 'Snugger', right: 'As you like', over: 'Roomier' },
+  length: { under: 'Shorter', right: 'As you like', over: 'Longer' },
+};
+
+/**
+ * Against what the user likes, for the zones with a personal target on tops:
+ * "As you like 47% · Roomier 29% · Snugger 24%". null for other zones.
+ */
+export function personalOddsText(z: ZoneOdds, garment: Pick<Garment, 'category'>, hasLengthPreference: boolean): string | null {
+  const words = PERSONAL_WORDS[z.zone];
+  if (!words || garment.category !== 'top') return null;
+  if (z.zone === 'length' && !hasLengthPreference) return null;
+  return (['under', 'right', 'over'] as const)
+    .map((k) => [words[k], z.personal[k]] as const)
+    .filter(([, p]) => p >= 0.01)
+    .sort((a, b) => b[1] - a[1])
+    .map(([w, p]) => `${w} ${formatPercent(p)}`)
+    .join(' · ');
+}
+
+/** What a top's verdict is judged against, in one short line. */
+export function preferenceNote(spec: PreferenceSpec): string {
+  if (spec.source === 'anchor') return spec.anchor?.garmentId ? 'Compared with the tee you own and like.' : 'Compared with the tee you measured.';
+  if (spec.source === 'style') return `Compared with how you like tees: ${FIT_STYLE_TEXT[spec.style].label.toLowerCase()}.`;
+  return 'Assuming you like a regular fit. Tell us how you like tees under Edit body.';
 }

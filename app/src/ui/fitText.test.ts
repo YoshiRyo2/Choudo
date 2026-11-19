@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../domain/body';
-import { fitGarment, type ZoneFit } from '../domain/fit';
+import { fitGarment, preferenceSpec, VERDICTS, type GarmentOdds, type SizeOdds, type Verdict, type ZoneFit, type ZoneOdds } from '../domain/fit';
 import { findGarment } from '../domain/garments';
 import {
   describeZone,
   fitReferenceLine,
+  formatPercent,
+  labelOddsText,
+  measureHintText,
+  personalOddsText,
+  preferenceNote,
+  verdictLine,
   formatDiff,
   garmentTag,
   GRADE_EXPLAINED,
@@ -116,5 +122,105 @@ describe('fitReferenceLine', () => {
     );
     expect(fitReferenceLine(null, 'oversized', 'metric', findGarment)).toBe('You like tees oversized.');
     expect(fitReferenceLine(null, null, 'metric', findGarment)).toBe('Not set yet, so we assume you like a regular fit.');
+  });
+});
+
+/** Size odds with the given verdict chances (the rest 0). */
+function sizeOdds(sizeLabel: string, verdicts: Partial<Record<Verdict, number>>): SizeOdds {
+  const all = Object.fromEntries(VERDICTS.map((v) => [v, verdicts[v] ?? 0])) as Record<Verdict, number>;
+  return { sizeLabel, zones: [], verdicts: all, likes: all.fits + all['as-designed'], meanGirthMissCm: 1 };
+}
+const oddsOf = (...sizes: SizeOdds[]): GarmentOdds => ({ garmentId: 'g', sizes, recommended: null, samples: 500 });
+const top = { category: 'top', fitIntent: 'regular' } as const;
+
+describe('verdictLine', () => {
+  it('words the likeliest verdict by how sure we are', () => {
+    const odds = oddsOf(
+      sizeOdds('S', { snugger: 0.6, fits: 0.1, 'too-tight': 0.3 }),
+      sizeOdds('M', { fits: 0.82, roomier: 0.18 }),
+      sizeOdds('XL', { 'much-roomier': 0.9, roomier: 0.1 }),
+      sizeOdds('L', { fits: 0.15, roomier: 0.45, 'much-roomier': 0.4 }),
+    );
+    expect(verdictLine(odds, 'M', top)).toEqual({
+      headline: 'Very likely fits how you like',
+      detail: '82% chance it fits how you like.',
+      tone: 'good',
+      verdict: 'fits',
+    });
+    expect(verdictLine(odds, 'S', top).headline).toBe('Probably a bit snugger than you like');
+    expect(verdictLine(odds, 'XL', top).headline).toBe('Very likely much roomier than you like');
+    expect(verdictLine(odds, 'L', top).headline).toBe('Might be roomier than you like');
+  });
+
+  it('calls a close call between two sizes, in chart order', () => {
+    const odds = oddsOf(sizeOdds('M', { fits: 0.39, snugger: 0.5, 'too-tight': 0.11 }), sizeOdds('L', { fits: 0.3, roomier: 0.7 }));
+    expect(verdictLine(odds, 'L', top).headline).toBe('Could go either way: M or L');
+    expect(verdictLine(odds, 'M', top).headline).toBe('Could go either way: M or L');
+  });
+
+  it('is not a close call when the runner-up is unlikely', () => {
+    const odds = oddsOf(sizeOdds('M', { fits: 0.3, snugger: 0.7 }), sizeOdds('L', { fits: 0.2, roomier: 0.8 }));
+    expect(verdictLine(odds, 'M', top).headline).toBe('Probably a bit snugger than you like');
+  });
+
+  it('says “as designed” for a looser cut, and stays objective for bottoms', () => {
+    const odds = oddsOf(sizeOdds('M', { 'as-designed': 0.8, roomier: 0.2 }));
+    expect(verdictLine(odds, 'M', { category: 'top', fitIntent: 'oversized' }).headline).toBe('Very likely oversized, as designed');
+    const pants = oddsOf(sizeOdds('32', { fits: 0.6, shorter: 0.4 }));
+    expect(verdictLine(pants, '32', { category: 'bottom', fitIntent: 'slim' })).toMatchObject({
+      headline: 'Probably fits well',
+      detail: '60% chance it fits well.',
+    });
+  });
+
+  it('can’t check a fit that is mostly unknown', () => {
+    expect(verdictLine(oddsOf(sizeOdds('M', { unknown: 1 })), 'M', top)).toMatchObject({ headline: 'Can’t check this fit', detail: null });
+  });
+});
+
+describe('odds wording', () => {
+  it('formats percentages without hiding small chances', () => {
+    expect(formatPercent(0.473)).toBe('47%');
+    expect(formatPercent(0.002)).toBe('<1%');
+    expect(formatPercent(0.998)).toBe('>99%');
+    expect(formatPercent(0)).toBe('0%');
+    expect(formatPercent(1)).toBe('100%');
+  });
+
+  const chest: ZoneOdds = {
+    zone: 'chest',
+    kind: 'girth',
+    labels: { relaxed: 0.3, fitted: 0.61, tight: 0.09, loose: 0.004 },
+    personal: { under: 0.24, right: 0.47, over: 0.29, unknown: 0 },
+  };
+
+  it('lists labels likeliest first and drops the ones under 1%', () => {
+    expect(labelOddsText(chest)).toBe('Fitted 61% · Relaxed 30% · Tight 9%');
+  });
+
+  it('lists the personal result for a top’s chest, and length only with a preference', () => {
+    expect(personalOddsText(chest, { category: 'top' }, false)).toBe('As you like 47% · Roomier 29% · Snugger 24%');
+    expect(personalOddsText(chest, { category: 'bottom' }, false)).toBeNull();
+    const length: ZoneOdds = { ...chest, zone: 'length', kind: 'length' };
+    expect(personalOddsText(length, { category: 'top' }, false)).toBeNull();
+    expect(personalOddsText(length, { category: 'top' }, true)).toBe('As you like 47% · Longer 29% · Shorter 24%');
+  });
+
+  it('names the measurement that would decide the size', () => {
+    expect(measureHintText({ key: 'chestCm', sizes: ['M', 'L'] })).toBe('Measure your chest to decide between M and L.');
+    expect(measureHintText({ key: 'inseamCm', sizes: ['30x30', '30x32', '32x32'] })).toBe(
+      'Measure your inseam to decide between 30x30, 30x32 and 32x32.',
+    );
+  });
+});
+
+describe('preferenceNote', () => {
+  it('says what the verdict is compared with', () => {
+    expect(preferenceNote(preferenceSpec(null, 'slim'))).toBe('Compared with how you like tees: slim.');
+    expect(preferenceNote(preferenceSpec(null, null))).toMatch(/^Assuming you like a regular fit/);
+    expect(preferenceNote(preferenceSpec({ kind: 'measured', chestFlatCm: 53, lengthCm: 74 }, null))).toBe('Compared with the tee you measured.');
+    expect(preferenceNote(preferenceSpec({ kind: 'catalogue', garmentId: 'gildan-5000', size: 'M' }, null))).toBe(
+      'Compared with the tee you own and like.',
+    );
   });
 });
