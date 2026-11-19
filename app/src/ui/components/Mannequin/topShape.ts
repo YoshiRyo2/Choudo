@@ -1,16 +1,16 @@
 /**
  * How a top hangs on the mannequin: size measurements (cm) -> SVG shapes (cm).
  *
- * A tee is modelled the way it behaves on a person, not as a scaled rectangle:
+ * A tee is modelled the way it behaves on a person, not as a scaled rectangle.
+ * Cloth hangs: extra width falls downward into folds, it never sticks out.
  *  - The shoulder seam sits on the body's shoulder point while the chest ease is
- *    small, and slides down and out along the upper arm as the size grows
- *    (a dropped shoulder). It never moves inward.
- *  - Sleeves hang from that seam around the arm. They get wider and longer with
- *    the size, swing a little away from the body on big sizes, and short sleeves
- *    stop on the upper arm with a slight flare.
- *  - The body hangs straight from the shoulders. Width beyond the body becomes
- *    vertical folds and slightly flared side seams; sizes smaller than the body
- *    pull tight across the chest, drawn as strain lines.
+ *    small, and slides down the upper arm as the size grows (a dropped
+ *    shoulder). It never moves inward.
+ *  - Sleeves hang from that seam down along the arm, a little looser and longer
+ *    with each size. Short sleeves stop on the upper arm, barely flared.
+ *  - The body falls nearly straight from the armpit to the hem. Spare width
+ *    becomes soft vertical folds; sizes smaller than the body hug it and pull
+ *    across the chest, drawn as light strain lines.
  *  - The hem sits at the garment's length from the high shoulder point, curving
  *    up a little at the sides.
  *  - Below the sleeves the arm is drawn again on top of the shirt body, because a
@@ -46,16 +46,19 @@ const DROP_PER_EASE = 0.22;
 /** The seam never drops more than this fraction of the arm. */
 const MAX_DROP = 0.28;
 /**
- * Spare fabric hangs in folds, so a loose top looks narrower from the front than
- * its circumference would suggest. Fraction of the extra width that still shows.
+ * Spare fabric hangs in folds and round to the back, so a loose top looks much
+ * narrower from the front than its circumference suggests. Fraction of the
+ * extra flat width that still shows at the sides.
  */
-const HANG = 0.8;
-/**
- * A tee's sleeve opening is about a third of its flat chest width. Hanging round
- * the arm, the sleeve shows roughly this fraction of the chest circumference
- * from the front.
- */
-const SLEEVE_PER_CHEST = 0.12;
+const HANG = 0.6;
+/** However big the size, no more than this much extra width shows at each side; the rest folds away. */
+const MAX_SIDE_ROOM_CM = 7;
+/** Room a sleeve leaves around the arm: a snug minimum, plus cm per cm of chest ease, capped. */
+const SLEEVE_ROOM_MIN = 0.3;
+const SLEEVE_ROOM_PER_EASE = 0.05;
+const SLEEVE_ROOM_MAX = 3;
+/** The most a side seam moves outward between the armpit and the hem (a hint of flare, never an A-line). */
+export const MAX_SIDE_FLARE_CM = 1.2;
 /** Short sleeves end at least this far above the elbow. */
 const ELBOW_GAP_CM = 1;
 
@@ -82,8 +85,13 @@ export interface TopShape {
     seam: Pt;
     underarm: Pt;
     hem: Pt;
-    /** Outer edge of the sleeve halfway down it. */
+    /** Outer edge of the sleeve a little over halfway down it. */
     sleeveOuterMid: Pt;
+    /** The two corners of the sleeve opening. */
+    sleeveOuterEnd: Pt;
+    sleeveInnerEnd: Pt;
+    /** The shirt body's side seam, armpit to hem. */
+    sideSeam: Pt[];
     /** Garment body half-width at the same height as sleeveOuterMid. */
     bodyHalfAtSleeveMid: number;
     /** Where the sleeve ends, in cm down the arm. */
@@ -114,8 +122,9 @@ export function topShape(
   // ----- body width -----
   const flatHalf = halfWidth.chest(chestCirc);
   const snug = g.half.chest + 0.3;
-  const sideHalf = flatHalf <= snug ? snug : snug + (flatHalf - snug) * HANG;
-  const flare = Math.min(3.5, room * 0.05);
+  const sideHalf = snug + Math.min(MAX_SIDE_ROOM_CM, Math.max(0, flatHalf - snug) * HANG);
+  // A hint of flare toward the hem; most of the spare width hangs in folds.
+  const flare = Math.min(MAX_SIDE_FLARE_CM - 0.2, room * 0.015);
 
   // ----- sleeve -----
   // `s` is cm down the arm from its top; the arm hangs almost straight down.
@@ -136,23 +145,30 @@ export function topShape(
   };
 
   const long = garment.sleeve === 'long';
-  const sleeveWidth = Math.max(2 * armHalf(drop + 10) + 2, SLEEVE_PER_CHEST * chestCirc);
 
-  const seam: Pt = (() => {
-    const p = armEdge(drop, 1, 0.4);
-    // Never inside the body's own shoulder point.
-    return { x: Math.max(p.x, g.half.shoulder + 0.4), y: Math.max(p.y, g.y.shoulder + 1.5), corner: true };
-  })();
-
-  // The underarm sits low enough for the armhole to be as wide as the sleeve.
+  // The armhole deepens as the shoulder drops; short sleeves keep some length below it.
   const shortSleeveEnd = g.arm.elbowCm - ELBOW_GAP_CM;
-  const armholeWidth = long ? sleeveWidth : sleeveWidth * 0.95;
-  let underY = g.y.armpit + 1.5 + drop * 0.6;
-  const dx = seam.x - innerEdge(sAtY(underY)).x;
-  underY = Math.max(underY, seam.y + Math.sqrt(Math.max(0, armholeWidth ** 2 - dx ** 2)));
-  underY = Math.min(underY, g.arm.top.y + arm.dir.y * (shortSleeveEnd - 4));
+  const underY = Math.min(g.y.armpit + 1.5 + drop * 0.8, g.arm.top.y + arm.dir.y * (shortSleeveEnd - 4));
   const sUnder = sAtY(underY);
+
+  // Room around the arm. The sleeve also has to cover where the shirt body
+  // meets it, so on big sizes it sits just outside the body's side seam.
+  const sleevePad = Math.max(
+    SLEEVE_ROOM_MIN + Math.min(SLEEVE_ROOM_MAX, room * SLEEVE_ROOM_PER_EASE),
+    sideHalf + 1.5 - armEdge(sUnder, 1).x,
+  );
   const innerTop: Pt = { ...innerEdge(sUnder), corner: true };
+
+  // The seam sits on the body's shoulder point while there's no drop. As it
+  // drops it moves onto the sleeve's outer edge down the arm, so the shoulder
+  // line runs straight on into the sleeve. It can only move down and out.
+  const onArm = Math.min(1, drop / 3);
+  const seamOnArm = armEdge(drop, 1, sleevePad);
+  const seam: Pt = {
+    x: Math.max(g.half.shoulder + 0.3, lerp(g.half.shoulder + 0.3, seamOnArm.x, onArm)),
+    y: Math.max(g.y.shoulder + 1.5, lerp(g.y.shoulder + 1.5, seamOnArm.y - 1, onArm)),
+    corner: true,
+  };
 
   const sleeveCm = long
     ? garment.sleeveDefinition === 'shoulder_to_cuff' && size.sleeve !== undefined
@@ -163,29 +179,26 @@ export function topShape(
     ? Math.max(sUnder + 3, Math.min(drop + sleeveCm, arm.len * 1.06))
     : Math.min(Math.max(sUnder + 3, drop + sleeveCm), shortSleeveEnd);
 
-  // Short sleeves flare slightly to their opening; long ones taper to the cuff.
-  const cuffWidth = long ? Math.max(2 * armHalf(sEnd) + 1.6, sleeveWidth * 0.55) : sleeveWidth;
+  // Short sleeves open out a touch at the hem; long ones narrow to a cuff.
+  const endPad = long ? 0.6 + Math.min(1, room * 0.02) : sleevePad + 0.3 + Math.min(1.2, room * 0.02);
+  const padAt = (t: number) => lerp(sleevePad, endPad, t);
+  const sAt = (t: number) => lerp(drop, sEnd, t);
+  /** The sleeve's outer edge, `t` of the way from the seam to the opening. It runs down the arm. */
+  const outerAt = (t: number): Pt => armEdge(sAt(t), 1, padAt(t));
+  const outerEnd: Pt = { ...outerAt(1), corner: true };
+  const outerMid = outerAt(0.6);
   const innerEnd: Pt = { ...innerEdge(sEnd), corner: true };
-  const outerEnd: Pt = {
-    x: Math.max(innerEnd.x + arm.normal.x * cuffWidth, armEdge(sEnd, 1, 0.8).x),
-    y: innerEnd.y + arm.normal.y * cuffWidth,
-    corner: true,
-  };
-  const along = (t: number, bulge: number): Pt => {
-    const p = { x: lerp(seam.x, outerEnd.x, t), y: lerp(seam.y, outerEnd.y, t) };
-    return { x: p.x + arm.normal.x * bulge, y: p.y + arm.normal.y * bulge };
-  };
-  // Hanging cloth makes a bell: the outer edge leaves the seam close to the arm
-  // and flares toward the opening, so the sleeve carries on from the shoulder.
-  const bell = Math.min(2.5, Math.max(0, outerEnd.x - seam.x) * 0.12);
-  const outerMid = along(0.6, -bell * 0.6);
   const armhole: Pt = { x: lerp(innerTop.x, seam.x, 0.35), y: lerp(innerTop.y, seam.y, 0.6) };
   const sleeve = smoothPath(
-    [{ ...seam, corner: false }, along(0.25, -bell), outerMid, outerEnd, innerEnd, innerTop, armhole],
+    [{ ...seam, corner: false }, outerAt(0.25), outerMid, outerEnd, innerEnd, innerTop, armhole],
     true,
   );
-  const sleeveOuterX = (y: number) =>
-    y <= seam.y ? seam.x : y >= outerEnd.y ? outerEnd.x : lerp(seam.x, outerEnd.x, (y - seam.y) / (outerEnd.y - seam.y));
+  /** x of the sleeve's outer edge at height y (0 where there is no sleeve). */
+  const sleeveOuterXAt = (y: number) => {
+    if (y < seam.y || y > outerEnd.y) return 0;
+    const pts = [seam, outerAt(0.25), outerMid, outerEnd];
+    return xAt(pts, y);
+  };
 
   // ----- body outline (right side, top to bottom) -----
   const lengthCm = size.length ?? g.y.hip - g.y.hps;
@@ -198,8 +211,8 @@ export function topShape(
       : sideAt(g.y.waist, flare * 0.3);
 
   const collar: Pt = { x: g.half.neck + 0.8, y: g.y.hps, corner: true };
-  // Tucked under the sleeve, so the body never pokes out above it.
-  const underarm: Pt = { x: Math.min(sideHalf, sleeveOuterX(innerTop.y) - 1), y: innerTop.y };
+  // The side seam starts at the armpit and falls straight; the sleeve covers the join.
+  const underarm: Pt = { x: sideHalf, y: underY };
   const hem: Pt = { x: sideAt(hemY, flare) + 0.2, y: hemY - hemLift, corner: true };
   const right: Pt[] = [
     collar,
@@ -227,15 +240,14 @@ export function topShape(
 
   // ----- folds and strain -----
   // Spare width falls into a few soft vertical folds of uneven length, hanging
-  // from below the chest and fanning out a little toward the hem.
+  // from below the chest almost straight down to the hem.
   const folds: string[] = [];
-  const spare = sideHalf - g.half.chest;
-  const foldCount = Math.min(3, Math.floor(spare / 3));
+  const foldCount = Math.min(4, Math.floor(room / 12));
   for (let i = 1; i <= foldCount; i++) {
-    const reach = 0.35 + (0.55 * i) / (foldCount + 0.5);
+    const reach = 0.3 + (0.6 * i) / (foldCount + 0.5);
     const x0 = sideHalf * reach;
-    const top = lerp(underarm.y, hemY, i % 2 ? 0.22 : 0.4);
-    const x1 = x0 + flare * reach;
+    const top = lerp(underarm.y, hemY, i % 2 ? 0.18 : 0.38);
+    const x1 = x0 + flare * reach * 0.5;
     folds.push(
       smoothPath(
         [
@@ -274,8 +286,6 @@ export function topShape(
   const forearm = limbPath(g.arm, Math.min(sleeveEndT - 0.04, 1.02), 1.1, 0, 0);
 
   // ----- markers -----
-  const sleeveOuterXAt = (y: number) =>
-    y >= seam.y && y <= outerEnd.y ? lerp(seam.x, outerEnd.x, (y - seam.y) / (outerEnd.y - seam.y || 1)) : 0;
   const mirrorPt = (p: Pt): Pt => ({ x: -p.x, y: p.y });
 
   return {
@@ -311,6 +321,9 @@ export function topShape(
       underarm,
       hem,
       sleeveOuterMid: outerMid,
+      sleeveOuterEnd: outerEnd,
+      sleeveInnerEnd: innerEnd,
+      sideSeam: right.slice(3, right.length - 1),
       bodyHalfAtSleeveMid: xAt(right.slice(3), outerMid.y),
       sleeveEndCm: sEnd,
       sleeveEndT,

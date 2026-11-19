@@ -14,7 +14,8 @@ To use a photo locally:
 
 The landmark pixel positions in `seed.json` refer to the cut-out PNG, so if you
 change the crop or the `bleed` in `garment-photos.json`, re-check them with the
-overlay. (`bleed` pads the garment by smearing its edge colours outward, so the
-cut-out isn't a clean silhouette; that's on purpose. The Mannequin warps the
-photo onto each size's outline, and the padding gives a slightly larger outline
-cloth at its edges instead of a gap.)
+overlay. (`bleed` pads the garment with its own flat colour and `fade` blends the
+photo into that colour near its outline, so the cut-out isn't a clean
+silhouette; that's on purpose. The Mannequin warps the photo onto each size's
+outline, and this keeps every outline the shirt's colour instead of a shaded
+band or a gap.)

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../../../domain/body';
 import { findGarment } from '../../../domain/garments';
 import { bodyGeometry, bodyHalfAt, bottomShape, limbFrame, mirrorPath, smoothPath } from './geometry';
-import { topShape } from './topShape';
+import { MAX_SIDE_FLARE_CM, topShape } from './topShape';
 
 const body = (heightCm: number, weightKg: number) =>
   estimateBody({ heightCm, weightKg, sizing: 'mens' }).measurements;
@@ -98,6 +98,22 @@ describe('a tee at every size (Gildan 5000, S to 5XL)', () => {
         expect(shape.arms[0]).toMatch(/^M/);
       });
 
+      it.each(shapes)('$size: sleeve tips hang below the shoulder seam', ({ shape }) => {
+        const { seam, sleeveOuterEnd, sleeveInnerEnd } = shape.right;
+        expect(sleeveOuterEnd.y).toBeGreaterThan(seam.y);
+        expect(sleeveInnerEnd.y).toBeGreaterThan(seam.y);
+      });
+
+      it.each(shapes)('$size: sleeves angle down along the arm, not out sideways', ({ shape }) => {
+        const { seam, sleeveOuterEnd } = shape.right;
+        expect(sleeveOuterEnd.x - seam.x).toBeLessThan(0.45 * (sleeveOuterEnd.y - seam.y));
+      });
+
+      it.each(shapes)('$size: side seams fall nearly straight from armpit to hem', ({ shape }) => {
+        const [armpit, ...below] = shape.right.sideSeam;
+        for (const p of below) expect(p.x - armpit!.x).toBeLessThanOrEqual(MAX_SIDE_FLARE_CM + 0.3);
+      });
+
       it('drops the shoulder seam down and out as the size grows, never back in', () => {
         for (let i = 1; i < shapes.length; i++) {
           const prev = shapes[i - 1]!.shape.right.seam;
@@ -133,6 +149,15 @@ describe('a tee at every size (Gildan 5000, S to 5XL)', () => {
     const xxl = topShape(g, gildan, gildan.sizes.at(-1)!.measurements, bodies.average.chestCm);
     expect(xxl.right.seam.y - g.y.shoulder).toBeGreaterThan(8);
     expect(xxl.right.sleeveEndCm).toBeLessThan(limbFrame(g.arm).len);
+  });
+
+  it('hugs the body at S: seam on the shoulder point, sides on the chest, strain lines', () => {
+    const g = bodyGeometry(bodies.average);
+    const small = topShape(g, gildan, gildan.sizes[0]!.measurements, bodies.average.chestCm);
+    expect(small.right.seam.x).toBeLessThanOrEqual(g.half.shoulder + 0.5);
+    expect(small.right.seam.y - g.y.shoulder).toBeLessThan(2);
+    expect(small.right.underarm.x).toBeLessThanOrEqual(g.half.chest + 0.5);
+    expect(small.strain.length).toBeGreaterThan(0);
   });
 
   it('pulls a too-small size tight with strain lines, and gives a big one folds instead', () => {
