@@ -106,14 +106,14 @@ export function Mannequin({ body, top, bottom, showFit = true, className }: Mann
 
       {bottomDraw && bottom && (
         <path
-          className={garmentClass(bottomDraw.approximate)}
+          className={garmentClass(bottomDraw.approximate, bottom.garment)}
           d={bottomDraw.body}
           style={{ fill: bottom.garment.color }}
         />
       )}
       {topDraw && top && (
         <g>
-          <g className={garmentClass(topDraw.approximate)} style={{ fill: top.garment.color }}>
+          <g className={garmentClass(topDraw.approximate, top.garment)} style={{ fill: top.garment.color }}>
             <path d={topDraw.body} />
           </g>
           {texture('body', topDraw.body)}
@@ -130,7 +130,7 @@ export function Mannequin({ body, top, bottom, showFit = true, className }: Mann
             <path className="mannequin__arm" d={topDraw.arms[0]} />
             <path className="mannequin__arm" d={topDraw.arms[1]} />
           </g>
-          <g className={garmentClass(topDraw.approximate)} style={{ fill: top.garment.color }}>
+          <g className={garmentClass(topDraw.approximate, top.garment)} style={{ fill: top.garment.color }}>
             <path d={topDraw.sleeves[0]} />
             <path d={topDraw.sleeves[1]} />
           </g>
@@ -201,8 +201,17 @@ function PhotoTexture({
   );
 }
 
-const garmentClass = (approximate: boolean) =>
-  ['mannequin__garment', approximate ? 'is-approximate' : null].filter(Boolean).join(' ');
+/**
+ * is-approximate: the width is our guess (girth method unknown) — a clear dash.
+ * is-estimated: drawn from numbers that include our estimates — a subtler dash.
+ */
+const garmentClass = (approximate: boolean, garment: Pick<Garment, 'grade'>) =>
+  [
+    'mannequin__garment',
+    approximate ? 'is-approximate' : garment.grade === 'estimated' ? 'is-estimated' : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
 /** A strip of tape measure up the left edge, marked every 10 cm, topped at the body's height. */
 function HeightTape({ heightCm, x }: { heightCm: number; x: number }) {

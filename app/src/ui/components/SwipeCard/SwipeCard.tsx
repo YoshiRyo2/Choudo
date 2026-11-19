@@ -3,6 +3,7 @@ import type { BodyMeasurements } from '../../../domain/body';
 import type { GarmentFit } from '../../../domain/fit';
 import type { Garment } from '../../../domain/garments';
 import { sizeLine, summarize } from '../../fitText';
+import { GarmentBadge } from '../GarmentBadge';
 import { Mannequin } from '../Mannequin/Mannequin';
 import { DISTANCE_SHARE, swipeOutcome, tilt, type SwipeOutcome } from './swipe';
 import './SwipeCard.css';
@@ -103,7 +104,7 @@ export function SwipeCard({ garment, body, fit, recommended, leaving, interactiv
       <div className="swipe-card__info">
         <p className="swipe-card__brand">
           {garment.brand}
-          {garment.source.placeholder && <span className="sample-tag">Sample data</span>}
+          <GarmentBadge garment={garment} />
         </p>
         <h2 className="swipe-card__name">{garment.name}</h2>
         <p className="swipe-card__size num">{sizeLine(fit.sizeLabel, recommended)}</p>

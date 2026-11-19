@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Garment } from '../../domain/garments';
+import { GarmentBadge } from './GarmentBadge';
 import { GarmentIcon } from './GarmentIcon';
 import './GarmentCarousel.css';
 
@@ -95,7 +96,7 @@ export function GarmentCarousel({ label, garments, selectedId, onSelect }: Garme
                 <span className="garment-card__text">
                   <span className="garment-card__brand">{g.brand}</span>
                   <span className="garment-card__name">{g.name}</span>
-                  {g.source.placeholder && <span className="garment-card__flag">Sample data</span>}
+                  <GarmentBadge garment={g} className="garment-card__flag" />
                 </span>
               </button>
             </li>

@@ -135,16 +135,32 @@ select {
   color: var(--chalk-bad);
 }
 
-/* "Sample data": the garment's numbers are placeholders, not a real size chart. */
-.sample-tag {
+/*
+ * A garment's tag: how far to trust its numbers (see fitText GRADE_BADGE), or
+ * "Sample data" when they're placeholders. Dashed = not from a real chart.
+ */
+.garment-tag {
   display: inline-block;
   padding: 1px 8px;
   font-size: 0.75rem;
   font-weight: 500;
   border-radius: 999px;
-  border: 1px dashed var(--muted);
+  border: 1px solid var(--line);
   color: var(--muted);
   white-space: nowrap;
+}
+.garment-tag.is-sample,
+.garment-tag.is-estimated {
+  border-style: dashed;
+  border-color: var(--muted);
+}
+.garment-tag.is-verified {
+  border-color: var(--chalk-good);
+  color: var(--chalk-good);
+}
+.garment-tag.is-unscored {
+  border-style: dotted;
+  border-color: var(--muted);
 }
 
 /* A screen title row shared by Discover and the Closet. */

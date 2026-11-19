@@ -102,11 +102,6 @@
 .garment-card__flag {
   margin-top: 4px;
   align-self: flex-start;
-  padding: 1px 8px;
-  font-size: 0.75rem;
-  border-radius: 999px;
-  border: 1px dashed var(--muted);
-  color: var(--muted);
 }
 
 .garment-icon { flex: none; }

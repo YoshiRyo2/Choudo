@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../domain/body';
 import { fitGarment, type ZoneFit } from '../domain/fit';
 import { findGarment } from '../domain/garments';
-import { describeZone, formatDiff, sizeLine, summarize } from './fitText';
+import { describeZone, formatDiff, garmentTag, GRADE_EXPLAINED, sizeLine, sourceLine, summarize } from './fitText';
 
 const zone = (patch: Partial<ZoneFit>): ZoneFit => ({
   zone: 'chest',
@@ -72,5 +72,27 @@ describe('sizeLine', () => {
   it('says whether the size was picked for you', () => {
     expect(sizeLine('M', true)).toBe('Your size: M');
     expect(sizeLine('L', false)).toBe('Size L · we couldn’t pick one for you');
+  });
+});
+
+describe('garmentTag', () => {
+  it('keeps "Sample data" for placeholders and shows the grade otherwise', () => {
+    expect(garmentTag(findGarment('fieldline-oxford')!)).toEqual({ kind: 'sample', text: 'Sample data' });
+    expect(garmentTag(findGarment('gildan-5000')!)).toEqual({ kind: 'charted', text: 'From size chart' });
+    expect(garmentTag(findGarment('landsend-super-t')!)).toEqual({ kind: 'unscored', text: 'Can’t score' });
+    expect(garmentTag({ source: { placeholder: false, tier: 'A' }, grade: 'verified' }).text).toBe('Verified');
+    expect(garmentTag({ source: { placeholder: false, tier: 'E' }, grade: 'estimated' }).text).toBe('Estimated');
+  });
+});
+
+describe('sourceLine', () => {
+  it('names the tier in plain words and the date it was copied', () => {
+    const line = sourceLine(findGarment('gildan-5000')!);
+    expect(line).toMatch(/^From a published garment size chart, copied .*2026\.$/);
+    expect(sourceLine({ source: { placeholder: false, tier: 'D' } })).toBe('From a retailer’s product listing.');
+  });
+
+  it('explains every grade', () => {
+    expect(Object.keys(GRADE_EXPLAINED).sort()).toEqual(['charted', 'estimated', 'unscored', 'verified']);
   });
 });
