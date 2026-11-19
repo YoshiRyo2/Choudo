@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { isFolderList, isOutfit, isSavedOutfitList, isStoredBody, isSwipeList, isUnitSystem } from './stored';
+import {
+  isAnchor,
+  isBoolean,
+  isFitStyle,
+  isFitTestList,
+  isFolderList,
+  isOutfit,
+  isSavedOutfitList,
+  isStoredBody,
+  isSwipeList,
+  isUnitSystem,
+} from './stored';
 
 describe('stored data guards', () => {
   it('accepts a valid body and rejects broken ones', () => {
@@ -37,5 +48,64 @@ describe('closet data guards', () => {
     const outfit = { id: 'o1', name: 'Friday', savedAt: 'x', topId: 'a', topSize: 'M', bottomId: null, bottomSize: null };
     expect(isSavedOutfitList([outfit])).toBe(true);
     expect(isSavedOutfitList([{ ...outfit, name: 3 }])).toBe(false);
+  });
+});
+
+describe('fit preference guards', () => {
+  it('checks anchors', () => {
+    expect(isAnchor(null)).toBe(true);
+    expect(isAnchor({ kind: 'catalogue', garmentId: 'gildan-5000', size: 'M' })).toBe(true);
+    expect(isAnchor({ kind: 'measured', chestFlatCm: 53, lengthCm: 74 })).toBe(true);
+    expect(isAnchor({ kind: 'measured', chestFlatCm: 106, lengthCm: 74 })).toBe(false); // full chest, not flat
+    expect(isAnchor({ kind: 'catalogue', garmentId: 3, size: 'M' })).toBe(false);
+    expect(isAnchor({ kind: 'photo' })).toBe(false);
+  });
+
+  it('checks fit styles and test mode', () => {
+    expect(isFitStyle('oversized')).toBe(true);
+    expect(isFitStyle(null)).toBe(true);
+    expect(isFitStyle('baggy')).toBe(false);
+    expect(isBoolean(true)).toBe(true);
+    expect(isBoolean('true')).toBe(false);
+  });
+});
+
+describe('fit test guards', () => {
+  const prediction = {
+    body: { heightCm: 178, weightKg: 75, sizing: 'mens' },
+    chestCm: 96.4,
+    chestSource: 'estimated',
+    torsoLengthCm: 73,
+    preferenceSource: 'default',
+    style: 'regular',
+    anchor: '',
+    preferredChestEaseCm: 5,
+    preferredLengthDiffCm: null,
+    recommendedSize: 'M',
+    verdict: 'fits',
+    likes: 0.39,
+    chestLabel: 'relaxed',
+    lengthLabel: 'good',
+    chest: { under: 0.24, right: 0.47, over: 0.29 },
+    length: { under: 0.05, right: 0.9, over: 0.05 },
+  };
+  const record = {
+    id: 'r1',
+    tester: 'T01',
+    at: '2026-11-18T10:00:00Z',
+    garmentId: 'gildan-5000',
+    size: 'M',
+    chest: 'just-right',
+    length: 'too-short',
+    keptSize: 'M',
+    prediction,
+  };
+
+  it('accepts a full record and rejects broken ones', () => {
+    expect(isFitTestList([record])).toBe(true);
+    expect(isFitTestList([{ ...record, keptSize: null }])).toBe(true);
+    expect(isFitTestList([{ ...record, chest: 'tight' }])).toBe(false);
+    expect(isFitTestList([{ ...record, prediction: { ...prediction, chest: { under: 1 } } }])).toBe(false);
+    expect(isFitTestList([{ ...record, prediction: { ...prediction, body: null } }])).toBe(false);
   });
 });
