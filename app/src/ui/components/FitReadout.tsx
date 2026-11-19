@@ -107,7 +107,8 @@ export function FitReadout({ garment, fit, units, odds, preference, hint, showOd
         ))}
       </ul>
 
-      {!hint && summary.usesEstimates && (
+      {/* With an anchor tee, a top's chest estimate cancels out, so measuring wouldn't help. */}
+      {!hint && summary.usesEstimates && !(garment.category === 'top' && preference.source === 'anchor') && (
         <p className="readout__estimates">
           Some of your numbers are estimates from height and weight.{' '}
           <button type="button" className="link-button" onClick={onEditBody}>
