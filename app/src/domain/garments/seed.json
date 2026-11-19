@@ -301,6 +301,396 @@
         { "label": "34x34", "measurements": { "waist": 17.75, "hips": 22.5, "inseam": 34, "rise": 11.5 } },
         { "label": "36x32", "measurements": { "waist": 18.75, "hips": 23.5, "inseam": 32, "rise": 11.75 } }
       ]
+    },
+    {
+      "id": "ryo-grey-polo",
+      "brand": "Ryo's closet",
+      "name": "Grey Ribbed Polo",
+      "category": "top",
+      "type": "polo",
+      "sizing": "mens",
+      "image": {
+        "file": "garments/shirt1-front.png",
+        "photographedSize": null,
+        "landmarks": {
+          "collarLeft": {
+            "x": 168,
+            "y": 62
+          },
+          "collarRight": {
+            "x": 227,
+            "y": 62
+          },
+          "neckFront": {
+            "x": 198,
+            "y": 105
+          },
+          "shoulderLeft": {
+            "x": 100,
+            "y": 100
+          },
+          "shoulderRight": {
+            "x": 300,
+            "y": 100
+          },
+          "armpitLeft": {
+            "x": 91,
+            "y": 180
+          },
+          "armpitRight": {
+            "x": 295,
+            "y": 193
+          },
+          "hemLeft": {
+            "x": 93,
+            "y": 332
+          },
+          "hemRight": {
+            "x": 295,
+            "y": 337
+          },
+          "sleeveOuterLeft": {
+            "x": 38,
+            "y": 143
+          },
+          "sleeveInnerLeft": {
+            "x": 68,
+            "y": 189
+          },
+          "sleeveOuterRight": {
+            "x": 353,
+            "y": 165
+          },
+          "sleeveInnerRight": {
+            "x": 313,
+            "y": 208
+          }
+        }
+      },
+      "color": "#b9bcbf",
+      "sleeve": "short",
+      "stretch": "some",
+      "fitIntent": "regular",
+      "chart": {
+        "unit": "in",
+        "girth": "flat",
+        "lengthDefinition": "hps"
+      },
+      "source": {
+        "placeholder": true,
+        "notes": "Ryo's own shirt, photographed flat on 2026-11-19. Not yet measured: sizes are rough estimates from the photo."
+      },
+      "sizes": [
+        {
+          "label": "Mine",
+          "measurements": {
+            "chest": {
+              "value": 21.5,
+              "origin": "estimated",
+              "how": "Rough estimate from the photo's proportions with an assumed length; no tape measurement yet. Replace with real measurements."
+            },
+            "length": {
+              "value": 29,
+              "origin": "estimated",
+              "how": "Rough estimate from the photo's proportions with an assumed length; no tape measurement yet. Replace with real measurements."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "ryo-navy-graphic-tee",
+      "brand": "Ryo's closet",
+      "name": "Navy Graphic Tee",
+      "category": "top",
+      "type": "tee",
+      "sizing": "mens",
+      "image": {
+        "file": "garments/shirt2-front.png",
+        "photographedSize": null,
+        "landmarks": {
+          "collarLeft": {
+            "x": 160,
+            "y": 61
+          },
+          "collarRight": {
+            "x": 213,
+            "y": 62
+          },
+          "neckFront": {
+            "x": 184,
+            "y": 83
+          },
+          "shoulderLeft": {
+            "x": 100,
+            "y": 80
+          },
+          "shoulderRight": {
+            "x": 273,
+            "y": 78
+          },
+          "armpitLeft": {
+            "x": 100,
+            "y": 160
+          },
+          "armpitRight": {
+            "x": 273,
+            "y": 160
+          },
+          "hemLeft": {
+            "x": 99,
+            "y": 297
+          },
+          "hemRight": {
+            "x": 268,
+            "y": 299
+          },
+          "sleeveOuterLeft": {
+            "x": 60,
+            "y": 98
+          },
+          "sleeveInnerLeft": {
+            "x": 78,
+            "y": 156
+          },
+          "sleeveOuterRight": {
+            "x": 312,
+            "y": 99
+          },
+          "sleeveInnerRight": {
+            "x": 293,
+            "y": 157
+          }
+        }
+      },
+      "color": "#1f2c4c",
+      "sleeve": "short",
+      "stretch": "some",
+      "fitIntent": "regular",
+      "chart": {
+        "unit": "in",
+        "girth": "flat",
+        "lengthDefinition": "hps"
+      },
+      "source": {
+        "placeholder": true,
+        "notes": "Ryo's own shirt, photographed flat on 2026-11-19. Not yet measured: sizes are rough estimates from the photo."
+      },
+      "sizes": [
+        {
+          "label": "Mine",
+          "measurements": {
+            "chest": {
+              "value": 20.5,
+              "origin": "estimated",
+              "how": "Rough estimate from the photo's proportions with an assumed length; no tape measurement yet. Replace with real measurements."
+            },
+            "length": {
+              "value": 28,
+              "origin": "estimated",
+              "how": "Rough estimate from the photo's proportions with an assumed length; no tape measurement yet. Replace with real measurements."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "ryo-cream-boxy-tee",
+      "brand": "Ryo's closet",
+      "name": "Cream Boxy Graphic Tee",
+      "category": "top",
+      "type": "tee",
+      "sizing": "mens",
+      "image": {
+        "file": "garments/shirt3-front.png",
+        "photographedSize": null,
+        "landmarks": {
+          "collarLeft": {
+            "x": 167,
+            "y": 61
+          },
+          "collarRight": {
+            "x": 237,
+            "y": 61
+          },
+          "neckFront": {
+            "x": 202,
+            "y": 85
+          },
+          "shoulderLeft": {
+            "x": 100,
+            "y": 83
+          },
+          "shoulderRight": {
+            "x": 300,
+            "y": 82
+          },
+          "armpitLeft": {
+            "x": 100,
+            "y": 168
+          },
+          "armpitRight": {
+            "x": 302,
+            "y": 168
+          },
+          "hemLeft": {
+            "x": 84,
+            "y": 317
+          },
+          "hemRight": {
+            "x": 304,
+            "y": 312
+          },
+          "sleeveOuterLeft": {
+            "x": 31,
+            "y": 106
+          },
+          "sleeveInnerLeft": {
+            "x": 45,
+            "y": 167
+          },
+          "sleeveOuterRight": {
+            "x": 377,
+            "y": 109
+          },
+          "sleeveInnerRight": {
+            "x": 365,
+            "y": 171
+          }
+        }
+      },
+      "color": "#e9e2d3",
+      "sleeve": "short",
+      "stretch": "some",
+      "fitIntent": "oversized",
+      "chart": {
+        "unit": "in",
+        "girth": "flat",
+        "lengthDefinition": "hps"
+      },
+      "source": {
+        "placeholder": true,
+        "notes": "Ryo's own shirt, photographed flat on 2026-11-19. Not yet measured: sizes are rough estimates from the photo."
+      },
+      "sizes": [
+        {
+          "label": "Mine",
+          "measurements": {
+            "chest": {
+              "value": 22.5,
+              "origin": "estimated",
+              "how": "Rough estimate from the photo's proportions with an assumed length; no tape measurement yet. Replace with real measurements."
+            },
+            "length": {
+              "value": 28,
+              "origin": "estimated",
+              "how": "Rough estimate from the photo's proportions with an assumed length; no tape measurement yet. Replace with real measurements."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "ryo-black-henley",
+      "brand": "Ryo's closet",
+      "name": "Black Long-Sleeve Henley",
+      "category": "top",
+      "type": "long-sleeve-tee",
+      "sizing": "mens",
+      "image": {
+        "file": "garments/shirt4-front.png",
+        "photographedSize": null,
+        "landmarks": {
+          "collarLeft": {
+            "x": 180,
+            "y": 61
+          },
+          "collarRight": {
+            "x": 227,
+            "y": 61
+          },
+          "neckFront": {
+            "x": 202,
+            "y": 72
+          },
+          "shoulderLeft": {
+            "x": 133,
+            "y": 77
+          },
+          "shoulderRight": {
+            "x": 267,
+            "y": 76
+          },
+          "armpitLeft": {
+            "x": 130,
+            "y": 143
+          },
+          "armpitRight": {
+            "x": 271,
+            "y": 142
+          },
+          "hemLeft": {
+            "x": 129,
+            "y": 257
+          },
+          "hemRight": {
+            "x": 280,
+            "y": 258
+          },
+          "sleeveOuterLeft": {
+            "x": 30,
+            "y": 184
+          },
+          "sleeveInnerLeft": {
+            "x": 38,
+            "y": 221
+          },
+          "sleeveOuterRight": {
+            "x": 390,
+            "y": 180
+          },
+          "sleeveInnerRight": {
+            "x": 387,
+            "y": 215
+          }
+        }
+      },
+      "color": "#1b1d22",
+      "sleeve": "long",
+      "stretch": "some",
+      "fitIntent": "regular",
+      "chart": {
+        "unit": "in",
+        "girth": "flat",
+        "lengthDefinition": "hps",
+        "sleeveDefinition": "shoulder_to_cuff"
+      },
+      "source": {
+        "placeholder": true,
+        "notes": "Ryo's own shirt, photographed flat on 2026-11-19. Not yet measured: sizes are rough estimates from the photo."
+      },
+      "sizes": [
+        {
+          "label": "Mine",
+          "measurements": {
+            "chest": {
+              "value": 20,
+              "origin": "estimated",
+              "how": "Rough estimate from the photo's proportions with an assumed length; no tape measurement yet. Replace with real measurements."
+            },
+            "length": {
+              "value": 28,
+              "origin": "estimated",
+              "how": "Rough estimate from the photo's proportions with an assumed length; no tape measurement yet. Replace with real measurements."
+            },
+            "sleeve": {
+              "value": 22.5,
+              "origin": "estimated",
+              "how": "Rough estimate from the photo's proportions with an assumed length; no tape measurement yet. Replace with real measurements."
+            }
+          }
+        }
+      ]
     }
   ]
 }
