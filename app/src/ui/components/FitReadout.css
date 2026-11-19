@@ -167,3 +167,41 @@ abbr.zone__est {
   display: block;
   margin-top: 4px;
 }
+
+.readout__pref {
+  margin: 4px 0 0;
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+.readout__details {
+  margin-top: 10px;
+}
+
+.readout__hint {
+  margin: 0;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--tape) 22%, var(--paper-raised));
+  border-radius: var(--radius-s);
+  font-weight: 500;
+}
+
+.zone__odds {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: var(--step--1);
+}
+.zone__odds div {
+  display: flex;
+  gap: 8px;
+}
+.zone__odds dt {
+  flex: none;
+  width: 4.5em;
+  color: var(--muted);
+}
+.zone__odds dd {
+  margin: 0;
+  font-size: var(--step-0);
+}

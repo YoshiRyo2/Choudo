@@ -1,0 +1,95 @@
+.test-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 2px dashed var(--ink);
+  border-radius: var(--radius-m);
+  background: var(--paper-raised);
+}
+
+.test-panel__title {
+  margin: 0;
+  font-family: var(--font-numeric);
+  font-size: var(--step-1);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.test-panel__what {
+  margin: 0;
+}
+
+.test-panel__form {
+  display: grid;
+  gap: 12px;
+}
+
+.test-panel__tester {
+  display: grid;
+  gap: 4px;
+  font-weight: 600;
+}
+.test-panel__tester input {
+  max-width: 160px;
+  padding: 8px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--paper);
+  font: inherit;
+  font-weight: 500;
+}
+
+.test-choices {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.test-choices legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.test-choices__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.test-choice {
+  position: relative;
+  padding: 8px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.test-choice input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.test-choice.is-selected {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper-raised);
+}
+.test-choice:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.test-panel__actions,
+.test-panel__results {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.test-panel__results {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: var(--step--1);
+  color: var(--muted);
+}

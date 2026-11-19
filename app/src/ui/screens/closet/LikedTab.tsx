@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import type { BodyModel } from '../../../domain/body';
+import type { PreferenceSpec } from '../../../domain/fit';
 import { findGarment, type Garment, type GarmentCategory } from '../../../domain/garments';
 import { GarmentBadge } from '../../components/GarmentBadge';
 import { GarmentIcon } from '../../components/GarmentIcon';
 import { SegmentedControl } from '../../components/SegmentedControl';
-import { sizeLine, summarize } from '../../fitText';
+import { sizeLine, verdictLine } from '../../fitText';
+import { garmentOdds } from '../../state/odds';
 import { suggestedFit } from '../../state/outfit';
 import { FoldersButton } from './FolderPicker';
 
@@ -12,6 +14,7 @@ type Filter = 'all' | GarmentCategory;
 
 interface LikedTabProps {
   model: BodyModel;
+  preference: PreferenceSpec;
   likedIds: string[];
   onOpen: (garment: Garment) => void;
   onUnlike: (garmentId: string) => void;
@@ -22,7 +25,7 @@ interface LikedTabProps {
 }
 
 /** Everything you've liked, newest first, filterable by tops and bottoms. */
-export function LikedTab({ model, likedIds, onOpen, onUnlike, folderCount, onFolders, onOpenDiscover }: LikedTabProps) {
+export function LikedTab({ model, preference, likedIds, onOpen, onUnlike, folderCount, onFolders, onOpenDiscover }: LikedTabProps) {
   const [filter, setFilter] = useState<Filter>('all');
   // Likes for garments no longer in the catalogue are skipped.
   const liked = likedIds.map((id) => findGarment(id)).filter((g): g is Garment => g !== undefined);
@@ -58,7 +61,8 @@ export function LikedTab({ model, likedIds, onOpen, onUnlike, folderCount, onFol
       ) : (
         <ul className="tile-grid">
           {shown.map((g) => {
-            const { fit, recommended } = suggestedFit(model, g);
+            const { fit, recommended } = suggestedFit(model, g, preference);
+            const verdict = verdictLine(garmentOdds(model, g, preference), fit.sizeLabel, g);
             return (
               <li key={g.id} className="tile">
                 <button type="button" className="tile__main" onClick={() => onOpen(g)}>
@@ -66,7 +70,7 @@ export function LikedTab({ model, likedIds, onOpen, onUnlike, folderCount, onFol
                   <span className="tile__brand">{g.brand}</span>
                   <span className="tile__name">{g.name}</span>
                   <span className="tile__size num">{sizeLine(fit.sizeLabel, recommended)}</span>
-                  <span className={`tile__verdict tone-${fit.overall}`}>{summarize(fit).headline}</span>
+                  <span className={`tile__verdict tone-${verdict.tone}`}>{verdict.headline}</span>
                   <GarmentBadge garment={g} />
                 </button>
                 <div className="tile__actions">

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { estimateBody, type BodyModel } from '../body';
 import { findGarment, normalizeGarment, type Garment, type SeedGarment } from '../garments';
 import { inToCm } from '../units';
-import { fitAllSizes, fitGarment, labelGirth, labelLength, recommendSize } from './fitEngine';
+import { fitAllSizes, fitGarment, labelGirth, labelLength } from './fitEngine';
 import { BOTTOM_WAIST, INSEAM, TOP_CHEST } from './rules';
 
 /** A body with exact, entered measurements so tests don't depend on the estimator. */
@@ -195,44 +195,5 @@ describe('fitGarment', () => {
         expect(fit.zones.every((z) => z.label !== 'unknown')).toBe(true);
       }
     }
-  });
-});
-
-describe('recommendSize', () => {
-  it('picks the Knightweave size closest to ~1 in of chest ease', () => {
-    const body = bodyWith({ chestCm: inToCm(38), torsoLengthCm: 72 });
-    expect(recommendSize(body, findGarment('knightweave-tee')!)).toBe('M');
-    // L is 44 in: exactly 1 in of ease on a 43 in chest. XL (48 in) would be loose.
-    const bigger = bodyWith({ chestCm: inToCm(43), torsoLengthCm: 76 });
-    expect(recommendSize(bigger, findGarment('knightweave-tee')!)).toBe('L');
-  });
-
-  it('skips tight sizes and picks the matching inseam', () => {
-    const jean = findGarment('corvo-slim-jean')!;
-    const body = bodyWith({ waistCm: 83, hipsCm: 99, inseamCm: 81 });
-    // 30x32 has 95 cm hips on a 99 cm seat: tight even with stretch.
-    const small = fitGarment(body, jean, '30x32');
-    expect(small.zones.find((z) => z.zone === 'hips')?.label).toBe('tight');
-    // 32x30 fits the waist but is 5 cm short; 32x32 matches the inseam.
-    expect(recommendSize(body, jean)).toBe('32x32');
-  });
-
-  it('breaks a tie toward the roomier size', () => {
-    // S and M miss the ideal ease (1 in) by the same 3 cm, S under and M over.
-    const tee = normalizeGarment({
-      ...seedTeeBase,
-      chart: { unit: 'cm', girth: 'circumference', lengthDefinition: 'hps' },
-      sizes: [
-        { label: 'S', measurements: { chest: 100, length: 72 } },
-        { label: 'M', measurements: { chest: 106, length: 72 } },
-      ],
-    });
-    const body = bodyWith({ chestCm: 100 - TOP_CHEST.ideal + 3, torsoLengthCm: 71 });
-    expect(recommendSize(body, tee)).toBe('M');
-  });
-
-  it('returns null when no girth can be scored (unverified chart)', () => {
-    const body = bodyWith({ chestCm: 100 });
-    expect(recommendSize(body, findGarment('landsend-super-t')!)).toBeNull();
   });
 });

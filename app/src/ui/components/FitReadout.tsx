@@ -1,4 +1,4 @@
-import type { GarmentFit } from '../../domain/fit';
+import type { GarmentFit, GarmentOdds, MeasureHint, PreferenceSpec, ZoneOdds } from '../../domain/fit';
 import type { Garment } from '../../domain/garments';
 import {
   describeZone,
@@ -7,8 +7,13 @@ import {
   formatLength,
   GRADE_EXPLAINED,
   LABEL_TEXT,
+  labelOddsText,
+  measureHintText,
+  personalOddsText,
+  preferenceNote,
   sourceLine,
   summarize,
+  verdictLine,
   ZONE_NAME,
 } from '../fitText';
 import { GarmentBadge } from './GarmentBadge';
@@ -20,24 +25,55 @@ interface FitReadoutProps {
   garment: Garment;
   fit: GarmentFit;
   units: UnitSystem;
+  /** Sampled odds for every size of this garment. */
+  odds: GarmentOdds;
+  preference: PreferenceSpec;
+  /** The measurement that would decide between sizes, if any. */
+  hint: MeasureHint | null;
+  /** Show each zone's chances (the fit details sheet). */
+  showOdds?: boolean;
+  /** Opens the fit details sheet; leave out where the readout already is one. */
+  onDetails?: () => void;
   onEditBody: () => void;
 }
 
-/** How the chosen size fits, zone by zone, measured against the body. */
-export function FitReadout({ garment, fit, units, onEditBody }: FitReadoutProps) {
+/** How the chosen size fits, zone by zone, measured against the body and what the user likes. */
+export function FitReadout({ garment, fit, units, odds, preference, hint, showOdds, onDetails, onEditBody }: FitReadoutProps) {
   const summary = summarize(fit);
+  const verdict = verdictLine(odds, fit.sizeLabel, garment);
+  const sizeOdds = odds.sizes.find((s) => s.sizeLabel === fit.sizeLabel);
+  const hasLengthPreference = preference.anchor?.lengthCm != null;
   return (
     <section className="readout" aria-labelledby="readout-title">
-      <header className={`readout__summary tone-${fit.overall}`}>
+      <header className={`readout__summary tone-${verdict.tone}`}>
         <h2 id="readout-title" className="readout__headline">
-          {summary.headline}
+          {verdict.headline}
           <span className="readout__size">
             {' '}
             in {fit.sizeLabel}
           </span>
         </h2>
-        {summary.detail && <p className="readout__detail">{summary.detail}</p>}
+        {verdict.verdict === 'unknown'
+          ? summary.detail && <p className="readout__detail">{summary.detail}</p>
+          : verdict.detail && <p className="readout__detail">{verdict.detail}</p>}
+        {garment.category === 'top' && verdict.verdict !== 'unknown' && (
+          <p className="readout__pref">{preferenceNote(preference)}</p>
+        )}
+        {onDetails && (
+          <button type="button" className="button button--outline button--small readout__details" onClick={onDetails}>
+            Fit details
+          </button>
+        )}
       </header>
+
+      {hint && (
+        <p className="readout__hint">
+          {measureHintText(hint)}{' '}
+          <button type="button" className="link-button" onClick={onEditBody}>
+            Add it
+          </button>
+        </p>
+      )}
 
       <ul className="readout__zones">
         {fit.zones.map((z) => (
@@ -49,6 +85,7 @@ export function FitReadout({ garment, fit, units, onEditBody }: FitReadoutProps)
             </div>
             {z.diffCm !== null && <TapeScale diffCm={z.diffCm} bands={z.bands} units={units} kind={z.kind} />}
             <p className="zone__text">{describeZone(z, units)}</p>
+            {showOdds && <ZoneOddsLines odds={sizeOdds?.zones.find((o) => o.zone === z.zone)} garment={garment} hasLengthPreference={hasLengthPreference} />}
             <p className="zone__numbers">
               <span>
                 You <span className="num">{formatLength(z.bodyCm, units)}</span>
@@ -70,7 +107,8 @@ export function FitReadout({ garment, fit, units, onEditBody }: FitReadoutProps)
         ))}
       </ul>
 
-      {summary.usesEstimates && (
+      {/* With an anchor tee, a top's chest estimate cancels out, so measuring wouldn't help. */}
+      {!hint && summary.usesEstimates && !(garment.category === 'top' && preference.source === 'anchor') && (
         <p className="readout__estimates">
           Some of your numbers are estimates from height and weight.{' '}
           <button type="button" className="link-button" onClick={onEditBody}>
@@ -82,6 +120,34 @@ export function FitReadout({ garment, fit, units, onEditBody }: FitReadoutProps)
 
       <SourceNote garment={garment} />
     </section>
+  );
+}
+
+/** A zone's chances: against what the user likes (tops), then the objective labels. */
+function ZoneOddsLines({
+  odds,
+  garment,
+  hasLengthPreference,
+}: {
+  odds: ZoneOdds | undefined;
+  garment: Garment;
+  hasLengthPreference: boolean;
+}) {
+  if (!odds || odds.labels.unknown === 1) return null;
+  const personal = personalOddsText(odds, garment, hasLengthPreference);
+  return (
+    <dl className="zone__odds">
+      {personal && (
+        <div>
+          <dt>For you</dt>
+          <dd className="num">{personal}</dd>
+        </div>
+      )}
+      <div>
+        <dt>Label</dt>
+        <dd className="num">{labelOddsText(odds)}</dd>
+      </div>
+    </dl>
   );
 }
 

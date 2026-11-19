@@ -1,28 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../../domain/body';
-import { recommendSize } from '../../domain/fit';
+import { preferenceSpec, recommendSize } from '../../domain/fit';
 import { findGarment, garmentsByCategory } from '../../domain/garments';
 import { defaultSize, resolveOutfit, suggestedFit, wearGarment } from './outfit';
 import { EMPTY_OUTFIT } from './stored';
 
 const body = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens' });
+const pref = preferenceSpec(null, null);
 
 describe('resolveOutfit', () => {
   it('fills an empty outfit with the first garments in their suggested sizes', () => {
-    const o = resolveOutfit(EMPTY_OUTFIT, body);
+    const o = resolveOutfit(EMPTY_OUTFIT, body, pref);
     const top = garmentsByCategory('top')[0]!;
     expect(o.topId).toBe(top.id);
-    expect(o.topSize).toBe(recommendSize(body, top));
+    expect(o.topSize).toBe(recommendSize(body, top, pref));
     expect(o.bottomId).toBe(garmentsByCategory('bottom')[0]!.id);
   });
 
   it('keeps a valid saved choice', () => {
     const saved = { topId: 'fieldline-oxford', topSize: 'XL', bottomId: 'corvo-slim-jean', bottomSize: '30x30' };
-    expect(resolveOutfit(saved, body)).toEqual(saved);
+    expect(resolveOutfit(saved, body, pref)).toEqual(saved);
   });
 
   it('repairs stale ids, sizes, and garments saved in the wrong slot', () => {
-    const o = resolveOutfit({ topId: 'gone', topSize: 'M', bottomId: 'knightweave-tee', bottomSize: '99' }, body);
+    const o = resolveOutfit({ topId: 'gone', topSize: 'M', bottomId: 'knightweave-tee', bottomSize: '99' }, body, pref);
     expect(findGarment(o.topId!)?.category).toBe('top');
     expect(findGarment(o.bottomId!)?.category).toBe('bottom');
     expect(findGarment(o.bottomId!)!.sizes.map((s) => s.label)).toContain(o.bottomSize);
@@ -32,7 +33,7 @@ describe('resolveOutfit', () => {
 describe('defaultSize', () => {
   it('falls back to the middle size when nothing can be scored', () => {
     const le = findGarment('landsend-super-t')!;
-    expect(defaultSize(body, le)).toBe('L'); // S M [L] XL XXL
+    expect(defaultSize(body, le, pref)).toBe('L'); // S M [L] XL XXL
   });
 });
 
@@ -48,21 +49,21 @@ describe('wearGarment', () => {
 describe('defaultSize', () => {
   it('falls back to the middle size when no size can be recommended', () => {
     const tee = findGarment('landsend-super-t')!;
-    expect(recommendSize(body, tee)).toBeNull();
-    expect(defaultSize(body, tee)).toBe('L'); // S M [L] XL XXL
+    expect(recommendSize(body, tee, pref)).toBeNull();
+    expect(defaultSize(body, tee, pref)).toBe('L'); // S M [L] XL XXL
   });
 });
 
 describe('suggestedFit', () => {
   it('uses the recommended size when there is one', () => {
     const tee = findGarment('gildan-5000')!;
-    const { fit, recommended } = suggestedFit(body, tee);
+    const { fit, recommended } = suggestedFit(body, tee, pref);
     expect(recommended).toBe(true);
-    expect(fit.sizeLabel).toBe(recommendSize(body, tee));
+    expect(fit.sizeLabel).toBe(recommendSize(body, tee, pref));
   });
 
   it('falls back to the middle size and says so', () => {
-    const { fit, recommended } = suggestedFit(body, findGarment('landsend-super-t')!);
+    const { fit, recommended } = suggestedFit(body, findGarment('landsend-super-t')!, pref);
     expect(recommended).toBe(false);
     expect(fit.sizeLabel).toBe('L');
   });

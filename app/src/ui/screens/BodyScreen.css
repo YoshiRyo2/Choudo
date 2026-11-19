@@ -60,62 +60,6 @@
   gap: 10px;
 }
 
-/* ---------- number input: a box with the unit printed inside, like a gauge ---------- */
-
-.number-input__label {
-  display: block;
-  margin-bottom: 4px;
-  font-weight: 500;
-}
-
-.number-input__hint {
-  display: block;
-  font-weight: 400;
-  font-size: var(--step--1);
-  color: var(--muted);
-}
-
-.number-input__box {
-  display: flex;
-  align-items: baseline;
-  max-width: 200px;
-  background: var(--paper-raised);
-  border: 1.5px solid var(--line);
-  border-radius: var(--radius-s);
-  padding: 0 12px;
-}
-
-.number-input__box:focus-within {
-  border-color: var(--ink);
-}
-
-.number-input__box.is-invalid {
-  border-color: var(--chalk-bad);
-}
-
-.number-input__box input {
-  flex: 1;
-  min-width: 0;
-  width: 100%;
-  border: 0;
-  background: transparent;
-  padding: 10px 0;
-  font-size: var(--step-2);
-  font-weight: 600;
-  outline: none;
-}
-
-.number-input__box input::placeholder {
-  color: color-mix(in srgb, var(--muted) 55%, transparent);
-  font-weight: 500;
-}
-
-.number-input__unit {
-  font-family: var(--font-numeric);
-  color: var(--muted);
-  font-size: var(--step-0);
-}
-
 /* ---------- optional tape-measure section ---------- */
 
 .tape-section {
@@ -237,4 +181,48 @@
 
 @media (prefers-reduced-motion: reduce) {
   .tape-section__chevron { transition: none; }
+}
+
+/* ---------- fit reference (Edit body) ---------- */
+
+.fit-ref {
+  display: grid;
+  gap: 6px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.fit-ref__title {
+  margin: 0;
+  font-size: var(--step-0);
+}
+.fit-ref__line {
+  margin: 0;
+  color: var(--muted);
+}
+.fit-ref__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ---------- hidden switch for fit testers ---------- */
+
+.testers {
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+.testers summary {
+  cursor: pointer;
+  width: max-content;
+}
+.testers__switch {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 8px;
+  color: var(--ink);
+}
+.testers__switch input {
+  margin-top: 3px;
 }

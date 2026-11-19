@@ -1,20 +1,27 @@
 import { useMemo, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
-import { fitAllSizes, recommendSize, type GarmentFit } from '../../domain/fit';
+import { fitAllSizes, measurementHint, type Anchor, type GarmentFit, type GarmentOdds, type PreferenceSpec } from '../../domain/fit';
 import { findGarment, garmentsByCategory, type Garment, type GarmentCategory } from '../../domain/garments';
 import { FitReadout } from '../components/FitReadout';
+import { FitSheet } from '../components/FitSheet';
 import { GarmentCarousel } from '../components/GarmentCarousel';
 import { Mannequin, type WornGarment } from '../components/Mannequin/Mannequin';
 import { NameForm } from '../components/NameForm';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Sheet } from '../components/Sheet';
 import { SizePicker } from '../components/SizePicker';
+import { makeId } from '../state/closet';
+import { makeFitTest, predictionFor } from '../state/fitTests';
+import { garmentOdds } from '../state/odds';
 import { defaultSize, resolveOutfit } from '../state/outfit';
-import type { Outfit, UnitSystem } from '../state/stored';
+import type { FitTestRecord, Outfit, UnitSystem } from '../state/stored';
+import { FitTestPanel } from './FitTestPanel';
 import './FittingRoom.css';
 
 interface FittingRoomProps {
   body: BodyInput;
+  /** How the user likes tops to fit. */
+  preference: PreferenceSpec;
   units: UnitSystem;
   /** The outfit on the mannequin, as stored (may be stale; it's resolved here). */
   outfit: Outfit;
@@ -25,6 +32,14 @@ interface FittingRoomProps {
   nextOutfitName: string;
   onUnitsChange: (units: UnitSystem) => void;
   onEditBody: () => void;
+  /** Present when Test mode is on. */
+  testing?: {
+    records: FitTestRecord[];
+    /** The stored anchor, so a result says what the prediction was compared with. */
+    anchor: Anchor | null;
+    onAdd: (record: FitTestRecord) => void;
+    onClear: () => void;
+  };
 }
 
 const TOPS = garmentsByCategory('top');
@@ -35,11 +50,13 @@ interface Slot {
   size: string;
   fits: GarmentFit[];
   fit: GarmentFit;
+  odds: GarmentOdds;
   recommended: string | null;
 }
 
 export function FittingRoom({
   body,
+  preference,
   units,
   outfit: saved,
   onOutfitChange: setSaved,
@@ -47,9 +64,10 @@ export function FittingRoom({
   nextOutfitName,
   onUnitsChange,
   onEditBody,
+  testing,
 }: FittingRoomProps) {
   const model = useMemo(() => estimateBody(body), [body]);
-  const outfit = useMemo(() => resolveOutfit(saved, model), [saved, model]);
+  const outfit = useMemo(() => resolveOutfit(saved, model, preference), [saved, model, preference]);
   const [browsing, setBrowsing] = useState<GarmentCategory>('top');
   const [saving, setSaving] = useState<'naming' | 'saved' | null>(null);
 
@@ -57,12 +75,14 @@ export function FittingRoom({
     const garment = id ? findGarment(id) : undefined;
     if (!garment || !size) return null;
     const fits = fitAllSizes(model, garment);
+    const odds = garmentOdds(model, garment, preference);
     return {
       garment,
       size,
       fits,
       fit: fits.find((f) => f.sizeLabel === size)!,
-      recommended: recommendSize(model, garment),
+      odds,
+      recommended: odds.recommended,
     };
   };
   // A handful of sizes per garment — cheap enough to recompute every render.
@@ -70,11 +90,19 @@ export function FittingRoom({
   const bottom = slot(outfit.bottomId, outfit.bottomSize);
 
   const active = browsing === 'top' ? top : bottom;
+  const [showDetails, setShowDetails] = useState(false);
+  const activeGarment = active?.garment;
+  const activeRecommended = active?.recommended ?? null;
+  // Re-runs the sampler a few times, so only when the garment, body or preference changes.
+  const hint = useMemo(
+    () => (activeGarment ? measurementHint(model, activeGarment, preference, { current: activeRecommended }) : null),
+    [model, activeGarment, preference, activeRecommended],
+  );
 
   function chooseGarment(id: string) {
     const garment = findGarment(id);
     if (!garment) return;
-    const size = defaultSize(model, garment);
+    const size = defaultSize(model, garment, preference);
     setSaved(
       garment.category === 'top'
         ? { ...outfit, topId: id, topSize: size }
@@ -163,8 +191,57 @@ export function FittingRoom({
               recommended={active.recommended}
               onSelect={chooseSize}
             />
-            <FitReadout garment={active.garment} fit={active.fit} units={units} onEditBody={onEditBody} />
+            <FitReadout
+              garment={active.garment}
+              fit={active.fit}
+              units={units}
+              odds={active.odds}
+              preference={preference}
+              hint={hint}
+              onDetails={() => setShowDetails(true)}
+              onEditBody={onEditBody}
+            />
           </>
+        )}
+
+        {testing && (
+          <FitTestPanel
+            garment={browsing === 'top' && top ? top.garment : null}
+            size={browsing === 'top' && top ? top.size : null}
+            records={testing.records}
+            onClear={testing.onClear}
+            onSave={(answers) => {
+              if (!top) return;
+              const prediction = predictionFor({
+                body,
+                model,
+                garment: top.garment,
+                size: top.size,
+                preference,
+                anchor: testing.anchor,
+                odds: top.odds,
+              });
+              testing.onAdd(makeFitTest(makeId(), new Date().toISOString(), top.garment.id, top.size, answers, prediction));
+            }}
+          />
+        )}
+
+        {showDetails && active && (
+          <FitSheet
+            key={`${active.garment.id}-${active.size}`}
+            garment={active.garment}
+            model={model}
+            preference={preference}
+            size={active.size}
+            units={units}
+            onClose={() => setShowDetails(false)}
+            onTryOn={(size) => {
+              chooseSize(size);
+              setShowDetails(false);
+            }}
+            actionLabel={(size) => (size === active.size ? 'Done' : `Wear ${size}`)}
+            onEditBody={onEditBody}
+          />
         )}
       </section>
     </div>

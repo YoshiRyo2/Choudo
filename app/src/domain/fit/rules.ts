@@ -16,7 +16,7 @@
  */
 
 import { inToCm } from '../units';
-import type { Stretch } from '../garments';
+import type { FitIntent, Stretch } from '../garments';
 
 export interface GirthRule {
   kind: 'girth';
@@ -88,3 +88,34 @@ export const STRETCH_ALLOWANCE: Record<Stretch, number> = {
 
 /** A length off by more than this many times its threshold is flagged as a problem, not just a note. */
 export const LENGTH_FAR_MULTIPLIER = 2;
+
+// ---------- personal fit (preference.ts) ----------
+
+/**
+ * Target chest ease (garment − body, full circumference, cm) for each way a tee
+ * can be cut, and how far either side of it still "fits how you like". The same
+ * table serves the user's stated style ("How do you like tees to fit?") and a
+ * garment's `fitIntent`. Assumed, approved for phase 3:
+ *   slim      +2.5 cm (1 in — the engine's old ideal)   ±3 cm
+ *   regular   +5 cm   (2 in)                             ±4 cm
+ *   relaxed   +8 cm   (≈3 in)                            ±5 cm
+ *   oversized +18 cm  (≈7 in, like the Fieldline boxy sample) ±8 cm
+ */
+export const INTENT_EASE: Record<FitIntent, { easeCm: number; bandCm: number }> = {
+  slim: { easeCm: 2.5, bandCm: 3 },
+  regular: { easeCm: 5, bandCm: 4 },
+  relaxed: { easeCm: 8, bandCm: 5 },
+  oversized: { easeCm: 18, bandCm: 8 },
+};
+
+/** With an anchor tee we know exactly what the user likes, so the band is fixed. */
+export const ANCHOR_CHEST_BAND_CM = 4;
+
+/** A top's length within this of the anchor's (relative to the body) "fits how you like". */
+export const ANCHOR_LENGTH_BAND_CM = 4;
+
+/** Chest ease this far over the target reads "much roomier", not just "roomier". */
+export const MUCH_ROOMIER_CM = 10;
+
+/** Designs looser than regular: when their own ease is above the user's, the design wins ("as designed"). */
+export const LOOSE_INTENTS: readonly FitIntent[] = ['relaxed', 'oversized'];

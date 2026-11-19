@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { BodyInput } from './domain/body';
-import type { Garment } from './domain/garments';
+import { preferenceSpec, type Anchor, type FitStyle } from './domain/fit';
+import { findGarment, type Garment } from './domain/garments';
 import { TabBar, type Tab } from './ui/components/TabBar';
+import { fitReferenceLine } from './ui/fitText';
+import { AnchorScreen } from './ui/screens/AnchorScreen';
 import { BodyScreen } from './ui/screens/BodyScreen';
 import { Closet } from './ui/screens/Closet';
 import { Discover } from './ui/screens/Discover';
@@ -12,10 +15,15 @@ import { useCloset } from './ui/state/useCloset';
 import { usePersistentState } from './ui/state/usePersistentState';
 import {
   EMPTY_OUTFIT,
+  isAnchor,
+  isBoolean,
+  isFitStyle,
+  isFitTestList,
   isOutfit,
   isStoredBody,
   isUnitSystem,
   STORAGE_KEYS,
+  type FitTestRecord,
   type Outfit,
   type UnitSystem,
 } from './ui/state/stored';
@@ -29,11 +37,36 @@ export function App() {
   const [body, setBody] = usePersistentState<BodyInput | null>(STORAGE_KEYS.body, null, isStoredBody);
   const [units, setUnits] = usePersistentState<UnitSystem>(STORAGE_KEYS.units, 'metric', isUnitSystem);
   const [outfit, setOutfit] = usePersistentState<Outfit>(STORAGE_KEYS.outfit, EMPTY_OUTFIT, isOutfit);
+  const [anchor, setAnchor] = usePersistentState<Anchor | null>(STORAGE_KEYS.anchor, null, isAnchor);
+  const [fitStyle, setFitStyle] = usePersistentState<FitStyle | null>(STORAGE_KEYS.fitStyle, null, isFitStyle);
+  const preference = useMemo(() => preferenceSpec(anchor, fitStyle), [anchor, fitStyle]);
+  const [testMode, setTestMode] = usePersistentState<boolean>(STORAGE_KEYS.testMode, false, isBoolean);
+  const [fitTests, setFitTests] = usePersistentState<FitTestRecord[]>(STORAGE_KEYS.fitTests, [], isFitTestList);
   const closet = useCloset();
-  const [editing, setEditing] = useState(false);
+  /** The main tabs, Edit body, or the fit-reference step (and where it goes back to). */
+  const [screen, setScreen] = useState<'tabs' | 'body' | 'fit'>('tabs');
+  const [fitReturn, setFitReturn] = useState<'tabs' | 'body'>('tabs');
   const [tab, setTab] = useState<Tab>('fitting');
 
-  if (!body || editing) {
+  if (body && screen === 'fit') {
+    return (
+      <AnchorScreen
+        units={units}
+        anchor={anchor}
+        style={fitStyle}
+        skipLabel={fitReturn === 'tabs' ? 'Skip for now' : 'Cancel'}
+        onDone={(a, s) => {
+          setAnchor(a);
+          setFitStyle(s);
+          setScreen(fitReturn);
+        }}
+        onSkip={() => setScreen(fitReturn)}
+      />
+    );
+  }
+
+  if (!body || screen === 'body') {
+    const firstTime = !body;
     return (
       <BodyScreen
         initial={body}
@@ -41,14 +74,42 @@ export function App() {
         onDone={(input, u) => {
           setBody(input);
           setUnits(u);
-          setEditing(false);
+          // First time through, offer the fit-reference step once.
+          if (firstTime && !anchor && !fitStyle) {
+            setFitReturn('tabs');
+            setScreen('fit');
+          } else {
+            setScreen('tabs');
+          }
         }}
-        onCancel={body ? () => setEditing(false) : undefined}
+        onCancel={body ? () => setScreen('tabs') : undefined}
+        testMode={body ? { on: testMode, onChange: setTestMode } : undefined}
+        fitReference={
+          body
+            ? {
+                line: fitReferenceLine(anchor, fitStyle, units, findGarment),
+                isSet: anchor !== null || fitStyle !== null,
+                onChange: (input, u) => {
+                  // Keep what was typed on the body form before leaving it.
+                  if (input) {
+                    setBody(input);
+                    setUnits(u);
+                  }
+                  setFitReturn('body');
+                  setScreen('fit');
+                },
+                onRemove: () => {
+                  setAnchor(null);
+                  setFitStyle(null);
+                },
+              }
+            : undefined
+        }
       />
     );
   }
 
-  const editBody = () => setEditing(true);
+  const editBody = () => setScreen('body');
   /** Put an outfit on the mannequin and go and look at it. */
   const wear = (next: Outfit) => {
     setOutfit(next);
@@ -61,6 +122,7 @@ export function App() {
       {tab === 'fitting' && (
         <FittingRoom
           body={body}
+          preference={preference}
           units={units}
           outfit={outfit}
           onOutfitChange={setOutfit}
@@ -68,11 +130,22 @@ export function App() {
           nextOutfitName={nextOutfitName(closet.outfits)}
           onUnitsChange={setUnits}
           onEditBody={editBody}
+          testing={
+            testMode
+              ? {
+                  records: fitTests,
+                  anchor,
+                  onAdd: (record) => setFitTests([...fitTests, record]),
+                  onClear: () => setFitTests([]),
+                }
+              : undefined
+          }
         />
       )}
       {tab === 'discover' && (
         <Discover
           body={body}
+          preference={preference}
           units={units}
           closet={closet}
           onTryOn={tryOn}
@@ -83,6 +156,7 @@ export function App() {
       {tab === 'closet' && (
         <Closet
           body={body}
+          preference={preference}
           units={units}
           closet={closet}
           outfit={outfit}
