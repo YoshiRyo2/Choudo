@@ -26,7 +26,8 @@ Anyone shopping for clothes online who wants to know how a size will fit before 
 ## v1 scope
 
 - Tops and bottoms (tees, long sleeves, polos, button-ups, jeans, chinos, joggers, trousers)
-- Body input: height and weight, plus optional chest, waist, hips and inseam to replace our estimates
+- Body input: height, weight and "size me in women's / men's clothes", plus optional chest (full bust),
+  waist, hips, inseam and (women's) bra size to replace our estimates
 - A 2D mannequin scaled to the body, wearing the chosen top and bottom
 - Fit per zone (chest, waist, hips, length, sleeve, inseam) with the difference in cm or inches
 - Guest mode only, with data stored on the device
