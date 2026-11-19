@@ -60,7 +60,16 @@ npm run dev      # open the printed URL; use the "Network" URL to try it on your
 npm test         # unit tests (body model, garment data, fit engine, UI helpers)
 npm run check    # typecheck + tests + garment data check — run before every commit
 npm run data:check  # just the garment data report (grades, warnings, errors)
+npm run fit:report  # how predictions compare with the fit test (data/fit_tests.csv)
 ```
+
+### The 10-person fit test
+
+Turn on Test mode under Edit body → "For fit testers". In the fitting room, put the tester's
+top on the mannequin, then record how it really fits (chest, length, the size they'd keep).
+Each result keeps the app's prediction and odds. "Download CSV" gives rows to paste into
+`data/fit_tests.csv` (keep its header); `npm run fit:report` then prints label agreement,
+within-one agreement, size hit rate and calibration.
 
 ### Garment photos
 
@@ -79,7 +88,8 @@ Where things live:
 
 - `app/src/domain/body/` — height + weight -> body measurements (swap the estimator here)
 - `app/src/domain/garments/seed.json` — garment size charts
-- `app/src/domain/fit/` — the fit engine; thresholds are in `rules.ts`
+- `app/src/domain/fit/` — the fit engine (`rules.ts` thresholds), personal preference
+  (`preference.ts`), sampled odds (`sampleFit.ts`, spreads in `uncertainty.ts`)
 - `app/src/ui/` — screens and components
 
 The original Python chest-fit script is still in `src/` and `tests/` as the reference spec

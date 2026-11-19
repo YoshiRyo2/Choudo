@@ -31,20 +31,26 @@ app/src/
     garments/    types.ts (schema), seed.json, normalize.ts (printed -> cm + provenance),
                  validate.ts (structure), verify.ts + verifyRules.ts (stage-5 checks),
                  grade.ts (confidence grade), report.ts (npm run data:check text)
-    fit/         fitGarment(body, garment, size) -> per-zone fit results
+    fit/         fitGarment(body, garment, size) -> per-zone fit results (rules.ts thresholds)
+                 preference.ts (anchor tee / fit style -> personal verdict), sampleFit.ts
+                 (seeded odds, recommendSize, measurementHint), uncertainty.ts (every spread),
+                 random.ts, fitTestCsv.ts + fitTestReport.ts (npm run fit:report)
   ui/            React
-    screens/     BodyScreen (input), FittingRoom (browse + size + fit), Discover (swipe feed),
-                 Closet + closet/ (Liked, Folders, Outfits tabs)
+    screens/     BodyScreen (input), AnchorScreen (fit reference), FittingRoom (browse + size + fit),
+                 FitTestPanel (Test mode), Discover (swipe feed), Closet + closet/ (Liked, Folders, Outfits tabs)
     components/  Mannequin/ (pure geometry.ts, topShape.ts, photoWarp.ts + SVG), SwipeCard/ (pure swipe.ts),
                  GarmentCarousel, GarmentBadge, SizePicker, FitReadout, FitSheet, Sheet (<dialog>), TabBar, NameForm,
-                 ConfirmButton, TapeScale, SegmentedControl
+                 ConfirmButton, TapeScale, SegmentedControl, NumberInput
     state/       usePersistentState (localStorage), stored.ts (keys + guards), outfit.ts,
-                 feed.ts (likes/passes, feed order), closet.ts (folders, saved outfits), useCloset.ts
+                 feed.ts (likes/passes, feed order), closet.ts (folders, saved outfits), useCloset.ts,
+                 odds.ts (cached sampleFit), fitTests.ts (Test mode records + CSV)
     fitText.ts   all user-facing fit wording
     styles.css   design tokens (colours, type scale)
-app/scripts/   data-check.mjs (npm run data:check), garment-photos.mjs (npm run photos)
+app/scripts/   data-check.mjs (npm run data:check), fit-report.mjs (npm run fit:report),
+               garment-photos.mjs (npm run photos)
 app/chart-snapshots/, app/photo-sources/   local copies of charts and photos, git-ignored
 docs/          adding-garments.md (checklist for adding a garment by hand)
+data/fit_tests.csv    (repo root) fit-test results, pasted from Test mode's CSV export.
 src/, tests/, data/   (repo root) original Python chest-fit engine + real tee CSV.
                       Kept as the reference spec; the app's engine is the TS port.
 ```
@@ -65,6 +71,24 @@ inputs/outputs and unit tests. UI only calls their public functions.
   (unless something is definitely bad). `recommendSize` never picks a size on length alone.
 - Stretch fabric moves the "tight" boundary (`STRETCH_ALLOWANCE` in `rules.ts`).
 - Woven shirts currently use the tee chest thresholds — likely too strict; tune in `rules.ts`.
+
+## Personal fit and odds (source of truth is `domain/fit/`)
+- Zone labels stay objective. The **verdict** is personal: fits how you like / a bit snugger /
+  roomier / much roomier / too tight / shorter / longer / "as designed" / unknown.
+- Preference: an anchor tee (catalogue garment + size, or measured flat) beats a stated style
+  (Slim / Regular / Relaxed / Oversized) beats the Regular default. Anchors are stored as entered
+  and worked out against the current body; an anchor's ease is turned into its regular-cut
+  equivalent. Targets and bands per style / fitIntent are `INTENT_EASE` in `rules.ts`.
+- Relaxed and oversized designs win when their ease is above the user's ("Oversized, as
+  designed"); slim and regular cuts are sized to the user. Pants have no personal target yet.
+- `sampleFit` draws body, garment and preference 500 times (seed fixed) and returns per-size
+  label, personal and verdict odds. Every spread is in `uncertainty.ts`, each with its source.
+  One body draw is shared by all sizes and the anchor, so an anchor cancels chest-estimate error.
+- `recommendSize` = highest chance of "fits how you like"; ties go roomier; still null for
+  unscored garments or with no girth to score. `measurementHint` names the estimated
+  measurement that, measured, could change the size.
+- Verdict wording thresholds (Very likely ≥ 75%, Probably ≥ 50%, else Might; close call
+  within 15 points, both ≥ 25%) are in `fitText.ts`.
 
 ## Garment data rules (source of truth is `domain/garments/`)
 - Garments live in `app/src/domain/garments/seed.json`. To add one by hand, follow
@@ -94,13 +118,15 @@ npm test           # unit tests, once
 npm run test:watch # unit tests, watch mode
 npm run check      # typecheck + tests + data:check — gate every commit on this exiting 0
 npm run data:check # garment data report: grade, warnings, errors, audit per garment
+npm run fit:report # fit-test report from ../data/fit_tests.csv (or a path after --)
 npm run photos     # cut product photos into public/garments/ (local only)
 npm run build      # typecheck + production build
 ```
 Logic that can be pure (geometry, form parsing, wording) lives in its own `.ts` file with
 tests; components stay thin. localStorage keys are versioned (`nimbus.body.v1`): bump the
 version when a stored shape changes. Keys today: `body`, `units`, `outfit` (fitting room),
-`swipes` (one `{garmentId, sizeShown, liked, at}` per garment), `folders`, `outfits` (saved).
+`swipes` (one `{garmentId, sizeShown, liked, at}` per garment), `folders`, `outfits` (saved),
+`anchor` (tee the user likes), `fitStyle`, `testMode`, `fitTests` (Test mode results).
 
 ## Discover + Closet
 - Navigation is a bottom `TabBar` (Fitting room / Discover / Closet) with plain state in
