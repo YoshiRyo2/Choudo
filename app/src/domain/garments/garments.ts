@@ -50,6 +50,8 @@ export const GARMENTS: readonly Garment[] = seedGarments
   .filter((g) => checkGarment(g).errors.length === 0)
   .map(normalizeGarment);
 
+/** The raw seed rows, as written in seed.json (for checks and tests). */
+export const SEED_GARMENTS: readonly SeedGarment[] = seedGarments;
 export const seedGarmentsForTesting = seedGarments;
 
 export const garmentsByCategory = (category: GarmentCategory): Garment[] =>
