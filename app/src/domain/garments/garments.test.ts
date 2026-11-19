@@ -89,7 +89,7 @@ describe('normalizeGarment', () => {
 describe('validateSeed', () => {
   it('flags missing required measurements', () => {
     const bad = { ...base, sizes: [{ label: 'M', measurements: { chest: 19 } }] };
-    expect(validateSeed([bad])).toEqual(['garment "test-tee" size M: missing length']);
+    expect(validateSeed([bad])).toEqual(['garment "test-tee": size M: missing length']);
   });
 
   it('flags real data without a source url', () => {
@@ -102,7 +102,7 @@ describe('validateSeed', () => {
   it('flags duplicate ids and size labels', () => {
     const dupSizes = { ...base, sizes: [...base.sizes, ...base.sizes] };
     const problems = validateSeed([dupSizes, base]);
-    expect(problems).toContain('garment "test-tee" size M: duplicate size label');
+    expect(problems).toContain('garment "test-tee": size M: duplicate size label');
     expect(problems).toContain('garment "test-tee": duplicate id');
   });
 
@@ -151,9 +151,9 @@ describe('validateSeed', () => {
       sizes: [{ label: 'M', measurements: { chest: { value: 19, origin: 'estimated' as const }, length: { value: 0, origin: 'guess' } } }],
     } as unknown as SeedGarment;
     expect(validateSeed([bad])).toEqual([
-      'garment "test-tee" size M: chest is estimated: say how in "how"',
-      'garment "test-tee" size M: length must be a positive number',
-      'garment "test-tee" size M: length origin must be one of chart, estimated, audited',
+      'garment "test-tee": size M: chest is estimated: say how in "how"',
+      'garment "test-tee": size M: length must be a positive number',
+      'garment "test-tee": size M: length origin must be one of chart, estimated, audited',
     ]);
   });
 
@@ -170,7 +170,7 @@ describe('validateSeed', () => {
 
   it('flags non-positive numbers', () => {
     const bad = { ...base, sizes: [{ label: 'M', measurements: { chest: -1, length: 28 } }] };
-    expect(validateSeed([bad])).toContain('garment "test-tee" size M: chest must be a positive number');
+    expect(validateSeed([bad])).toContain('garment "test-tee": size M: chest must be a positive number');
   });
 });
 
