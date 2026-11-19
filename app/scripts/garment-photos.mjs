@@ -15,11 +15,11 @@
  * skin is the same hue as an orange tee but far less saturated — then keeps only
  * the region connected to a seed point on the garment and fills small holes.
  *
- * Optionally (`bleed` in the config) the garment's edge colours are smeared
- * outward that many pixels, filling the background, the neck opening and any
- * notches where hands covered the hem. The app warps the photo onto outlines
- * that never match the photo's exactly; the bleed means a slightly larger
- * outline still gets cloth texture at its edges instead of a gap.
+ * Optionally the edges are settled into the garment's flat colour: `fade` px
+ * inside the outline blend into it, and `bleed` px of padding outside are
+ * filled with it (including notches where hands covered the hem). The app warps
+ * the photo onto outlines that never match the photo's exactly, so this keeps
+ * every size's outline the shirt's own colour rather than a shaded band.
  */
 
 import { readFile } from 'node:fs/promises';
@@ -115,7 +115,14 @@ async function cutOut(photo) {
       out[di + 3] = mask[(y + y0) * w + x + x0] ? 255 : 0;
     }
   }
-  if (bleed > 0) bleedOut(out, ow, oh, bleed);
+  const lm = seed.garments.find((g) => g.id === photo.id)?.image?.landmarks;
+  settleEdges(out, ow, oh, {
+    colour: median,
+    bleed,
+    fade: photo.fade ?? 0,
+    // The neck opening, from the landmarks if we have them.
+    keep: lm && { x0: lm.collarLeft.x - 6, x1: lm.collarRight.x + 6, y1: lm.neckFront.y + 4 },
+  });
   const file = join(APP, photo.out);
   await sharp(out, { raw: { width: ow, height: oh, channels: 4 } }).png().toFile(file);
   const hex = `#${median.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
@@ -124,65 +131,63 @@ async function cutOut(photo) {
 }
 
 /**
- * Grow opaque pixels outward one ring at a time, `rings` times. Each new pixel
- * takes the average colour of its opaque 8-neighbours.
+ * Settle the garment's edges into its own flat colour.
+ *
+ * Near its outline a photographed shirt is shaded (it curves away from the
+ * camera) and the hem may be shadowed by hands. Stretched onto a big size those
+ * edges read as a dark band, so within `fade` px of the outline the photo blends
+ * into the garment's median colour, and the `bleed` px of padding outside the
+ * garment is that flat colour. The neck opening is left alone so the collar
+ * keeps its detail.
  */
-function bleedOut(rgba, w, h, rings) {
-  // The garment's outermost pixels are usually in shadow, and smearing them
-  // makes dark streaks; start from a little way inside the edge instead.
-  const EDGE = 3;
-  const garment = new Uint8Array(w * h);
-  for (let i = 0; i < w * h; i++) garment[i] = rgba[i * 4 + 3] ? 1 : 0;
-  for (let k = 0; k < EDGE; k++) {
-    const edge = [];
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const i = y * w + x;
-        if (rgba[i * 4 + 3] && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => !rgba[((y + dy) * w + x + dx) * 4 + 3])) edge.push(i);
-      }
-    }
-    for (const i of edge) rgba[i * 4 + 3] = 0;
+function settleEdges(rgba, w, h, { colour, bleed, fade, keep }) {
+  const inGarment = (i) => rgba[i * 4 + 3] > 0;
+  const kept = (i) => {
+    if (!keep) return false;
+    const x = i % w;
+    const y = (i - x) / w;
+    return x >= keep.x0 && x <= keep.x1 && y <= keep.y1;
+  };
+  // Distance (4-connected steps) from the outline: inward for garment pixels, outward for the rest.
+  const dist = new Int32Array(w * h).fill(-1);
+  let ring = [];
+  for (let i = 0; i < w * h; i++) {
+    if (inGarment(i)) continue;
+    const x = i % w;
+    const y = (i - x) / w;
+    const touches = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
+      const nx = x + dx, ny = y + dy;
+      return nx >= 0 && ny >= 0 && nx < w && ny < h && inGarment(ny * w + nx);
+    });
+    if (touches && !kept(i)) { dist[i] = 0; ring.push(i); }
   }
-  rings += EDGE;
-  for (let ring = 0; ring < rings; ring++) {
-    const fills = [];
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        if (rgba[(y * w + x) * 4 + 3]) continue;
-        let [r, g, b, n] = [0, 0, 0, 0];
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const nx = x + dx, ny = y + dy;
-            if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
-            const j = (ny * w + nx) * 4;
-            if (!rgba[j + 3]) continue;
-            r += rgba[j]; g += rgba[j + 1]; b += rgba[j + 2]; n++;
-          }
-        }
-        if (n) fills.push([(y * w + x) * 4, r / n, g / n, b / n]);
+  for (let d = 1; d <= Math.max(bleed, fade) && ring.length; d++) {
+    const next = [];
+    for (const i of ring) {
+      const x = i % w;
+      const y = (i - x) / w;
+      for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const j = ny * w + nx;
+        if (dist[j] !== -1) continue;
+        // Inward steps only through the garment, outward ones only outside it.
+        if (inGarment(j) !== inGarment(i) && dist[i] !== 0) continue;
+        dist[j] = d;
+        next.push(j);
       }
     }
-    for (const [i, r, g, b] of fills) {
-      rgba[i] = r; rgba[i + 1] = g; rgba[i + 2] = b; rgba[i + 3] = 255;
-    }
+    ring = next;
   }
-  // Soften the smeared part (outside the original garment) so it reads as plain cloth.
-  for (let pass = 0; pass < 3; pass++) {
-    const copy = Uint8ClampedArray.from(rgba);
-    for (let y = 2; y < h - 2; y++) {
-      for (let x = 2; x < w - 2; x++) {
-        if (garment[y * w + x] || !rgba[(y * w + x) * 4 + 3]) continue;
-        for (let c = 0; c < 3; c++) {
-          let sum = 0, n = 0;
-          for (let dy = -2; dy <= 2; dy++) {
-            for (let dx = -2; dx <= 2; dx++) {
-              const j = ((y + dy) * w + x + dx) * 4;
-              if (copy[j + 3]) { sum += copy[j + c]; n++; }
-            }
-          }
-          rgba[(y * w + x) * 4 + c] = sum / n;
-        }
-      }
+  const smooth = (t) => t * t * (3 - 2 * t);
+  for (let i = 0; i < w * h; i++) {
+    const d = dist[i];
+    const k = i * 4;
+    if (inGarment(i)) {
+      if (d < 1 || d > fade) continue;
+      const t = smooth(d / fade);
+      for (let c = 0; c < 3; c++) rgba[k + c] = Math.round(colour[c] + (rgba[k + c] - colour[c]) * t);
+    } else if (d >= 0 && d <= bleed) {
+      rgba[k] = colour[0]; rgba[k + 1] = colour[1]; rgba[k + 2] = colour[2]; rgba[k + 3] = 255;
     }
   }
 }
