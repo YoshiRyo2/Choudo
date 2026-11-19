@@ -7,6 +7,7 @@ import {
   isFolderList,
   isOutfit,
   isSavedOutfitList,
+  isCatalogueScope,
   isStoredBody,
   isSwipeList,
   isUnitSystem,
@@ -25,6 +26,12 @@ describe('stored data guards', () => {
     expect(isStoredBody({ heightCm: 165, weightKg: 60, bodyType: 'womens', overrides: { braSize: bra } })).toBe(true);
     expect(isStoredBody({ heightCm: 165, weightKg: 60, bodyType: 'womens', overrides: { braSize: { ...bra, system: 'eu' } } })).toBe(false);
     expect(isStoredBody({ heightCm: 165, weightKg: 60, bodyType: 'womens', overrides: { braSize: { ...bra, cup: 'Q' } } })).toBe(false);
+  });
+
+  it('checks the catalogue scope', () => {
+    expect(isCatalogueScope('matching')).toBe(true);
+    expect(isCatalogueScope('all')).toBe(true);
+    expect(isCatalogueScope('womens')).toBe(false);
   });
 
   it('checks units and outfits', () => {

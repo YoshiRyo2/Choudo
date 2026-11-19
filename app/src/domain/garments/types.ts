@@ -23,6 +23,7 @@ export type GarmentType =
 
 /** Who the size chart is cut for. */
 export type GarmentSizing = 'mens' | 'womens' | 'unisex';
+export const GARMENT_SIZINGS: readonly GarmentSizing[] = ['mens', 'womens', 'unisex'];
 
 /**
  * How a chart reports girths (chest, waist, hips):

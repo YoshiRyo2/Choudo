@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
 import type { PreferenceSpec } from '../../domain/fit';
-import { GARMENTS, type Garment } from '../../domain/garments';
+import { catalogueFor, GARMENTS, type CatalogueScope, type Garment } from '../../domain/garments';
+import { catalogueOptions, endOfMatchingFeedText } from '../catalogueText';
+import { SegmentedControl } from '../components/SegmentedControl';
 import { FitSheet } from '../components/FitSheet';
 import { SwipeCard } from '../components/SwipeCard/SwipeCard';
 import type { SwipeOutcome } from '../components/SwipeCard/swipe';
@@ -14,6 +16,9 @@ import type { Closet } from '../state/useCloset';
 import './Discover.css';
 
 interface DiscoverProps {
+  /** Show garments for the user's body type (plus unisex), or all of them. The feed is built once per scope. */
+  catalogue: CatalogueScope;
+  onCatalogueChange: (scope: CatalogueScope) => void;
   body: BodyInput;
   preference: PreferenceSpec;
   units: UnitSystem;
@@ -27,10 +32,20 @@ interface DiscoverProps {
 const LEAVE_MS = 220;
 
 /** A feed of garments on your mannequin, one card at a time. */
-export function Discover({ body, preference, units, closet, onTryOn, onEditBody, onOpenCloset }: DiscoverProps) {
+export function Discover({
+  catalogue,
+  onCatalogueChange,
+  body,
+  preference,
+  units,
+  closet,
+  onTryOn,
+  onEditBody,
+  onOpenCloset,
+}: DiscoverProps) {
   const model = useMemo(() => estimateBody(body), [body]);
   // The feed is fixed when the screen opens, so swiping doesn't reshuffle it.
-  const [feed] = useState(() => buildFeed(GARMENTS, closet.swipes));
+  const [feed] = useState(() => buildFeed(catalogueFor(GARMENTS, body.bodyType, catalogue), closet.swipes));
   const [index, setIndex] = useState(0);
   const [leaving, setLeaving] = useState<SwipeOutcome>(null);
   const [details, setDetails] = useState<Garment | null>(null);
@@ -73,6 +88,15 @@ export function Discover({ body, preference, units, closet, onTryOn, onEditBody,
         <h1>Discover</h1>
         {current && <span className="screen-head__meta num">{left} to go</span>}
       </header>
+      <div className="discover__scope">
+        <SegmentedControl
+          label="Show"
+          hideLabel
+          value={catalogue}
+          options={catalogueOptions(body.bodyType)}
+          onChange={onCatalogueChange}
+        />
+      </div>
 
       {current ? (
         <>
@@ -115,7 +139,16 @@ export function Discover({ body, preference, units, closet, onTryOn, onEditBody,
       ) : (
         <section className="empty-state discover__end">
           <h2>No more garments</h2>
-          <p>You’ve seen everything we have for now. New garments will show up here as we add them.</p>
+          {catalogue === 'matching' ? (
+            <>
+              <p>{endOfMatchingFeedText(body.bodyType)}</p>
+              <button type="button" className="button button--outline" onClick={() => onCatalogueChange('all')}>
+                Show all garments
+              </button>
+            </>
+          ) : (
+            <p>You’ve seen everything we have for now. New garments will show up here as we add them.</p>
+          )}
           {closet.liked.length > 0 && (
             <button type="button" className="button button--primary" onClick={onOpenCloset}>
               See your {closet.liked.length} liked in the Closet

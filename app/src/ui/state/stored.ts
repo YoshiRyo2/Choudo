@@ -5,6 +5,7 @@
 
 import { validateBodyInput, type BodyInput } from '../../domain/body';
 import { FIT_STYLES, validateMeasuredAnchor, type Anchor, type FitStyle } from '../../domain/fit';
+import { CATALOGUE_SCOPES, type CatalogueScope } from '../../domain/garments';
 
 export const STORAGE_KEYS = {
   /** v2: `sizing` became `bodyType`, plus an optional bra size (migrate.ts moves v1 over). */
@@ -20,6 +21,8 @@ export const STORAGE_KEYS = {
   fitStyle: 'nimbus.fitStyle.v1',
   /** Whether the hidden Test mode is on. */
   testMode: 'nimbus.testMode.v1',
+  /** Garments to show: "matching" (the body type's sizing plus unisex) or "all". */
+  catalogue: 'nimbus.catalogue.v1',
   /** Results recorded in Test mode. v2: each prediction's body uses `bodyType`. */
   fitTests: 'nimbus.fitTests.v2',
 } as const;
@@ -196,6 +199,9 @@ export const isFitStyle = (v: unknown): v is FitStyle | null =>
   v === null || (typeof v === 'string' && (FIT_STYLES as readonly string[]).includes(v));
 
 export const isBoolean = (v: unknown): v is boolean => typeof v === 'boolean';
+
+export const isCatalogueScope = (v: unknown): v is CatalogueScope =>
+  typeof v === 'string' && (CATALOGUE_SCOPES as readonly string[]).includes(v);
 
 const isNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 

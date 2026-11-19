@@ -40,6 +40,17 @@ describe('wearGarment', () => {
   });
 });
 
+describe('resolveOutfit with a filtered catalogue', () => {
+  it('fills from what is on show, leaves an empty category empty, and keeps a worn garment', () => {
+    const unisexTops = garmentsByCategory('top').filter((g) => g.sizing === 'unisex');
+    const o = resolveOutfit(EMPTY_OUTFIT, body, pref, unisexTops);
+    expect(o.topId).toBe(unisexTops[0]!.id);
+    expect(o.bottomId).toBeNull();
+    const worn = resolveOutfit({ ...EMPTY_OUTFIT, bottomId: 'corvo-slim-jean', bottomSize: '32x32' }, body, pref, unisexTops);
+    expect(worn.bottomId).toBe('corvo-slim-jean');
+  });
+});
+
 describe('defaultSize', () => {
   it('falls back to the middle size when no size can be recommended', () => {
     const tee = UNKNOWN_CHEST_TEE;

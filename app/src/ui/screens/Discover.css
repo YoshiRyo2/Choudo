@@ -47,3 +47,9 @@
 .discover__end {
   align-self: center;
 }
+
+.discover__scope {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { BodyInput } from './domain/body';
 import { preferenceSpec, type Anchor, type FitStyle } from './domain/fit';
-import { findGarment, type Garment } from './domain/garments';
+import { findGarment, type CatalogueScope, type Garment } from './domain/garments';
 import { TabBar, type Tab } from './ui/components/TabBar';
 import { fitReferenceLine } from './ui/fitText';
 import { AnchorScreen } from './ui/screens/AnchorScreen';
@@ -17,6 +17,7 @@ import {
   EMPTY_OUTFIT,
   isAnchor,
   isBoolean,
+  isCatalogueScope,
   isFitStyle,
   isFitTestList,
   isOutfit,
@@ -40,6 +41,7 @@ export function App() {
   const [anchor, setAnchor] = usePersistentState<Anchor | null>(STORAGE_KEYS.anchor, null, isAnchor);
   const [fitStyle, setFitStyle] = usePersistentState<FitStyle | null>(STORAGE_KEYS.fitStyle, null, isFitStyle);
   const preference = useMemo(() => preferenceSpec(anchor, fitStyle), [anchor, fitStyle]);
+  const [catalogue, setCatalogue] = usePersistentState<CatalogueScope>(STORAGE_KEYS.catalogue, 'matching', isCatalogueScope);
   const [testMode, setTestMode] = usePersistentState<boolean>(STORAGE_KEYS.testMode, false, isBoolean);
   const [fitTests, setFitTests] = usePersistentState<FitTestRecord[]>(STORAGE_KEYS.fitTests, [], isFitTestList);
   const closet = useCloset();
@@ -125,6 +127,8 @@ export function App() {
           preference={preference}
           units={units}
           outfit={outfit}
+          catalogue={catalogue}
+          onCatalogueChange={setCatalogue}
           onOutfitChange={setOutfit}
           onSaveOutfit={closet.saveOutfit}
           nextOutfitName={nextOutfitName(closet.outfits)}
@@ -144,6 +148,10 @@ export function App() {
       )}
       {tab === 'discover' && (
         <Discover
+          // A new scope starts a new feed (the feed is fixed while the screen is open).
+          key={catalogue}
+          catalogue={catalogue}
+          onCatalogueChange={setCatalogue}
           body={body}
           preference={preference}
           units={units}
