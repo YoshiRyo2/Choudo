@@ -46,8 +46,13 @@ app/src/
                  odds.ts (cached sampleFit), fitTests.ts (Test mode records + CSV)
     fitText.ts   all user-facing fit wording
     styles.css   design tokens (colours, type scale)
+  dev/landmarks/ dev-only landmark picker (/dev/landmarks): suggest.ts (landmarks from the
+                 outline), seedWrite.ts (writes one "image" into seed.json), pickerModel.ts
+app/dev/       landmarks.html + landmarksServer.ts: the picker page and its save endpoint,
+               Vite dev server only (apply: 'serve'), never in npm run build
 app/scripts/   data-check.mjs (npm run data:check), fit-report.mjs (npm run fit:report),
-               garment-photos.mjs (npm run photos)
+               garment-photos.mjs (npm run photos: AI cut-out via photo-model.mjs, BiRefNet-lite,
+               MIT; mask clean-up in photo-mask.mjs). Model weights download to app/.models/
 app/chart-snapshots/, app/photo-sources/   local copies of charts and photos, git-ignored
 docs/          adding-garments.md (checklist for adding a garment by hand)
 data/fit_tests.csv    (repo root) fit-test results, pasted from Test mode's CSV export.
@@ -119,7 +124,8 @@ npm run test:watch # unit tests, watch mode
 npm run check      # typecheck + tests + data:check — gate every commit on this exiting 0
 npm run data:check # garment data report: grade, warnings, errors, audit per garment
 npm run fit:report # fit-test report from ../data/fit_tests.csv (or a path after --)
-npm run photos     # cut product photos into public/garments/ (local only)
+npm run photos     # cut garment photos out into public/garments/ (local only)
+                   # then place landmarks at http://localhost:5173/dev/landmarks?id=<garment>
 npm run build      # typecheck + production build
 ```
 Logic that can be pure (geometry, form parsing, wording) lives in its own `.ts` file with

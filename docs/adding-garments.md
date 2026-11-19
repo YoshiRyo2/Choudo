@@ -3,7 +3,39 @@
 Nimbus only trusts numbers it can trace. Every garment row in
 `app/src/domain/garments/seed.json` says where it came from, how the chart measures,
 and which numbers (if any) are ours rather than the brand's. Follow this checklist
-for each new garment. It takes about 15 minutes.
+for each new garment. It takes about 15 minutes, plus two for a top's photo.
+
+## Tops: the photo first (about two minutes)
+
+A top can carry a photo, which the mannequin warps onto every size. It's optional:
+without one the top is drawn in its `color`. Full details are in
+`app/photo-sources/README.md`.
+
+1. **Photograph it.** Lay it flat, front up, sleeves out. Shoot from straight above,
+   on a plain floor or sheet that contrasts with it, at the phone's full resolution.
+   Keep other clothes and feet out of the frame.
+2. **Cut it out.** Save the photo as `app/photo-sources/<garment-id>.jpg` and add a line to
+   `app/scripts/garment-photos.json` (`"rotate": 90` if the collar isn't at the top).
+   Then run:
+
+   ```bash
+   cd app
+   npm run photos -- <garment-id>
+   ```
+
+   The first run downloads the background-removal model once (224 MB, MIT licence,
+   runs locally).
+3. **Place the landmarks.** Run `npm run dev` and open
+   <http://localhost:5173/dev/landmarks?id=garment-id>.
+   - The 13 points start from the shirt's outline: check each one and drag any that
+     are off. The front neck is always a guess.
+   - Watch the two mannequins. The photo should sit straight at both sizes, with no
+     mirrored patches; the page warns if it finds any.
+   - Press **Save to seed.json**. This writes the garment's `"image"` entry.
+4. **Then the measurements**, below. If the garment isn't in `seed.json` yet, add its
+   row first (steps 1–5) and come back to step 3.
+
+## The numbers
 
 ## 1. Find the chart
 
