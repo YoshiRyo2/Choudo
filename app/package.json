@@ -12,6 +12,7 @@
     "typecheck": "tsc -b --noEmit",
     "check": "tsc -b && vitest run && npm run data:check --silent",
     "data:check": "node scripts/data-check.mjs",
+    "fit:report": "node scripts/fit-report.mjs",
     "photos": "node scripts/garment-photos.mjs"
   },
   "dependencies": {
