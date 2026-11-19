@@ -93,8 +93,8 @@ export function Mannequin({ body, top, bottom, showFit = true, className }: Mann
 
       {/* Body: arms behind the torso so the torso hides where they join. */}
       <g className="mannequin__form">
-        <path d={g.paths.arms[0]} />
-        <path d={g.paths.arms[1]} />
+        <path className="mannequin__arm" d={g.paths.arms[0]} />
+        <path className="mannequin__arm" d={g.paths.arms[1]} />
         <path d={g.paths.torso} />
         {g.paths.feet.map((foot, i) => (
           <ellipse key={i} {...foot} />
@@ -127,8 +127,8 @@ export function Mannequin({ body, top, bottom, showFit = true, className }: Mann
           </g>
           {/* Relaxed arms hang in front of the shirt's sides; the sleeves then cover their tops. */}
           <g className="mannequin__form">
-            <path d={topDraw.arms[0]} />
-            <path d={topDraw.arms[1]} />
+            <path className="mannequin__arm" d={topDraw.arms[0]} />
+            <path className="mannequin__arm" d={topDraw.arms[1]} />
           </g>
           <g className={garmentClass(topDraw.approximate)} style={{ fill: top.garment.color }}>
             <path d={topDraw.sleeves[0]} />

@@ -11,6 +11,11 @@
   stroke-width: 0.35;
 }
 
+/* Arms a shade darker than the torso, so the torso's shape reads where they overlap. */
+.mannequin__arm {
+  fill: color-mix(in srgb, var(--form) 72%, var(--form-edge));
+}
+
 .mannequin__seam {
   stroke: var(--form-edge);
   stroke-width: 0.3;

@@ -102,8 +102,18 @@ export interface BodyGeometry {
   head: { cx: number; cy: number; rx: number; ry: number };
   /** Right arm (mirror for the left), with the elbow's distance down it. */
   arm: Limb & { elbowCm: number };
-  /** Right leg centre line at knee and ankle (mirror for the left). */
-  leg: { kneeX: number; kneeHalf: number; ankleX: number; ankleHalf: number };
+  /** Right leg: centre line and half-width at the thigh, knee, calf and ankle (mirror for the left). */
+  leg: {
+    thighY: number;
+    thighX: number;
+    thighHalf: number;
+    kneeX: number;
+    kneeHalf: number;
+    calfY: number;
+    calfHalf: number;
+    ankleX: number;
+    ankleHalf: number;
+  };
   /** Right-side torso outline, top to bottom, for width lookups. */
   outline: Pt[];
   paths: { torso: string; arms: [string, string]; feet: { cx: number; cy: number; rx: number; ry: number }[] };
@@ -144,21 +154,34 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
 
   const head = { cx: 0, cy: 0.064 * H, rx: 7.6 * s, ry: 0.064 * H };
 
-  const legHalfAtCrotch = half.hip * 0.5;
+  // Legs taper from a full thigh to the knee, swell a little at the calf and
+  // narrow to the ankle, standing slightly apart so each leg reads on its own.
+  const kneeHalf = Math.max(4.6, 5.6 * girthScale ** 0.9 * s);
   const leg = {
-    kneeX: half.hip * 0.42 + 0.5,
-    kneeHalf: Math.max(5, 6.2 * girthScale ** 0.9 * s),
-    ankleX: half.hip * 0.38 + 0.5,
-    ankleHalf: 3.6 * s,
+    thighY: y.crotch + 5,
+    thighX: half.hip * 0.5 + 0.2,
+    thighHalf: half.hip * 0.5 - 0.6,
+    kneeX: half.hip * 0.42 + 0.9,
+    kneeHalf,
+    calfY: lerp(y.knee, y.ankle, 0.3),
+    calfHalf: kneeHalf * 1.04,
+    ankleX: half.hip * 0.38 + 1.4,
+    ankleHalf: 3.1 * s,
   };
+  const calfX = lerp(leg.kneeX, leg.ankleX, 0.3);
 
+  // A simple dress-form torso: sloping shoulders, chest, an in-curve to the
+  // waist and out again over the hips. Extra points keep the curves soft.
   const outline: Pt[] = [
     { x: half.neck, y: y.chin + 1 },
     { x: half.neck, y: y.neckBase },
+    { x: lerp(half.neck, half.shoulder, 0.55), y: lerp(y.neckBase, y.shoulder, 0.7) },
     { x: half.shoulder - 1.5, y: y.shoulder },
     { x: half.chest + 0.8, y: y.armpit },
     { x: half.chest, y: y.chest },
+    { x: lerp(half.chest, half.waist, 0.65), y: lerp(y.chest, y.waist, 0.5) },
     { x: half.waist, y: y.waist },
+    { x: lerp(half.waist, half.hip, 0.75), y: lerp(y.waist, y.hip, 0.5) },
     { x: half.hip, y: y.hip },
     { x: half.hip * 0.97, y: y.crotch },
   ];
@@ -167,13 +190,15 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
   // inside of the right leg, down the inside of the left, up the left side.
   const right: Pt[] = [
     ...outline.slice(0, -1),
-    { x: legHalfAtCrotch * 2 - 0.5, y: y.crotch + 4 },
+    { x: leg.thighX + leg.thighHalf, y: leg.thighY },
     { x: leg.kneeX + leg.kneeHalf, y: y.knee },
+    { x: calfX + leg.calfHalf, y: leg.calfY },
     { x: leg.ankleX + leg.ankleHalf, y: y.ankle, corner: true },
     { x: leg.ankleX - leg.ankleHalf, y: y.ankle, corner: true },
+    { x: calfX - leg.calfHalf * 0.9, y: leg.calfY },
     { x: leg.kneeX - leg.kneeHalf, y: y.knee },
-    { x: 1.2, y: y.crotch + 3 },
-    { x: 0, y: y.crotch, corner: true },
+    { x: leg.thighX - leg.thighHalf, y: leg.thighY },
+    { x: 0, y: y.crotch + 1.5, corner: true },
   ];
   const torsoPts = mirrored(right).filter((p, i, all) => !(i > 0 && p.x === 0 && all[i - 1]!.x === 0));
   // The neck top is a straight edge (the head covers it).
@@ -181,7 +206,8 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
   torsoPts[torsoPts.length - 1] = { ...torsoPts[torsoPts.length - 1]!, corner: true };
 
   const armTop: Pt = { x: half.shoulder - 4.2, y: y.shoulder + 3 };
-  const wristX = Math.max(half.hip, half.waist) + 5.5;
+  // Arms hang a little away from the waist so the torso's shape shows.
+  const wristX = Math.max(half.hip, half.waist) + 6;
   const armBottom = { x: wristX, y: armTop.y + m.armLengthCm * 0.97 };
   const arm = {
     top: armTop,
@@ -219,7 +245,9 @@ export function bodyHalfAt(g: BodyGeometry, y: number): number {
   return xAt(
     [
       { x: g.half.hip * 0.97, y: g.y.crotch },
+      { x: g.leg.thighX + g.leg.thighHalf, y: g.leg.thighY },
       { x: g.leg.kneeX + g.leg.kneeHalf, y: g.y.knee },
+      { x: lerp(g.leg.kneeX, g.leg.ankleX, 0.3) + g.leg.calfHalf, y: g.leg.calfY },
       { x: g.leg.ankleX + g.leg.ankleHalf, y: g.y.ankle },
     ],
     y,
