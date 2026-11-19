@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: { host: true }, // expose on LAN so you can open it on a phone
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'scripts/**/*.test.mjs'],
     environment: 'node',
   },
 });

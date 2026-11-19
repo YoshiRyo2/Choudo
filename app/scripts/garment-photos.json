@@ -1,15 +1,20 @@
 {
-  "_readme": "Inputs for scripts/garment-photos.mjs. crop is in source-image pixels (left, top, width, height); seed is a point on the garment inside the crop. match sets how close a pixel's hue/saturation/value must be to the garment's colour. bleed (px) pads the garment with its flat colour; changing it moves the garment inside the PNG, so shift the landmarks by the same amount. fade (px) blends the photo into that colour toward its outline. Landmarks in seed.json are in pixels of the cut-out PNG this produces.",
+  "_readme": "Inputs for scripts/garment-photos.mjs (npm run photos). One entry per garment photo: id (the garment's id in seed.json), source (in photo-sources/), and optionally rotate (degrees clockwise, applied after the photo's EXIF orientation, so the collar ends up at the top). The PNG goes to public/garments/<id>-front.png unless out says otherwise. defaults apply to every 'ai' photo and can be overridden per photo: maxSide (px, longest side of the PNG), erode (px trimmed off the garment's edge), pad (px of nearest garment colour added outside it). Landmarks in seed.json are in pixels of that PNG, so re-place them (npm run dev, /dev/landmarks) after changing any of these. method 'colour' is the older colour-matching cut-out for a garment worn by a model: crop is in source pixels (left, top, width, height), seed is a point on the garment inside the crop, match sets how close a pixel's hue/saturation/value must be to the garment's colour, bleed (px) pads the garment with its flat colour, and fade (px) blends the photo into that colour toward its outline.",
+  "defaults": { "maxSide": 900, "erode": 3, "pad": 24 },
   "photos": [
     {
       "id": "gildan-5000",
+      "method": "colour",
       "source": "photo-sources/gildan-5000.webp",
-      "out": "public/garments/gildan-5000-front.png",
       "crop": { "left": 90, "top": 330, "width": 580, "height": 720 },
       "seed": [290, 270],
       "match": { "hueTolerance": 5, "minSaturation": 0.6, "minValue": 0.12 },
       "bleed": 24,
       "fade": 28
-    }
+    },
+    { "id": "ryo-grey-polo", "source": "photo-sources/ryo-grey-polo.jpg" },
+    { "id": "ryo-navy-graphic-tee", "source": "photo-sources/ryo-navy-graphic-tee.jpg", "rotate": 90 },
+    { "id": "ryo-cream-boxy-tee", "source": "photo-sources/ryo-cream-boxy-tee.jpg", "rotate": 90 },
+    { "id": "ryo-black-henley", "source": "photo-sources/ryo-black-henley.jpg", "rotate": 90 }
   ]
 }

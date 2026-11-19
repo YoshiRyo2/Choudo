@@ -10,3 +10,6 @@ dist
 # Size-chart snapshots: also not ours to redistribute. See chart-snapshots/README.md.
 /chart-snapshots/*
 !/chart-snapshots/README.md
+
+# Background-removal model weights, downloaded by npm run photos.
+/.models/
