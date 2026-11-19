@@ -2,7 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../domain/body';
 import { fitGarment, type ZoneFit } from '../domain/fit';
 import { findGarment } from '../domain/garments';
-import { describeZone, formatDiff, garmentTag, GRADE_EXPLAINED, sizeLine, sourceLine, summarize } from './fitText';
+import {
+  describeZone,
+  fitReferenceLine,
+  formatDiff,
+  garmentTag,
+  GRADE_EXPLAINED,
+  sizeLine,
+  sourceLine,
+  summarize,
+} from './fitText';
 
 const zone = (patch: Partial<ZoneFit>): ZoneFit => ({
   zone: 'chest',
@@ -94,5 +103,18 @@ describe('sourceLine', () => {
 
   it('explains every grade', () => {
     expect(Object.keys(GRADE_EXPLAINED).sort()).toEqual(['charted', 'estimated', 'unscored', 'verified']);
+  });
+});
+
+describe('fitReferenceLine', () => {
+  it('names the anchor tee, the measured tee, the style, or the default', () => {
+    expect(fitReferenceLine({ kind: 'catalogue', garmentId: 'gildan-5000', size: 'M' }, null, 'metric', findGarment)).toBe(
+      'Your Gildan Heavy Cotton T-Shirt (5000) in M.',
+    );
+    expect(fitReferenceLine({ kind: 'measured', chestFlatCm: 53, lengthCm: 74 }, 'slim', 'metric', findGarment)).toBe(
+      'A tee you measured: 53 cm across, 74 cm long.',
+    );
+    expect(fitReferenceLine(null, 'oversized', 'metric', findGarment)).toBe('You like tees oversized.');
+    expect(fitReferenceLine(null, null, 'metric', findGarment)).toBe('Not set yet, so we assume you like a regular fit.');
   });
 });

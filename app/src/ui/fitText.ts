@@ -3,7 +3,7 @@
  * fit copy lives here so it stays consistent.
  */
 
-import type { FitLabel, GarmentFit, ZoneFit, ZoneId } from '../domain/fit';
+import type { Anchor, FitLabel, FitStyle, GarmentFit, ZoneFit, ZoneId } from '../domain/fit';
 import type { ConfidenceGrade, Garment, SourceTier } from '../domain/garments';
 import { cmToIn } from '../domain/units';
 import type { UnitSystem } from './state/stored';
@@ -193,4 +193,34 @@ export function sourceLine(garment: Pick<Garment, 'source'>): string {
   const { tier, capturedOn } = garment.source;
   const from = tier ? `From ${TIER_PLAIN[tier]}` : 'From the brand’s size chart';
   return `${from}${capturedOn ? `, copied ${formatCapturedOn(capturedOn)}` : ''}.`;
+}
+
+// ---------- how the user likes tops to fit ----------
+
+/** The answers to "How do you like tees to fit?". */
+export const FIT_STYLE_TEXT: Record<FitStyle, { label: string; hint: string }> = {
+  slim: { label: 'Slim', hint: 'Close to the body, not tight' },
+  regular: { label: 'Regular', hint: 'Room to move, not baggy' },
+  relaxed: { label: 'Relaxed', hint: 'Easy and a little loose' },
+  oversized: { label: 'Oversized', hint: 'Big and boxy, on purpose' },
+};
+
+/** One line on the fit reference, for Edit body. */
+export function fitReferenceLine(
+  anchor: Anchor | null,
+  style: FitStyle | null,
+  units: UnitSystem,
+  find: (id: string) => Garment | undefined,
+): string {
+  if (anchor?.kind === 'catalogue') {
+    const g = find(anchor.garmentId);
+    if (g) return `Your ${g.brand} ${g.name} in ${anchor.size}.`;
+  }
+  if (anchor?.kind === 'measured') {
+    const show = (cm: number) =>
+      units === 'metric' ? `${Math.round(cm)} cm` : `${cmToIn(cm).toFixed(1)} in`;
+    return `A tee you measured: ${show(anchor.chestFlatCm)} across, ${show(anchor.lengthCm)} long.`;
+  }
+  if (style) return `You like tees ${FIT_STYLE_TEXT[style].label.toLowerCase()}.`;
+  return 'Not set yet, so we assume you like a regular fit.';
 }

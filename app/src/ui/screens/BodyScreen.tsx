@@ -8,6 +8,7 @@ import {
 } from '../../domain/body';
 import { cmToIn, kgToLb, round } from '../../domain/units';
 import { Mannequin } from '../components/Mannequin/Mannequin';
+import { FieldError, NumberInput } from '../components/NumberInput';
 import { SegmentedControl } from '../components/SegmentedControl';
 import type { UnitSystem } from '../state/stored';
 import {
@@ -27,6 +28,16 @@ interface BodyScreenProps {
   onDone: (input: BodyInput, units: UnitSystem) => void;
   /** Present when there's a saved body to go back to. */
   onCancel?: () => void;
+  /** Edit body only: the tee or style other tops are judged against. */
+  fitReference?: FitReferenceProps;
+}
+
+interface FitReferenceProps {
+  line: string;
+  isSet: boolean;
+  /** Leave for the fit-reference step, passing the form's body if it's valid. */
+  onChange: (input: BodyInput | null, units: UnitSystem) => void;
+  onRemove: () => void;
 }
 
 const OVERRIDE_LABEL: Record<OverrideField, string> = {
@@ -85,7 +96,7 @@ function errorMessages(input: BodyInput | null, units: UnitSystem): Partial<Reco
   return out;
 }
 
-export function BodyScreen({ initial, units, onDone, onCancel }: BodyScreenProps) {
+export function BodyScreen({ initial, units, onDone, onCancel, fitReference }: BodyScreenProps) {
   const [form, setForm] = useState<BodyForm>(() =>
     initial ? inputToForm(initial, units) : { ...EMPTY_FORM, units },
   );
@@ -242,6 +253,29 @@ export function BodyScreen({ initial, units, onDone, onCancel }: BodyScreenProps
           </div>
         </section>
 
+        {fitReference && (
+          <section className="fit-ref" aria-labelledby={`${formId}-fit`}>
+            <h2 id={`${formId}-fit`} className="fit-ref__title">
+              Your fit reference
+            </h2>
+            <p className="fit-ref__line">{fitReference.line}</p>
+            <div className="fit-ref__actions">
+              <button
+                type="button"
+                className="button button--outline button--small"
+                onClick={() => fitReference.onChange(model ? input : null, form.units)}
+              >
+                {fitReference.isSet ? 'Change' : 'Add a tee you like'}
+              </button>
+              {fitReference.isSet && (
+                <button type="button" className="button button--quiet button--small" onClick={fitReference.onRemove}>
+                  Remove
+                </button>
+              )}
+            </div>
+          </section>
+        )}
+
         <div className="body-screen__actions">
           <button type="submit" className="button button--primary" aria-disabled={!canSubmit}>
             {initial ? 'Save and go to fitting room' : 'Go to fitting room'}
@@ -284,56 +318,6 @@ export function BodyScreen({ initial, units, onDone, onCancel }: BodyScreenProps
 }
 
 // ---------- small pieces ----------
-
-interface NumberInputProps {
-  id: string;
-  label: string;
-  unit: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  hint?: string;
-  invalid?: boolean;
-  /** Show the label above the box (the fieldset legend covers it otherwise). */
-  showLabel?: boolean;
-  autoFocus?: boolean;
-}
-
-function NumberInput({ id, label, unit, value, onChange, placeholder, hint, invalid, showLabel, autoFocus }: NumberInputProps) {
-  return (
-    <div className="number-input">
-      <label htmlFor={id} className={showLabel ? 'number-input__label' : 'visually-hidden'}>
-        {label}
-        {hint && <span className="number-input__hint">{hint}</span>}
-      </label>
-      <div className={`number-input__box${invalid ? ' is-invalid' : ''}`}>
-        <input
-          id={id}
-          className="num"
-          inputMode="decimal"
-          autoComplete="off"
-          value={value}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
-          aria-invalid={invalid || undefined}
-          autoFocus={autoFocus}
-        />
-        <span className="number-input__unit" aria-hidden="true">
-          {unit}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function FieldError({ message }: { message?: string }) {
-  if (!message) return null;
-  return (
-    <p className="field-error" role="alert">
-      {message}
-    </p>
-  );
-}
 
 function EstimateList({ model, units }: { model: BodyModel; units: UnitSystem }) {
   const metric = units === 'metric';
