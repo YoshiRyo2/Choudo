@@ -3,16 +3,22 @@
  */
 
 import seed from './seed.json';
+import { gradeGarment } from './grade';
 import { normalizeSize } from './normalize';
 import type { Garment, GarmentCategory, SeedGarment } from './types';
 import { checkGarment } from './verify';
 
+/**
+ * A seed row ready for the app: cm, full circumferences, provenance and grade.
+ * A row with errors grades as "unscored" (GARMENTS leaves those out anyway).
+ */
 export function normalizeGarment(seedGarment: SeedGarment): Garment {
   const { chart, sizes, ...rest } = seedGarment;
   const garment: Garment = {
     ...rest,
     girthVerified: chart.girth !== 'unknown',
     sizes: sizes.map((s) => normalizeSize(s, chart)),
+    grade: gradeGarment(seedGarment, checkGarment(seedGarment)) ?? 'unscored',
   };
   if (chart.lengthDefinition !== undefined) garment.lengthDefinition = chart.lengthDefinition;
   if (chart.sleeveDefinition !== undefined) garment.sleeveDefinition = chart.sleeveDefinition;

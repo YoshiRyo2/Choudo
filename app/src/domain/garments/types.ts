@@ -66,6 +66,16 @@ export const SOURCE_TIERS: readonly SourceTier[] = ['A', 'B', 'C', 'D', 'E', 'F'
 export type MeasurementOrigin = 'chart' | 'estimated' | 'audited';
 export const MEASUREMENT_ORIGINS: readonly MeasurementOrigin[] = ['chart', 'estimated', 'audited'];
 
+/**
+ * How far to trust a garment's numbers, best first:
+ *  - verified: brand / chart / partner source (tier A–C), every check passes, and a real garment was measured
+ *  - charted: copied from a chart or retailer (tier A–D), no errors, not (yet) audited
+ *  - estimated: some numbers are ours, not the source's — estimated values, invented
+ *    placeholder data, or a weak source (tier E–G)
+ *  - unscored: a definition the fit needs is unknown, so its key zones can't be scored
+ */
+export type ConfidenceGrade = 'verified' | 'charted' | 'estimated' | 'unscored';
+
 /** How much the fabric gives. Lets a stretchy garment measure under the body without being "tight". */
 export type Stretch = 'none' | 'some' | 'high';
 
@@ -231,4 +241,5 @@ export interface Garment extends GarmentBase {
   lengthDefinition?: LengthDefinition;
   sleeveDefinition?: SleeveDefinition;
   sizes: GarmentSize[];
+  grade: ConfidenceGrade;
 }
