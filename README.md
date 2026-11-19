@@ -36,7 +36,6 @@ Anyone shopping for clothes online who wants to know how a size will fit before 
 
 - Photos, camera, or AR
 - User accounts
-- Automated scraping of brand sites
 - Photo-based or 3D avatars (the mannequin is one component so it can be swapped later)
 
 ## Success criteria
