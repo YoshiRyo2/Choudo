@@ -78,6 +78,10 @@
 .zone__est {
   font-style: italic;
 }
+abbr.zone__est {
+  text-decoration: none;
+  cursor: help;
+}
 
 .readout__estimates,
 .readout__source {
@@ -88,8 +92,16 @@
 }
 
 .readout__source {
+  display: grid;
+  gap: 6px;
   padding-top: 12px;
   border-top: 1px solid var(--line);
+}
+.readout__source p {
+  margin: 0;
+}
+.readout__grade .garment-tag {
+  margin-right: 4px;
 }
 
 .readout__source.is-placeholder {

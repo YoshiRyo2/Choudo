@@ -5,7 +5,7 @@
  */
 
 import type { BodyModel, MeasurementKey, MeasurementSource } from '../body';
-import type { Garment, SizeMeasurements } from '../garments';
+import type { Garment, GarmentSize, MeasurementOrigin, SizeMeasurements } from '../garments';
 import {
   BOTTOM_HIPS,
   BOTTOM_WAIST,
@@ -39,6 +39,8 @@ export interface ZoneFit {
   bodyCm: number;
   /** Whether the body number was estimated or typed in — affects confidence. */
   bodySource: MeasurementSource;
+  /** Where the garment number came from (chart, estimated, audited). Absent when the chart lacks it. */
+  garmentOrigin?: MeasurementOrigin;
   /** Plain-language reason, set when label is "unknown". */
   note?: string;
   /**
@@ -137,6 +139,12 @@ function unknownReason(spec: ZoneSpec, garment: Garment, garmentCm: number | und
   if (spec.rule.kind === 'girth' && !garment.girthVerified) {
     return `${garment.brand}'s chart doesn't say whether this is measured flat or all the way round.`;
   }
+  // Body length targets run from the high point of the shoulder; any other start point can't be compared.
+  if (spec.zone === 'length' && garment.lengthDefinition !== 'hps') {
+    return garment.lengthDefinition === 'center_back'
+      ? `${garment.brand} measures length from the back of the neck, so we can't compare it to your body.`
+      : `${garment.brand}'s chart doesn't say where length is measured from.`;
+  }
   if (spec.zone === 'sleeve' && garment.sleeveDefinition !== 'shoulder_to_cuff') {
     return `${garment.brand} measures sleeves differently, so we can't compare it to your arm.`;
   }
@@ -163,10 +171,12 @@ function bandsFor(rule: GirthRule | LengthRule, tightAllowanceCm: number): FitBa
   ];
 }
 
-function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, size: SizeMeasurements): ZoneFit {
+function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, gs: GarmentSize): ZoneFit {
+  const size = gs.measurements;
   const bodyCm = body.measurements[spec.bodyKey];
   const bodySource = body.sources[spec.bodyKey];
   const garmentCm = size[spec.garmentKey];
+  const garmentOrigin = gs.provenance[spec.garmentKey]?.origin;
   const tightAllowanceCm = STRETCH_ALLOWANCE[garment.stretch] * bodyCm;
   const base = {
     zone: spec.zone,
@@ -174,6 +184,7 @@ function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, size: SizeMe
     bodyCm,
     bodySource,
     bands: bandsFor(spec.rule, tightAllowanceCm),
+    ...(garmentOrigin !== undefined ? { garmentOrigin } : {}),
   } as const;
 
   const reason = unknownReason(spec, garment, garmentCm);
@@ -205,7 +216,7 @@ export function fitGarment(body: BodyModel, garment: Garment, sizeLabel: string)
     throw new Error(`${garment.id} has no size "${sizeLabel}"`);
   }
   const zones = zonesFor(garment, size.measurements).map((spec) =>
-    fitZone(spec, body, garment, size.measurements),
+    fitZone(spec, body, garment, size),
   );
   return { garmentId: garment.id, sizeLabel, zones, overall: overallTone(zones) };
 }

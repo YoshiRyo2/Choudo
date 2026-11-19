@@ -36,7 +36,6 @@ Anyone shopping for clothes online who wants to know how a size will fit before 
 
 - Photos, camera, or AR
 - User accounts
-- Automated scraping of brand sites
 - Photo-based or 3D avatars (the mannequin is one component so it can be swapped later)
 
 ## Success criteria
@@ -59,8 +58,22 @@ cd app
 npm install
 npm run dev      # open the printed URL; use the "Network" URL to try it on your phone
 npm test         # unit tests (body model, garment data, fit engine, UI helpers)
-npm run check    # typecheck + tests — run before every commit
+npm run check    # typecheck + tests + garment data check — run before every commit
+npm run data:check  # just the garment data report (grades, warnings, errors)
 ```
+
+### Garment photos
+
+Product photos (used to texture garments on the mannequin) are **not committed**: we don't
+hold the rights to redistribute them, so `app/photo-sources/` and `app/public/garments/` are
+git-ignored. A fresh clone draws every garment in its flat colour until you add them:
+
+1. Save the source photo in `app/photo-sources/` under the name in
+   `app/scripts/garment-photos.json` (see `app/photo-sources/README.md`).
+2. Run `npm run photos` from `app/` to cut the garment out into `app/public/garments/`.
+
+Size-chart snapshots follow the same rule: they live in `app/chart-snapshots/`, git-ignored.
+To add a garment, follow `docs/adding-garments.md`.
 
 Where things live:
 

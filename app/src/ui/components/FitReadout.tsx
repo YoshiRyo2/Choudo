@@ -1,6 +1,17 @@
 import type { GarmentFit } from '../../domain/fit';
 import type { Garment } from '../../domain/garments';
-import { describeZone, formatDiff, formatLength, LABEL_TEXT, summarize, ZONE_NAME } from '../fitText';
+import {
+  describeZone,
+  ESTIMATED_MARK,
+  formatDiff,
+  formatLength,
+  GRADE_EXPLAINED,
+  LABEL_TEXT,
+  sourceLine,
+  summarize,
+  ZONE_NAME,
+} from '../fitText';
+import { GarmentBadge } from './GarmentBadge';
 import type { UnitSystem } from '../state/stored';
 import { TapeScale } from './TapeScale';
 import './FitReadout.css';
@@ -46,6 +57,12 @@ export function FitReadout({ garment, fit, units, onEditBody }: FitReadoutProps)
               {z.garmentCm !== null && z.diffCm !== null && (
                 <span>
                   This size <span className="num">{formatLength(z.garmentCm, units)}</span>
+                  {z.garmentOrigin === 'estimated' && (
+                    <abbr className="zone__est" title="Estimated: not printed on the size chart">
+                      {' '}
+                      {ESTIMATED_MARK}
+                    </abbr>
+                  )}
                 </span>
               )}
             </p>
@@ -68,27 +85,30 @@ export function FitReadout({ garment, fit, units, onEditBody }: FitReadoutProps)
   );
 }
 
+/** Where the numbers came from, and how far to trust them. */
 function SourceNote({ garment }: { garment: Garment }) {
   const { source } = garment;
   if (source.placeholder) {
     return (
-      <p className="readout__source is-placeholder">
-        Sample data: these numbers were made up for testing and aren’t a real size chart.
-      </p>
+      <footer className="readout__source is-placeholder">
+        <p>Sample data: these numbers were made up for testing and aren’t a real size chart.</p>
+      </footer>
     );
   }
-  const date = source.capturedOn
-    ? new Date(`${source.capturedOn}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-    : null;
   return (
-    <p className="readout__source">
-      From {garment.brand}’s size chart{date ? `, copied ${date}` : ''}.{' '}
-      {source.url && (
-        <a href={source.url} target="_blank" rel="noopener noreferrer">
-          View the chart
-        </a>
-      )}
-      {source.notes && <span className="readout__source-note"> {source.notes}</span>}
-    </p>
+    <footer className="readout__source">
+      <p className="readout__grade">
+        <GarmentBadge garment={garment} /> {GRADE_EXPLAINED[garment.grade]}
+      </p>
+      <p>
+        {sourceLine(garment)}{' '}
+        {source.url && (
+          <a href={source.url} target="_blank" rel="noopener noreferrer">
+            View the chart
+          </a>
+        )}
+      </p>
+      {source.notes && <p className="readout__source-note">{source.notes}</p>}
+    </footer>
   );
 }

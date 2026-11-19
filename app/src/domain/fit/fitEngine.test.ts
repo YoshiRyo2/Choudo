@@ -21,7 +21,8 @@ const seedTeeBase: SeedGarment = {
   color: '#000000',
   sleeve: 'short',
   stretch: 'none',
-  chart: { unit: 'in', girth: 'flat' },
+  fitIntent: 'regular',
+  chart: { unit: 'in', girth: 'flat', lengthDefinition: 'hps' },
   source: { placeholder: true },
   sizes: [],
 };
@@ -157,6 +158,32 @@ describe('fitGarment', () => {
     }
   });
 
+  it('only scores a top length measured from the high point of the shoulder', () => {
+    const body = bodyWith({ chestCm: inToCm(38), torsoLengthCm: 72 });
+    const lengthOf = (def: 'hps' | 'center_back' | 'unknown') => {
+      const tee = normalizeGarment({
+        ...seedTeeBase,
+        chart: { ...seedTeeBase.chart, lengthDefinition: def },
+        sizes: [{ label: 'M', measurements: { chest: 19, length: 29 } }],
+      });
+      return fitGarment(body, tee, 'M').zones.find((z) => z.zone === 'length')!;
+    };
+    expect(lengthOf('hps').label).not.toBe('unknown');
+    expect(lengthOf('center_back')).toMatchObject({ label: 'unknown', diffCm: null });
+    expect(lengthOf('center_back').note).toMatch(/back of the neck/);
+    expect(lengthOf('unknown').note).toMatch(/doesn't say where length/);
+  });
+
+  it('passes each zone the origin of the garment number', () => {
+    const tee = normalizeGarment({
+      ...seedTeeBase,
+      sizes: [{ label: 'M', measurements: { chest: 19, length: { value: 29, origin: 'estimated', how: 'test' } } }],
+    });
+    const fit = fitGarment(bodyWith({}), tee, 'M');
+    expect(fit.zones.find((z) => z.zone === 'chest')?.garmentOrigin).toBe('chart');
+    expect(fit.zones.find((z) => z.zone === 'length')?.garmentOrigin).toBe('estimated');
+  });
+
   it('throws for a size the garment does not have', () => {
     expect(() => fitGarment(body, findGarment('knightweave-tee')!, 'XXXL')).toThrow();
   });
@@ -194,7 +221,7 @@ describe('recommendSize', () => {
     // S and M miss the ideal ease (1 in) by the same 3 cm, S under and M over.
     const tee = normalizeGarment({
       ...seedTeeBase,
-      chart: { unit: 'cm', girth: 'circumference' },
+      chart: { unit: 'cm', girth: 'circumference', lengthDefinition: 'hps' },
       sizes: [
         { label: 'S', measurements: { chest: 100, length: 72 } },
         { label: 'M', measurements: { chest: 106, length: 72 } },

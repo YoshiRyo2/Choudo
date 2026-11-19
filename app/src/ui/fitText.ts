@@ -4,6 +4,7 @@
  */
 
 import type { FitLabel, GarmentFit, ZoneFit, ZoneId } from '../domain/fit';
+import type { ConfidenceGrade, Garment, SourceTier } from '../domain/garments';
 import { cmToIn } from '../domain/units';
 import type { UnitSystem } from './state/stored';
 
@@ -140,4 +141,56 @@ function sentence(parts: string[]): string {
 /** The size line on a Discover card or Closet tile. */
 export function sizeLine(size: string, recommended: boolean): string {
   return recommended ? `Your size: ${size}` : `Size ${size} · we couldn’t pick one for you`;
+}
+
+// ---------- where the numbers came from ----------
+
+/** The small badge on a garment card. */
+export const GRADE_BADGE: Record<ConfidenceGrade, string> = {
+  verified: 'Verified',
+  charted: 'From size chart',
+  estimated: 'Estimated',
+  unscored: 'Can’t score',
+};
+
+/** One line on what a grade means, for the fit readout. */
+export const GRADE_EXPLAINED: Record<ConfidenceGrade, string> = {
+  verified: 'Copied from the size chart and checked against a real garment we measured.',
+  charted: 'Copied from the size chart and checked for mistakes, but not yet measured on a real garment.',
+  estimated: 'Some of these numbers are our estimates, not the brand’s, so treat this fit as a guide.',
+  unscored: 'The chart doesn’t say how some measurements are taken, so we can’t score those.',
+};
+
+/** Each source tier in plain words: "From <this>". */
+export const TIER_PLAIN: Record<SourceTier, string> = {
+  A: 'the brand’s own spec sheet',
+  B: 'a published garment size chart',
+  C: 'a print partner’s product data',
+  D: 'a retailer’s product listing',
+  E: 'a garment measured by hand',
+  F: 'a body-size chart only, with no garment measurements',
+  G: 'a product photo only',
+};
+
+/** Shown next to a garment number that we estimated rather than copied. */
+export const ESTIMATED_MARK = 'est.';
+
+export type GarmentTag = { kind: 'sample' | ConfidenceGrade; text: string };
+
+/** The card tag: "Sample data" for invented rows, otherwise the grade badge. */
+export function garmentTag(garment: Pick<Garment, 'source' | 'grade'>): GarmentTag {
+  if (garment.source.placeholder) return { kind: 'sample', text: 'Sample data' };
+  return { kind: garment.grade, text: GRADE_BADGE[garment.grade] };
+}
+
+/** "2026-11-18" -> "18 Nov 2026" in the reader's locale. */
+export function formatCapturedOn(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/** "From a published garment size chart, copied 18 Nov 2026." */
+export function sourceLine(garment: Pick<Garment, 'source'>): string {
+  const { tier, capturedOn } = garment.source;
+  const from = tier ? `From ${TIER_PLAIN[tier]}` : 'From the brand’s size chart';
+  return `${from}${capturedOn ? `, copied ${formatCapturedOn(capturedOn)}` : ''}.`;
 }

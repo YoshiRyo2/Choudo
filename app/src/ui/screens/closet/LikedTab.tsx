@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { BodyModel } from '../../../domain/body';
 import { findGarment, type Garment, type GarmentCategory } from '../../../domain/garments';
+import { GarmentBadge } from '../../components/GarmentBadge';
 import { GarmentIcon } from '../../components/GarmentIcon';
 import { SegmentedControl } from '../../components/SegmentedControl';
 import { sizeLine, summarize } from '../../fitText';
@@ -66,7 +67,7 @@ export function LikedTab({ model, likedIds, onOpen, onUnlike, folderCount, onFol
                   <span className="tile__name">{g.name}</span>
                   <span className="tile__size num">{sizeLine(fit.sizeLabel, recommended)}</span>
                   <span className={`tile__verdict tone-${fit.overall}`}>{summarize(fit).headline}</span>
-                  {g.source.placeholder && <span className="sample-tag">Sample data</span>}
+                  <GarmentBadge garment={g} />
                 </button>
                 <div className="tile__actions">
                   <FoldersButton count={folderCount(g.id)} onClick={() => onFolders(g)} />

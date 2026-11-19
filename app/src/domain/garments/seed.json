@@ -1,5 +1,5 @@
 {
-  "_readme": "Hand-made garment seed for Nimbus v1. Numbers are copied exactly as each size chart prints them (see chart.unit and chart.girth); normalizeGarment converts to cm / full circumference. Rows with source.placeholder = true are INVENTED for development, under made-up brands (Fieldline, Corvo Denim) — replace them with real, cited charts before trusting any fit result. The Knightweave and Lands' End tees are real rows copied from data/tees.csv.",
+  "_readme": "Hand-made garment seed for Nimbus v1. Numbers are copied exactly as each size chart prints them (see chart.unit and chart.girth); normalizeGarment converts to cm / full circumference. Rows with source.placeholder = true are INVENTED for development, under made-up brands (Fieldline, Corvo Denim) — replace them with real, cited charts before trusting any fit result. The Knightweave and Lands' End tees are real rows copied from data/tees.csv. A value may be a plain number (copied from the chart) or { value, origin: chart | estimated | audited, how }. See docs/adding-garments.md for how to add a garment.",
   "garments": [
     {
       "id": "gildan-5000",
@@ -30,9 +30,11 @@
       },
       "sleeve": "short",
       "stretch": "none",
-      "chart": { "unit": "in", "girth": "flat" },
+      "fitIntent": "regular",
+      "chart": { "unit": "in", "girth": "flat", "lengthDefinition": "hps" },
       "source": {
         "placeholder": false,
+        "tier": "B",
         "url": "https://www.ooshirts.com/guides/Gildan-T-Shirt-Size-Chart-and-Fit-Guide.html",
         "capturedOn": "2026-11-18",
         "notes": "Nominal garment measurements laid flat, from Gildan's 2026 USA Style & Color Guide (p. 22) as reproduced by ooShirts. Width is pit to pit; length is high shoulder point to hem. Sleeve is not in this chart, so it is left out. 100% cotton: expect some shrinkage after washing."
@@ -58,11 +60,14 @@
       "color": "#2f3b4c",
       "sleeve": "short",
       "stretch": "none",
-      "chart": { "unit": "in", "girth": "flat", "sleeveDefinition": "center_back_to_cuff" },
+      "fitIntent": "regular",
+      "chart": { "unit": "in", "girth": "flat", "lengthDefinition": "hps", "sleeveDefinition": "center_back_to_cuff" },
       "source": {
         "placeholder": false,
+        "tier": "B",
         "url": "https://knightweave.com/pages/size-guide-tees",
-        "capturedOn": "2026-11-17"
+        "capturedOn": "2026-11-17",
+        "notes": "Chest is measured flat across the tee. Body length runs from the highest shoulder point to the hem; sleeve from the centre of the collar to the sleeve edge (checked against the page 2026-11-18)."
       },
       "sizes": [
         { "label": "S", "measurements": { "chest": 18, "length": 28, "sleeve": 15.62 } },
@@ -82,12 +87,15 @@
       "color": "#b5473a",
       "sleeve": "short",
       "stretch": "none",
-      "chart": { "unit": "in", "girth": "unknown", "sleeveDefinition": "top_of_sleeve" },
+      "fitIntent": "regular",
+      "chart": { "unit": "in", "girth": "unknown", "lengthDefinition": "hps", "sleeveDefinition": "top_of_sleeve" },
       "source": {
         "placeholder": false,
+        "tier": "B",
         "url": "https://www.landsend.com/garment_measurements/426768_core_pdp_spec.pdf",
         "capturedOn": "2026-11-17",
-        "notes": "Chart doesn't say whether chest is flat or full circumference, so chest fit is reported as unknown."
+        "snapshot": "chart-snapshots/landsend-super-t.pdf",
+        "notes": "Chart doesn't say whether chest is flat or full circumference, so chest fit is reported as unknown. Rows are labelled 'Garment length – high point' and 'Garment sleeve length – top of sleeve' (checked against the PDF 2026-11-18)."
       },
       "sizes": [
         { "label": "S", "measurements": { "chest": 40, "length": 28, "sleeve": 9.75 } },
@@ -107,7 +115,8 @@
       "color": "#e8e1d3",
       "sleeve": "short",
       "stretch": "none",
-      "chart": { "unit": "cm", "girth": "circumference" },
+      "fitIntent": "oversized",
+      "chart": { "unit": "cm", "girth": "circumference", "lengthDefinition": "hps" },
       "source": { "placeholder": true },
       "sizes": [
         { "label": "S", "measurements": { "chest": 108, "length": 66, "shoulder": 50 } },
@@ -126,7 +135,8 @@
       "color": "#5d7a5a",
       "sleeve": "long",
       "stretch": "some",
-      "chart": { "unit": "cm", "girth": "circumference", "sleeveDefinition": "shoulder_to_cuff" },
+      "fitIntent": "regular",
+      "chart": { "unit": "cm", "girth": "circumference", "lengthDefinition": "hps", "sleeveDefinition": "shoulder_to_cuff" },
       "source": { "placeholder": true },
       "sizes": [
         { "label": "S", "measurements": { "chest": 96, "length": 68, "sleeve": 61, "shoulder": 43 } },
@@ -145,7 +155,8 @@
       "color": "#9db6d3",
       "sleeve": "long",
       "stretch": "none",
-      "chart": { "unit": "in", "girth": "flat", "sleeveDefinition": "shoulder_to_cuff" },
+      "fitIntent": "regular",
+      "chart": { "unit": "in", "girth": "flat", "lengthDefinition": "hps", "sleeveDefinition": "shoulder_to_cuff" },
       "source": { "placeholder": true },
       "sizes": [
         { "label": "S", "measurements": { "chest": 20, "waist": 19, "length": 29, "sleeve": 24.5, "shoulder": 17.25 } },
@@ -164,7 +175,8 @@
       "color": "#1f4e5f",
       "sleeve": "short",
       "stretch": "some",
-      "chart": { "unit": "cm", "girth": "circumference" },
+      "fitIntent": "regular",
+      "chart": { "unit": "cm", "girth": "circumference", "lengthDefinition": "hps" },
       "source": { "placeholder": true },
       "sizes": [
         { "label": "S", "measurements": { "chest": 98, "length": 69, "shoulder": 43 } },
@@ -182,6 +194,7 @@
       "sizing": "mens",
       "color": "#c2a878",
       "stretch": "some",
+      "fitIntent": "slim",
       "chart": { "unit": "cm", "girth": "circumference" },
       "source": { "placeholder": true },
       "sizes": [
@@ -200,6 +213,7 @@
       "sizing": "mens",
       "color": "#3e4a3d",
       "stretch": "none",
+      "fitIntent": "regular",
       "chart": { "unit": "in", "girth": "flat" },
       "source": { "placeholder": true },
       "sizes": [
@@ -218,6 +232,7 @@
       "sizing": "unisex",
       "color": "#55565b",
       "stretch": "high",
+      "fitIntent": "relaxed",
       "chart": { "unit": "cm", "girth": "circumference" },
       "source": { "placeholder": true, "notes": "Waist is the relaxed elastic measurement." },
       "sizes": [
@@ -236,6 +251,7 @@
       "sizing": "mens",
       "color": "#7a5c45",
       "stretch": "none",
+      "fitIntent": "relaxed",
       "chart": { "unit": "cm", "girth": "circumference" },
       "source": { "placeholder": true },
       "sizes": [
@@ -254,6 +270,7 @@
       "sizing": "mens",
       "color": "#2b3f66",
       "stretch": "some",
+      "fitIntent": "slim",
       "chart": { "unit": "cm", "girth": "circumference" },
       "source": { "placeholder": true },
       "sizes": [
@@ -274,6 +291,7 @@
       "sizing": "mens",
       "color": "#5b7fa8",
       "stretch": "none",
+      "fitIntent": "relaxed",
       "chart": { "unit": "in", "girth": "flat" },
       "source": { "placeholder": true },
       "sizes": [
