@@ -5,7 +5,7 @@
  * (`npm run fit:report`) as soon as there are any.
  */
 
-import type { MeasurementKey } from '../body';
+import type { BodyType, MeasurementKey } from '../body';
 import type { ConfidenceGrade } from '../garments';
 
 /** Draws per sampleFit call. At 500 a 50% chance is good to about ±2.2 points. */
@@ -15,7 +15,8 @@ export const SAMPLE_COUNT = 500;
 export const SAMPLER_SEED = 20261118;
 
 /**
- * Body measurements estimated from height and weight (estimateBody).
+ * Body measurements estimated from height and weight (estimateBody), by body type.
+ * Men's (reasoned, approved for phase 3):
  *  - chest 5: predicting chest from height + weight in ANSUR-style survey data is
  *    off by about 4 cm (1 SD); our power-law model is cruder, so rounded up. Approximate.
  *  - waist 6: waist moves most with BMI, so it's the hardest girth to guess.
@@ -23,16 +24,52 @@ export const SAMPLER_SEED = 20261118;
  *  - torso length 3, inseam 3: body proportions (sitting-height ratio) vary by
  *    about 1.5% of height, ≈ 2.7 cm on a 178 cm adult.
  *  - arm 2.5, shoulder width 2: same reasoning, shorter segments.
+ * Women's: bust, waist, hips and inseam are the residual SDs of the ANSUR II female
+ * regressions (4.3, 4.9, 3.0, 2.3 cm; see WOMENS_REGRESSION in body/estimateBody.ts),
+ * each rounded up by half a cm because ANSUR II is a military population, not a
+ * shopping one. Arm 2.5 as for men (its ratio is from ANSUR II too). Torso length and
+ * shoulder width are estimated, not sourced, so they get 1 cm more than men's.
  */
-export const ESTIMATED_BODY_SD_CM: Record<MeasurementKey, number> = {
-  chestCm: 5,
-  waistCm: 6,
-  hipsCm: 4,
-  inseamCm: 3,
-  torsoLengthCm: 3,
-  armLengthCm: 2.5,
-  shoulderWidthCm: 2,
+export const ESTIMATED_BODY_SD_CM: Record<BodyType, Record<MeasurementKey, number>> = {
+  mens: {
+    chestCm: 5,
+    waistCm: 6,
+    hipsCm: 4,
+    inseamCm: 3,
+    torsoLengthCm: 3,
+    armLengthCm: 2.5,
+    shoulderWidthCm: 2,
+  },
+  womens: {
+    chestCm: 5,
+    waistCm: 5.5,
+    hipsCm: 3.5,
+    inseamCm: 3,
+    torsoLengthCm: 4,
+    armLengthCm: 2.5,
+    shoulderWidthCm: 3,
+  },
 };
+
+/**
+ * A bust estimated from a bra size (band + cup inches). Assumed: the band can be a
+ * size off (±1 in) and the cup a letter off (±1 in) — brands and fitting advice
+ * disagree by about that much — so √(2.54² + 2.54²) ≈ 3.6, rounded to 3.5. Wider
+ * than a measured bust (ENTERED_BODY_SD_CM), a little narrower than height + weight.
+ */
+export const BRA_BUST_SD_CM = 3.5;
+
+/**
+ * ASSUMPTION, not scored as fact: a fuller bust uses up front length, so a top can
+ * sit shorter at the front than its chart length (measured from the shoulder) says.
+ * We don't know by how much, so we don't move the length; we only widen the torso
+ * length spread by this much (cm, 1 SD) for each cup inch above C (3 in). A DDD (US)
+ * adds 1.5 cm in quadrature. Replace with fit-test data when there is some.
+ */
+export const CUP_TORSO_SD_CM_PER_IN = 0.5;
+
+/** Cups up to and including C (3 in) add nothing to the torso length spread. */
+export const CUP_TORSO_FREE_IN = 3;
 
 /**
  * A measurement the user typed in. Measuring yourself with a tape is repeatable

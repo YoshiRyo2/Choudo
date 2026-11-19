@@ -8,7 +8,7 @@ import { UNKNOWN_CHEST_TEE } from '../garments/testFixtures';
 
 /** A body with exact, entered measurements so tests don't depend on the estimator. */
 function bodyWith(m: Partial<BodyModel['measurements']>): BodyModel {
-  const model = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens' });
+  const model = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
   return { ...model, measurements: { ...model.measurements, ...m } };
 }
 
@@ -143,7 +143,7 @@ describe('fitGarment', () => {
     const measured = estimateBody({
       heightCm: 176,
       weightKg: 85,
-      sizing: 'mens',
+      bodyType: 'mens',
       overrides: { chestCm: 96 },
     });
     const fit = fitGarment(measured, findGarment('knightweave-tee')!, 'M');
@@ -196,7 +196,7 @@ describe('fitGarment', () => {
   });
 
   it('runs for every garment and size in the seed without unknowns on placeholder data', () => {
-    const avg = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens' });
+    const avg = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
     for (const id of ['fieldline-boxy-tee', 'fieldline-jogger', 'corvo-relaxed-jean']) {
       for (const fit of fitAllSizes(avg, findGarment(id)!)) {
         expect(fit.zones.every((z) => z.label !== 'unknown')).toBe(true);

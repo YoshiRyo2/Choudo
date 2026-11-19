@@ -28,7 +28,7 @@ interface PhotoEntry {
   inset: number;
 }
 
-const DEFAULT_BODY: BodyInput = { heightCm: 176, weightKg: 78, sizing: 'mens' };
+const DEFAULT_BODY: BodyInput = { heightCm: 176, weightKg: 78, bodyType: 'mens' };
 
 /** The user's own body from the app, if they've entered one. */
 function storedBody(): BodyInput {

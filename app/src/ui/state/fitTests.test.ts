@@ -5,7 +5,7 @@ import { findGarment } from '../../domain/garments';
 import { anchorText, csvField, csvFileName, fitTestsCsv, makeFitTest, predictionFor } from './fitTests';
 import { isFitTestList } from './stored';
 
-const body = { heightCm: 178, weightKg: 75, sizing: 'mens' } as const;
+const body = { heightCm: 178, weightKg: 75, bodyType: 'mens' } as const;
 const model = estimateBody(body);
 const gildan = findGarment('gildan-5000')!;
 

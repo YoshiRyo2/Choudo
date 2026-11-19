@@ -226,3 +226,20 @@
 .testers__switch input {
   margin-top: 3px;
 }
+
+.bra-size {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+  margin-top: 16px;
+}
+
+.bra-size .number-input {
+  flex: 1 1 140px;
+}
+
+.bra-size .field-error {
+  flex-basis: 100%;
+  margin: 0;
+}

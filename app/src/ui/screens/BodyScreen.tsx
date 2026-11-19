@@ -5,6 +5,7 @@ import {
   validateBodyInput,
   type BodyInput,
   type BodyModel,
+  type BodyType,
 } from '../../domain/body';
 import { cmToIn, kgToLb, round } from '../../domain/units';
 import { Mannequin } from '../components/Mannequin/Mannequin';
@@ -12,6 +13,7 @@ import { FieldError, NumberInput } from '../components/NumberInput';
 import { SegmentedControl } from '../components/SegmentedControl';
 import type { UnitSystem } from '../state/stored';
 import {
+  braSizeProblemText,
   EMPTY_FORM,
   formToInput,
   inputToForm,
@@ -56,6 +58,12 @@ const OVERRIDE_HINT: Record<OverrideField, string> = {
   inseam: 'Crotch to floor, no shoes',
 };
 
+/** A women's body measures the full bust where a men's measures the chest. */
+const overrideLabel = (field: OverrideField, bodyType: BodyType) =>
+  field === 'chest' && bodyType === 'womens' ? 'Full bust' : OVERRIDE_LABEL[field];
+const overrideHint = (field: OverrideField, bodyType: BodyType) =>
+  field === 'chest' && bodyType === 'womens' ? 'Fullest part, tape level all round' : OVERRIDE_HINT[field];
+
 type FieldKey = keyof typeof INPUT_LIMITS;
 
 /** Domain field -> where the message shows on the form. */
@@ -82,6 +90,7 @@ function errorMessages(input: BodyInput | null, units: UnitSystem): Partial<Reco
   if (!input) return {};
   const out: Partial<Record<string, string>> = {};
   for (const err of validateBodyInput(input)) {
+    if (err.field === 'braSize') continue; // the form shows its own bra-size message
     const { min, max } = INPUT_LIMITS[err.field];
     let range: string;
     if (units === 'metric') {
@@ -93,7 +102,8 @@ function errorMessages(input: BodyInput | null, units: UnitSystem): Partial<Reco
     } else {
       range = `${Math.round(cmToIn(min))}–${Math.round(cmToIn(max))} in`;
     }
-    out[FIELD_OF[err.field]] = `${FIELD_NAME[err.field]} should be ${range}.`;
+    const name = err.field === 'chestCm' && input.bodyType === 'womens' ? 'Bust' : FIELD_NAME[err.field];
+    out[FIELD_OF[err.field]] = `${name} should be ${range}.`;
   }
   return out;
 }
@@ -107,6 +117,7 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
   const formId = useId();
 
   const input = useMemo(() => formToInput(form), [form]);
+  const braProblem = braSizeProblemText(form);
   const errors = useMemo(() => errorMessages(input, form.units), [input, form.units]);
   const model: BodyModel | null = useMemo(
     () => (input && validateBodyInput(input).length === 0 ? estimateBody(input) : null),
@@ -120,12 +131,12 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
     setForm((f) => ({ ...f, overrides: { ...f.overrides, [field]: value } }));
 
   const missing = !input;
-  const canSubmit = model !== null;
+  const canSubmit = model !== null && braProblem === undefined;
 
   function submit(e: FormEvent) {
     e.preventDefault();
     setSubmitted(true);
-    if (input && model) onDone(input, form.units);
+    if (input && model && !braProblem) onDone(input, form.units);
   }
 
   /** Our estimate for a field, in the form's units — shown as the placeholder. */
@@ -158,14 +169,16 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
             ]}
             onChange={(u) => setForm((f) => switchUnits(f, u))}
           />
+        </div>
+        <div className="field-row">
           <SegmentedControl
-            label="Size charts"
-            value={form.sizing}
+            label="Size me in"
+            value={form.bodyType}
             options={[
-              { value: 'mens', label: 'Men’s' },
-              { value: 'womens', label: 'Women’s' },
+              { value: 'womens', label: 'Women’s clothes' },
+              { value: 'mens', label: 'Men’s clothes' },
             ]}
-            onChange={(sizing) => set({ sizing })}
+            onChange={(bodyType) => set({ bodyType })}
           />
         </div>
 
@@ -239,8 +252,8 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
                 <div key={field} className="tape-grid__item">
                   <NumberInput
                     id={`${formId}-${field}`}
-                    label={OVERRIDE_LABEL[field]}
-                    hint={OVERRIDE_HINT[field]}
+                    label={overrideLabel(field, form.bodyType)}
+                    hint={overrideHint(field, form.bodyType)}
                     unit={lengthUnit}
                     value={form.overrides[field]}
                     placeholder={estimate(field)}
@@ -252,6 +265,38 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
                 </div>
               ))}
             </div>
+            {form.bodyType === 'womens' && (
+              <div className="bra-size">
+                <div className="number-input">
+                  <label htmlFor={`${formId}-bra`} className="number-input__label">
+                    Bra size
+                    <span className="number-input__hint">Optional. Used for your bust if Full bust is blank</span>
+                  </label>
+                  <div className={`number-input__box${braProblem ? ' is-invalid' : ''}`}>
+                    <input
+                      id={`${formId}-bra`}
+                      className="num"
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      placeholder="34C"
+                      value={form.braSize}
+                      onChange={(e) => set({ braSize: e.target.value })}
+                      aria-invalid={braProblem ? true : undefined}
+                    />
+                  </div>
+                </div>
+                <SegmentedControl
+                  label="Cup letters"
+                  value={form.braSystem}
+                  options={[
+                    { value: 'us', label: 'US' },
+                    { value: 'uk', label: 'UK' },
+                  ]}
+                  onChange={(braSystem) => set({ braSystem })}
+                />
+                <FieldError message={submitted || form.braSize.trim().length >= 3 ? braProblem : undefined} />
+              </div>
+            )}
           </div>
         </section>
 
@@ -335,11 +380,16 @@ function EstimateList({ model, units }: { model: BodyModel; units: UnitSystem })
   const metric = units === 'metric';
   const fmt = (cm: number) => (metric ? `${Math.round(cm)} cm` : `${round(cmToIn(cm), 1)} in`);
   const rows = [
-    ['Chest', 'chestCm'],
+    [model.measurements.bodyType === 'womens' ? 'Bust' : 'Chest', 'chestCm'],
     ['Waist', 'waistCm'],
     ['Hips', 'hipsCm'],
     ['Inseam', 'inseamCm'],
   ] as const;
+  const sourceText = (key: (typeof rows)[number][1]) => {
+    if (model.sources[key] === 'entered') return 'yours';
+    if (key === 'chestCm' && model.bra?.setsBust) return 'from bra size';
+    return 'estimate';
+  };
   return (
     <dl className="estimates">
       {rows.map(([label, key]) => (
@@ -347,7 +397,7 @@ function EstimateList({ model, units }: { model: BodyModel; units: UnitSystem })
           <dt>{label}</dt>
           <dd>
             <span className="num">{fmt(model.measurements[key])}</span>
-            <span className="estimates__source">{model.sources[key] === 'entered' ? 'yours' : 'estimate'}</span>
+            <span className="estimates__source">{sourceText(key)}</span>
           </dd>
         </div>
       ))}

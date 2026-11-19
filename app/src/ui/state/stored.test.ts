@@ -14,12 +14,17 @@ import {
 
 describe('stored data guards', () => {
   it('accepts a valid body and rejects broken ones', () => {
-    expect(isStoredBody({ heightCm: 176, weightKg: 85, sizing: 'mens' })).toBe(true);
+    expect(isStoredBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' })).toBe(true);
     expect(isStoredBody(null)).toBe(true);
-    expect(isStoredBody({ heightCm: '176', weightKg: 85, sizing: 'mens' })).toBe(false);
-    expect(isStoredBody({ heightCm: 70, weightKg: 85, sizing: 'mens' })).toBe(false);
-    expect(isStoredBody({ heightCm: 176, weightKg: 85, sizing: 'other' })).toBe(false);
+    expect(isStoredBody({ heightCm: '176', weightKg: 85, bodyType: 'mens' })).toBe(false);
+    expect(isStoredBody({ heightCm: 70, weightKg: 85, bodyType: 'mens' })).toBe(false);
+    expect(isStoredBody({ heightCm: 176, weightKg: 85, bodyType: 'other' })).toBe(false);
     expect(isStoredBody('hello')).toBe(false);
+    expect(isStoredBody({ heightCm: 176, weightKg: 85, sizing: 'mens' })).toBe(false); // v1 shape: migrate.ts moves it
+    const bra = { band: 34, cup: 'C', system: 'us' };
+    expect(isStoredBody({ heightCm: 165, weightKg: 60, bodyType: 'womens', overrides: { braSize: bra } })).toBe(true);
+    expect(isStoredBody({ heightCm: 165, weightKg: 60, bodyType: 'womens', overrides: { braSize: { ...bra, system: 'eu' } } })).toBe(false);
+    expect(isStoredBody({ heightCm: 165, weightKg: 60, bodyType: 'womens', overrides: { braSize: { ...bra, cup: 'Q' } } })).toBe(false);
   });
 
   it('checks units and outfits', () => {
@@ -72,7 +77,7 @@ describe('fit preference guards', () => {
 
 describe('fit test guards', () => {
   const prediction = {
-    body: { heightCm: 178, weightKg: 75, sizing: 'mens' },
+    body: { heightCm: 178, weightKg: 75, bodyType: 'mens' },
     chestCm: 96.4,
     chestSource: 'estimated',
     torsoLengthCm: 73,

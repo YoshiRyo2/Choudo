@@ -39,7 +39,7 @@ describe('triangleAffine', () => {
 describe('warpPieces for the Gildan 5000 photo', () => {
   const garment = findGarment('gildan-5000')!;
   const photo = garment.image!.landmarks;
-  const body = estimateBody({ heightCm: 178, weightKg: 75, sizing: 'mens' }).measurements;
+  const body = estimateBody({ heightCm: 178, weightKg: 75, bodyType: 'mens' }).measurements;
   const g = bodyGeometry(body);
 
   for (const label of ['S', 'XL', '5XL']) {
@@ -97,7 +97,7 @@ describe('warpPieces for the Gildan 5000 photo', () => {
 describe('warpPieces for a long sleeve laid flat (the black henley)', () => {
   const garment = findGarment('ryo-black-henley')!;
   const photo = garment.image!.landmarks;
-  const body = estimateBody({ heightCm: 176, weightKg: 78, sizing: 'mens' }).measurements;
+  const body = estimateBody({ heightCm: 176, weightKg: 78, bodyType: 'mens' }).measurements;
   const shape = topShape(bodyGeometry(body), garment, garment.sizes[0]!.measurements, body.chestCm);
   const pieces = warpPieces(photo, shape.landmarks, shape.sleeveEdges);
 

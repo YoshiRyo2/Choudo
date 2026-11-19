@@ -3,7 +3,7 @@
  * conversions to and from the domain's BodyInput (numbers, cm/kg).
  */
 
-import type { BodyInput, BodyOverrides, SizingProfile } from '../../domain/body';
+import { parseBraSize, type BodyInput, type BodyOverrides, type BodyType, type BraSystem } from '../../domain/body';
 import {
   cmToFeetInches,
   cmToIn,
@@ -24,9 +24,12 @@ export interface BodyForm {
   heightFt: string;
   heightIn: string;
   weight: string;
-  sizing: SizingProfile;
+  bodyType: BodyType;
   /** Optional tape-measure numbers, in the form's length unit. */
   overrides: Record<OverrideField, string>;
+  /** Women's only: an optional bra size as typed ("34C"), and its letter system. */
+  braSize: string;
+  braSystem: BraSystem;
 }
 
 export const EMPTY_FORM: BodyForm = {
@@ -35,11 +38,13 @@ export const EMPTY_FORM: BodyForm = {
   heightFt: '',
   heightIn: '',
   weight: '',
-  sizing: 'mens',
+  bodyType: 'mens',
   overrides: { chest: '', waist: '', hips: '', inseam: '' },
+  braSize: '',
+  braSystem: 'us',
 };
 
-const OVERRIDE_KEY: Record<OverrideField, keyof BodyOverrides> = {
+const OVERRIDE_KEY: Record<OverrideField, 'chestCm' | 'waistCm' | 'hipsCm' | 'inseamCm'> = {
   chest: 'chestCm',
   waist: 'waistCm',
   hips: 'hipsCm',
@@ -76,13 +81,27 @@ export function formToInput(form: BodyForm): BodyInput | null {
     const v = parseNumber(form.overrides[field]);
     if (v !== undefined) overrides[OVERRIDE_KEY[field]] = metric ? v : inToCm(v);
   }
+  if (form.bodyType === 'womens' && form.braSize.trim() !== '') {
+    const bra = parseBraSize(form.braSize, form.braSystem);
+    if (bra.ok) overrides.braSize = bra.value;
+  }
 
   return {
     heightCm,
     weightKg: metric ? weightRaw : lbToKg(weightRaw),
-    sizing: form.sizing,
+    bodyType: form.bodyType,
     ...(Object.keys(overrides).length > 0 ? { overrides } : {}),
   };
+}
+
+/**
+ * What's wrong with the typed bra size, or undefined when it's blank, usable, or
+ * ignored (a men's body). formToInput leaves out a bra size that has a problem.
+ */
+export function braSizeProblemText(form: BodyForm): string | undefined {
+  if (form.bodyType !== 'womens' || form.braSize.trim() === '') return undefined;
+  const bra = parseBraSize(form.braSize, form.braSystem);
+  return bra.ok ? undefined : bra.message;
 }
 
 /** BodyInput -> form text in the given units (used to pre-fill when editing). */
@@ -98,13 +117,15 @@ export function inputToForm(input: BodyInput, units: UnitSystem): BodyForm {
     heightFt: String(feet),
     heightIn: String(inches),
     weight: String(round(metric ? input.weightKg : kgToLb(input.weightKg), 1)),
-    sizing: input.sizing,
+    bodyType: input.bodyType,
     overrides: {
       chest: length(o.chestCm),
       waist: length(o.waistCm),
       hips: length(o.hipsCm),
       inseam: length(o.inseamCm),
     },
+    braSize: o.braSize ? `${o.braSize.band}${o.braSize.cup}` : '',
+    braSystem: o.braSize?.system ?? 'us',
   };
 }
 
@@ -112,6 +133,6 @@ export function inputToForm(input: BodyInput, units: UnitSystem): BodyForm {
 export function switchUnits(form: BodyForm, units: UnitSystem): BodyForm {
   if (form.units === units) return form;
   const input = formToInput(form);
-  if (input) return inputToForm(input, units);
-  return { ...EMPTY_FORM, units, sizing: form.sizing };
+  if (input) return { ...inputToForm(input, units), braSize: form.braSize, braSystem: form.braSystem };
+  return { ...EMPTY_FORM, units, bodyType: form.bodyType, braSize: form.braSize, braSystem: form.braSystem };
 }

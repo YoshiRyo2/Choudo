@@ -64,10 +64,10 @@ describe('describeZone', () => {
 });
 
 describe('summarize', () => {
-  const body = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens' });
+  const body = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
 
   it('names the problem zones', () => {
-    const tall = estimateBody({ heightCm: 190, weightKg: 110, sizing: 'mens' });
+    const tall = estimateBody({ heightCm: 190, weightKg: 110, bodyType: 'mens' });
     const s = summarize(fitGarment(tall, findGarment('fieldline-straight-chino')!, '30'));
     expect(s.headline).toBe('Probably won’t fit');
     expect(s.detail).toMatch(/^Tight at the waist/);

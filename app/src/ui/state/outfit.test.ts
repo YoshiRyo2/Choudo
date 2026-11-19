@@ -6,7 +6,7 @@ import { defaultSize, resolveOutfit, suggestedFit, wearGarment } from './outfit'
 import { EMPTY_OUTFIT } from './stored';
 import { UNKNOWN_CHEST_TEE } from '../../domain/garments/testFixtures';
 
-const body = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens' });
+const body = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
 const pref = preferenceSpec(null, null);
 
 describe('resolveOutfit', () => {

@@ -6,7 +6,7 @@ import { MAX_SIDE_FLARE_CM, topShape } from './topShape';
 import { UNKNOWN_CHEST_TEE } from '../../../domain/garments/testFixtures';
 
 const body = (heightCm: number, weightKg: number) =>
-  estimateBody({ heightCm, weightKg, sizing: 'mens' }).measurements;
+  estimateBody({ heightCm, weightKg, bodyType: 'mens' }).measurements;
 
 describe('bodyGeometry', () => {
   it('scales vertically with height and stands on the floor', () => {
@@ -18,7 +18,7 @@ describe('bodyGeometry', () => {
   });
 
   it('puts the crotch at height minus inseam', () => {
-    const m = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens', overrides: { inseamCm: 80 } });
+    const m = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens', overrides: { inseamCm: 80 } });
     expect(bodyGeometry(m.measurements).y.crotch).toBeCloseTo(96);
   });
 

@@ -7,7 +7,8 @@ import { validateBodyInput, type BodyInput } from '../../domain/body';
 import { FIT_STYLES, validateMeasuredAnchor, type Anchor, type FitStyle } from '../../domain/fit';
 
 export const STORAGE_KEYS = {
-  body: 'nimbus.body.v1',
+  /** v2: `sizing` became `bodyType`, plus an optional bra size (migrate.ts moves v1 over). */
+  body: 'nimbus.body.v2',
   units: 'nimbus.units.v1',
   outfit: 'nimbus.outfit.v1',
   swipes: 'nimbus.swipes.v1',
@@ -19,8 +20,8 @@ export const STORAGE_KEYS = {
   fitStyle: 'nimbus.fitStyle.v1',
   /** Whether the hidden Test mode is on. */
   testMode: 'nimbus.testMode.v1',
-  /** Results recorded in Test mode. */
-  fitTests: 'nimbus.fitTests.v1',
+  /** Results recorded in Test mode. v2: each prediction's body uses `bodyType`. */
+  fitTests: 'nimbus.fitTests.v2',
 } as const;
 
 /** Display units. Metric = cm + kg, imperial = in + lb. Storage is always metric. */
@@ -123,12 +124,17 @@ export const EMPTY_OUTFIT: Outfit = { topId: null, topSize: null, bottomId: null
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const isStringOrNull = (v: unknown) => v === null || typeof v === 'string';
 
+function isBraSize(v: unknown): boolean {
+  return isRecord(v) && typeof v.band === 'number' && typeof v.cup === 'string' && (v.system === 'us' || v.system === 'uk');
+}
+
 export function isStoredBody(v: unknown): v is BodyInput | null {
   if (v === null) return true;
   if (!isRecord(v)) return false;
   if (typeof v.heightCm !== 'number' || typeof v.weightKg !== 'number') return false;
-  if (v.sizing !== 'mens' && v.sizing !== 'womens') return false;
+  if (v.bodyType !== 'mens' && v.bodyType !== 'womens') return false;
   if (v.overrides !== undefined && !isRecord(v.overrides)) return false;
+  if (isRecord(v.overrides) && v.overrides.braSize !== undefined && !isBraSize(v.overrides.braSize)) return false;
   return validateBodyInput(v as unknown as BodyInput).length === 0;
 }
 

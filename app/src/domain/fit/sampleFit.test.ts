@@ -14,7 +14,7 @@ import {
   sampleFit,
   type SizeOdds,
 } from './sampleFit';
-import { ENTERED_BODY_SD_CM, ESTIMATED_BODY_SD_CM, GARMENT_SD_CM, SAMPLE_COUNT } from './uncertainty';
+import { BRA_BUST_SD_CM, ENTERED_BODY_SD_CM, ESTIMATED_BODY_SD_CM, GARMENT_SD_CM, SAMPLE_COUNT } from './uncertainty';
 import { UNKNOWN_CHEST_TEE } from '../garments/testFixtures';
 
 const regular = preferenceSpec(null, null);
@@ -22,7 +22,7 @@ const gildan = findGarment('gildan-5000')!;
 
 /** A body with chosen measurements, each marked entered or estimated. */
 function bodyWith(m: Partial<BodyModel['measurements']>, source: 'entered' | 'estimated' = 'entered'): BodyModel {
-  const model = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens' });
+  const model = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
   const sources = { ...model.sources };
   for (const k of Object.keys(m) as (keyof typeof sources)[]) if (k in sources) sources[k] = source;
   return { measurements: { ...model.measurements, ...m }, sources };
@@ -76,7 +76,30 @@ describe('spreads', () => {
   it('body: entered is tighter than estimated', () => {
     const b = bodyWith({ chestCm: 100 }, 'entered');
     expect(bodySdCm(b, 'chestCm')).toBe(ENTERED_BODY_SD_CM);
-    expect(bodySdCm(b, 'torsoLengthCm')).toBe(ESTIMATED_BODY_SD_CM.torsoLengthCm);
+    expect(bodySdCm(b, 'torsoLengthCm')).toBe(ESTIMATED_BODY_SD_CM.mens.torsoLengthCm);
+  });
+
+  it('body: women’s spreads, a bra-size bust, and a wider torso for a fuller cup', () => {
+    const womens = estimateBody({ heightCm: 165, weightKg: 62, bodyType: 'womens' });
+    expect(bodySdCm(womens, 'chestCm')).toBe(ESTIMATED_BODY_SD_CM.womens.chestCm);
+    expect(bodySdCm(womens, 'torsoLengthCm')).toBe(ESTIMATED_BODY_SD_CM.womens.torsoLengthCm);
+
+    const c = estimateBody({ heightCm: 165, weightKg: 62, bodyType: 'womens', overrides: { braSize: { band: 34, cup: 'C', system: 'us' } } });
+    expect(bodySdCm(c, 'chestCm')).toBe(BRA_BUST_SD_CM);
+    expect(BRA_BUST_SD_CM).toBeGreaterThan(ENTERED_BODY_SD_CM);
+    expect(BRA_BUST_SD_CM).toBeLessThan(ESTIMATED_BODY_SD_CM.womens.chestCm);
+    expect(bodySdCm(c, 'torsoLengthCm')).toBe(ESTIMATED_BODY_SD_CM.womens.torsoLengthCm); // C adds nothing
+
+    const ddd = estimateBody({
+      heightCm: 165,
+      weightKg: 62,
+      bodyType: 'womens',
+      overrides: { chestCm: 100, braSize: { band: 34, cup: 'DDD', system: 'us' } },
+    });
+    expect(bodySdCm(ddd, 'chestCm')).toBe(ENTERED_BODY_SD_CM); // a measured bust wins
+    expect(bodySdCm(ddd, 'torsoLengthCm')).toBeCloseTo(Math.hypot(ESTIMATED_BODY_SD_CM.womens.torsoLengthCm, 1.5));
+    // The cup only widens the spread: the torso length itself doesn't move.
+    expect(ddd.measurements.torsoLengthCm).toBe(c.measurements.torsoLengthCm);
   });
 
   it('garment: by grade, by a value’s own origin, and widened by an audit', () => {
@@ -161,7 +184,7 @@ describe('sampleFit', () => {
 
 describe('recommendSize', () => {
   it('Gildan 5000 on a 178 cm / 75 kg body (estimated) with Regular → M', () => {
-    const b = estimateBody({ heightCm: 178, weightKg: 75, sizing: 'mens' });
+    const b = estimateBody({ heightCm: 178, weightKg: 75, bodyType: 'mens' });
     expect(recommendSize(b, gildan, regular)).toBe('M');
   });
 
