@@ -76,6 +76,7 @@ describe('anchors', () => {
 
   it('only real tops with a trusted chest can be anchors', () => {
     expect(canAnchor(findGarment('gildan-5000')!)).toBe(true);
+    expect(canAnchor(findGarment('landsend-super-t')!)).toBe(true);
     expect(canAnchor(UNKNOWN_CHEST_TEE)).toBe(false); // chest method unknown
     expect(canAnchor(findGarment('fieldline-boxy-tee')!)).toBe(false); // placeholder
     expect(canAnchor(findGarment('corvo-slim-jean')!)).toBe(false); // not a top

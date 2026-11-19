@@ -100,6 +100,12 @@ describe('fitGarment', () => {
     expect(fit.overall).toBe('good');
   });
 
+  it('scores the Lands’ End chest as a full circumference, not doubled', () => {
+    const chest = chestOf(fitGarment(body, findGarment('landsend-super-t')!, 'M'));
+    expect(chest.diffCm).toBeCloseTo(inToCm(44 - 38));
+    expect(chest.label).toBe('loose');
+  });
+
   it('never guesses an unverified chest', () => {
     const fit = fitGarment(body, UNKNOWN_CHEST_TEE, 'M');
     const chest = chestOf(fit);

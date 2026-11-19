@@ -77,7 +77,7 @@ describe('the seed', () => {
   it('grades the real tees and a placeholder as expected', () => {
     expect(findGarment('gildan-5000')?.grade).toBe('charted');
     expect(findGarment('knightweave-tee')?.grade).toBe('charted');
-    expect(findGarment('landsend-super-t')?.grade).toBe('unscored');
+    expect(findGarment('landsend-super-t')?.grade).toBe('charted');
     expect(findGarment('fieldline-oxford')?.grade).toBe('estimated');
   });
 

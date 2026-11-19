@@ -88,14 +88,14 @@
       "sleeve": "short",
       "stretch": "none",
       "fitIntent": "regular",
-      "chart": { "unit": "in", "girth": "unknown", "lengthDefinition": "hps", "sleeveDefinition": "top_of_sleeve" },
+      "chart": { "unit": "in", "girth": "circumference", "lengthDefinition": "hps", "sleeveDefinition": "top_of_sleeve" },
       "source": {
         "placeholder": false,
         "tier": "B",
         "url": "https://www.landsend.com/garment_measurements/426768_core_pdp_spec.pdf",
         "capturedOn": "2026-11-17",
         "snapshot": "chart-snapshots/landsend-super-t.pdf",
-        "notes": "Chart doesn't say whether chest is flat or full circumference, so chest fit is reported as unknown. Rows are labelled 'Garment length – high point' and 'Garment sleeve length – top of sleeve' (checked against the PDF 2026-11-18)."
+        "notes": "Chest is a full circumference (confirmed by Ryo, 2026-11-18): 40-56 in across S-XXL, which leaves 4-6 in of room over Lands' End's body chart for each size. Rows are labelled 'Garment length – high point' and 'Garment sleeve length – top of sleeve' (checked against the PDF 2026-11-18)."
       },
       "sizes": [
         { "label": "S", "measurements": { "chest": 40, "length": 28, "sleeve": 9.75 } },

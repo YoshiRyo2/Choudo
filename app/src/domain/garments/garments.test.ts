@@ -58,8 +58,10 @@ describe('seed.json', () => {
     }
   });
 
-  it('marks the Lands’ End chest as unverified', () => {
-    expect(findGarment('landsend-super-t')?.girthVerified).toBe(false);
+  it('reads the Lands’ End chest as a full circumference (M: 44 in, not doubled)', () => {
+    const le = findGarment('landsend-super-t')!;
+    expect(le.girthVerified).toBe(true);
+    expect(le.sizes.find((s) => s.label === 'M')?.measurements.chest).toBeCloseTo(111.76);
   });
 });
 
