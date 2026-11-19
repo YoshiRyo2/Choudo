@@ -75,24 +75,28 @@ describe('outline helpers', () => {
 
 describe('suggestLandmarks', () => {
   it('reads a short-sleeve tee', () => {
-    const sleeve = [P(62, 40), P(22, 66), P(36, 90), P(62, 80)];
-    const tee = draw([[P(60, 40), P(140, 40), P(140, 190), P(60, 190)], sleeve, mirror(sleeve)], [neck]);
+    // Shoulders slope down 12 px from the collar, as a tee laid flat does.
+    const sleeve = [P(62, 52), P(22, 70), P(36, 92), P(62, 82)];
+    const body = [P(60, 52), P(84, 40), P(116, 40), P(140, 52), P(140, 190), P(60, 190)];
+    const tee = draw([body, sleeve, mirror(sleeve)], [neck]);
     const lm = suggestLandmarks(tee, W, H)!;
     near(lm, 'hemLeft', P(60, 189));
     near(lm, 'hemRight', P(139, 189));
-    near(lm, 'armpitLeft', P(60, 80), 6);
-    near(lm, 'armpitRight', P(139, 80), 6);
-    near(lm, 'shoulderLeft', P(60, 40), 6);
-    near(lm, 'sleeveOuterLeft', P(22, 66));
-    near(lm, 'sleeveInnerLeft', P(36, 89));
-    near(lm, 'sleeveOuterRight', P(177, 66));
-    near(lm, 'sleeveInnerRight', P(163, 89));
-    // Collar points either side of the neck dip, neckFront below them on the centre line.
+    near(lm, 'armpitLeft', P(60, 82), 6);
+    near(lm, 'armpitRight', P(139, 82), 6);
+    near(lm, 'shoulderLeft', P(60, 52), 6);
+    near(lm, 'sleeveOuterLeft', P(22, 70));
+    near(lm, 'sleeveInnerLeft', P(36, 91));
+    near(lm, 'sleeveOuterRight', P(177, 70));
+    near(lm, 'sleeveInnerRight', P(163, 91));
+    // Collar points either side of the neck dip.
     expect(lm.collarLeft.x).toBeLessThan(83);
-    expect(lm.collarLeft.y).toBe(40);
+    expect(lm.collarLeft.y).toBeLessThanOrEqual(41);
     expect(lm.collarRight.x).toBeGreaterThan(117);
+    // neckFront on the centre line, below the collar but not below the shoulders.
     expect(lm.neckFront.x).toBeCloseTo(100, -1);
-    expect(lm.neckFront.y).toBeGreaterThan(48);
+    expect(lm.neckFront.y).toBeGreaterThan(lm.collarLeft.y);
+    expect(lm.neckFront.y).toBeLessThan((lm.shoulderLeft.y + lm.shoulderRight.y) / 2);
   });
 
   it('reads a long-sleeve top with sleeves hanging down and out', () => {

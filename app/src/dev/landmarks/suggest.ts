@@ -12,7 +12,9 @@
  *  - Shoulders: the top edge straight above each armpit.
  *  - Collar points: the highest top-edge points either side of the neck dip.
  *    neckFront is the one real guess: the silhouette shows the back of the neck,
- *    not the front neckline, so it sits a typical crew-neck depth below.
+ *    not the front neckline, so it sits a typical crew-neck depth below, but
+ *    never below the line between the shoulders. The mannequin's neckline is
+ *    above its shoulder seams, and a photo point below them would fold the warp.
  *  - Sleeve openings: on the stretch of outline from shoulder round the sleeve
  *    to the armpit, the two points that make the biggest quadrilateral
  *    shoulder -> outer -> inner -> armpit. That fits short sleeves cut square or
@@ -243,9 +245,11 @@ export function suggestLandmarks(mask: Uint8Array, w: number, h: number): Landma
   };
   const collarLeft = collar(-1, outline[shoulderL]!.x);
   const collarRight = collar(1, outline[shoulderR]!.x);
+  const collarY = Math.max(collarLeft.y, collarRight.y);
+  const shoulderMidY = (outline[shoulderL]!.y + outline[shoulderR]!.y) / 2;
   const neckFront = {
     x: cx,
-    y: Math.max(topAt(cx), Math.max(collarLeft.y, collarRight.y) + NECK_DEPTH * (collarRight.x - collarLeft.x)),
+    y: Math.max(collarY + 2, Math.min(collarY + NECK_DEPTH * (collarRight.x - collarLeft.x), shoulderMidY - 2)),
   };
 
   // ----- sleeve openings -----

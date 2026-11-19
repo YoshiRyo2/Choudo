@@ -3,7 +3,8 @@
  * and lets it save into seed.json. `apply: 'serve'` keeps all of this out of
  * `npm run build`; the picker's page (dev/landmarks.html) isn't a build input.
  *
- *   GET  /__dev/garment-photos  -> which garments have a cut-out PNG, from scripts/garment-photos.json
+ *   GET  /__dev/garment-photos  -> each photo in scripts/garment-photos.json: its PNG, whether it
+ *                                 exists, and how far its colour padding reaches (inset, px)
  *   POST /__dev/landmarks       {id, file, landmarks} -> writes that garment's "image" in seed.json
  */
 
@@ -49,11 +50,17 @@ export function landmarksDevServer(): Plugin {
         }
         if (req.method === 'GET' && url === '/__dev/garment-photos') {
           const config = JSON.parse(readFileSync(join(root, PHOTOS), 'utf8')) as {
-            photos: { id: string; out?: string }[];
+            defaults?: { pad?: number; erode?: number };
+            photos: { id: string; out?: string; method?: string; pad?: number; erode?: number; bleed?: number }[];
           };
           const photos = config.photos.map((p) => {
             const out = p.out ?? `public/garments/${p.id}-front.png`;
-            return { id: p.id, file: out.replace(/^public\//, ''), exists: existsSync(join(root, out)) };
+            // How far the PNG's opaque area reaches past the garment: npm run photos pads it.
+            const inset =
+              p.method === 'colour'
+                ? (p.bleed ?? 0)
+                : (p.pad ?? config.defaults?.pad ?? 24) - (p.erode ?? config.defaults?.erode ?? 3);
+            return { id: p.id, file: out.replace(/^public\//, ''), exists: existsSync(join(root, out)), inset };
           });
           return send(res, 200, photos);
         }
