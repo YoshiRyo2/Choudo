@@ -69,6 +69,14 @@ export function foldersContaining(folders: Folder[], item: FolderItem): Folder[]
   return folders.filter((f) => isInFolder(f, item));
 }
 
+/** "2 garments, 1 outfit", or "Empty". */
+export function folderSummary(folder: Folder): string {
+  const count = (kind: FolderItem['kind']) => folder.items.filter((i) => i.kind === kind).length;
+  const part = (n: number, word: string) => (n === 0 ? null : `${n} ${word}${n === 1 ? '' : 's'}`);
+  const parts = [part(count('garment'), 'garment'), part(count('outfit'), 'outfit')].filter(Boolean);
+  return parts.length > 0 ? parts.join(', ') : 'Empty';
+}
+
 // ---------- outfits ----------
 
 /** "Outfit 1", "Outfit 2", … — the first number not already used. */

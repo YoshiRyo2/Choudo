@@ -3,6 +3,7 @@ import { ConfirmButton } from '../../components/ConfirmButton';
 import { NameForm } from '../../components/NameForm';
 import { nextOutfitName, outfitOf } from '../../state/closet';
 import type { Outfit, SavedOutfit } from '../../state/stored';
+import { FoldersButton } from './FolderPicker';
 import { OutfitFigure, outfitLine } from './OutfitCard';
 
 interface OutfitsTabProps {
@@ -13,10 +14,12 @@ interface OutfitsTabProps {
   onSave: (name: string) => void;
   onWear: (outfit: Outfit) => void;
   onDelete: (id: string) => void;
+  folderCount: (outfitId: string) => number;
+  onFolders: (outfit: SavedOutfit) => void;
 }
 
 /** Named top + bottom combinations saved from the fitting room. */
-export function OutfitsTab({ model, outfits, current, onSave, onWear, onDelete }: OutfitsTabProps) {
+export function OutfitsTab({ model, outfits, current, onSave, onWear, onDelete, folderCount, onFolders }: OutfitsTabProps) {
   return (
     <section className="closet__section" aria-label="Saved outfits">
       <div className="closet__card">
@@ -39,6 +42,7 @@ export function OutfitsTab({ model, outfits, current, onSave, onWear, onDelete }
                 <button type="button" className="button button--primary button--small" onClick={() => onWear(outfitOf(o))}>
                   Open
                 </button>
+                <FoldersButton count={folderCount(o.id)} onClick={() => onFolders(o)} />
                 <ConfirmButton label="Delete" confirmLabel="Sure?" onConfirm={() => onDelete(o.id)} />
               </div>
             </li>

@@ -5,6 +5,7 @@ import {
   createFolder,
   deleteFolder,
   deleteOutfit,
+  folderSummary,
   foldersContaining,
   nextOutfitName,
   outfitOf,
@@ -68,6 +69,15 @@ describe('folders', () => {
     expect(on[1]!.items).toEqual([tee]);
     expect(toggleInFolder(on, 'f2', tee)[1]!.items).toEqual([]);
     expect(toggleInFolder(on, 'missing', tee)).toBe(on);
+  });
+});
+
+describe('folderSummary', () => {
+  it('counts garments and outfits', () => {
+    const [work] = twoFolders();
+    expect(folderSummary(work!)).toBe('Empty');
+    expect(folderSummary({ ...work!, items: [tee] })).toBe('1 garment');
+    expect(folderSummary({ ...work!, items: [tee, jeans, look] })).toBe('2 garments, 1 outfit');
   });
 });
 

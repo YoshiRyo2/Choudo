@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import {
+  addToFolder,
   createFolder,
   deleteFolder,
   deleteOutfit,
@@ -54,6 +55,11 @@ export function useCloset() {
       const id = makeId();
       setFolders(createFolder(folders, id, name));
       return id;
+    },
+    /** Make a folder and put an item straight into it. */
+    createFolderWith(name: string, item: FolderItem) {
+      const id = makeId();
+      setFolders(addToFolder(createFolder(folders, id, name), id, item));
     },
     renameFolder(id: string, name: string) {
       setFolders(renameFolder(folders, id, name));

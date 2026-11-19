@@ -4,13 +4,22 @@ import type { Garment } from '../../domain/garments';
 import { FitSheet } from '../components/FitSheet';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { resolveOutfit, suggestedFit } from '../state/outfit';
-import type { Outfit, UnitSystem } from '../state/stored';
+import { foldersContaining } from '../state/closet';
+import type { FolderItem, Outfit, UnitSystem } from '../state/stored';
 import type { Closet as ClosetState } from '../state/useCloset';
+import { FolderPicker } from './closet/FolderPicker';
+import { FoldersTab } from './closet/FoldersTab';
 import { LikedTab } from './closet/LikedTab';
 import { OutfitsTab } from './closet/OutfitsTab';
 import './Closet.css';
 
-type ClosetTab = 'liked' | 'outfits';
+type ClosetTab = 'liked' | 'folders' | 'outfits';
+
+/** The item whose folders are being edited, and what to call it. */
+interface Filing {
+  item: FolderItem;
+  title: string;
+}
 
 interface ClosetProps {
   body: BodyInput;
@@ -24,12 +33,15 @@ interface ClosetProps {
   onOpenDiscover: () => void;
 }
 
-/** Liked garments and saved outfits. */
+/** Liked garments, folders of them, and saved outfits. */
 export function Closet({ body, units, closet, outfit, onTryOn, onWear, onEditBody, onOpenDiscover }: ClosetProps) {
   const model = useMemo(() => estimateBody(body), [body]);
   const current = useMemo(() => resolveOutfit(outfit, model), [outfit, model]);
   const [tab, setTab] = useState<ClosetTab>('liked');
   const [details, setDetails] = useState<Garment | null>(null);
+  const [filing, setFiling] = useState<Filing | null>(null);
+  const folderCount = (kind: FolderItem['kind']) => (id: string) =>
+    foldersContaining(closet.folders, { kind, id }).length;
 
   return (
     <main className="closet">
@@ -43,6 +55,7 @@ export function Closet({ body, units, closet, outfit, onTryOn, onWear, onEditBod
           value={tab}
           options={[
             { value: 'liked', label: 'Liked' },
+            { value: 'folders', label: 'Folders' },
             { value: 'outfits', label: 'Outfits' },
           ]}
           onChange={setTab}
@@ -55,6 +68,8 @@ export function Closet({ body, units, closet, outfit, onTryOn, onWear, onEditBod
           likedIds={closet.liked}
           onOpen={setDetails}
           onUnlike={closet.unlike}
+          folderCount={folderCount('garment')}
+          onFolders={(g) => setFiling({ item: { kind: 'garment', id: g.id }, title: g.name })}
           onOpenDiscover={onOpenDiscover}
         />
       )}
@@ -66,6 +81,32 @@ export function Closet({ body, units, closet, outfit, onTryOn, onWear, onEditBod
           onSave={(name) => closet.saveOutfit(current, name)}
           onWear={onWear}
           onDelete={closet.deleteOutfit}
+          folderCount={folderCount('outfit')}
+          onFolders={(o) => setFiling({ item: { kind: 'outfit', id: o.id }, title: o.name })}
+        />
+      )}
+      {tab === 'folders' && (
+        <FoldersTab
+          model={model}
+          folders={closet.folders}
+          outfits={closet.outfits}
+          onCreate={closet.createFolder}
+          onRename={closet.renameFolder}
+          onDelete={closet.deleteFolder}
+          onRemove={closet.removeFromFolder}
+          onOpenGarment={setDetails}
+          onWear={onWear}
+        />
+      )}
+
+      {filing && (
+        <FolderPicker
+          title={filing.title}
+          item={filing.item}
+          folders={closet.folders}
+          onToggle={(folderId) => closet.toggleInFolder(folderId, filing.item)}
+          onCreate={(name) => closet.createFolderWith(name, filing.item)}
+          onClose={() => setFiling(null)}
         />
       )}
 

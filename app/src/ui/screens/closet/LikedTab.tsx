@@ -5,6 +5,7 @@ import { GarmentIcon } from '../../components/GarmentIcon';
 import { SegmentedControl } from '../../components/SegmentedControl';
 import { sizeLine, summarize } from '../../fitText';
 import { suggestedFit } from '../../state/outfit';
+import { FoldersButton } from './FolderPicker';
 
 type Filter = 'all' | GarmentCategory;
 
@@ -13,11 +14,14 @@ interface LikedTabProps {
   likedIds: string[];
   onOpen: (garment: Garment) => void;
   onUnlike: (garmentId: string) => void;
+  /** How many folders a garment is in. */
+  folderCount: (garmentId: string) => number;
+  onFolders: (garment: Garment) => void;
   onOpenDiscover: () => void;
 }
 
 /** Everything you've liked, newest first, filterable by tops and bottoms. */
-export function LikedTab({ model, likedIds, onOpen, onUnlike, onOpenDiscover }: LikedTabProps) {
+export function LikedTab({ model, likedIds, onOpen, onUnlike, folderCount, onFolders, onOpenDiscover }: LikedTabProps) {
   const [filter, setFilter] = useState<Filter>('all');
   // Likes for garments no longer in the catalogue are skipped.
   const liked = likedIds.map((id) => findGarment(id)).filter((g): g is Garment => g !== undefined);
@@ -65,6 +69,7 @@ export function LikedTab({ model, likedIds, onOpen, onUnlike, onOpenDiscover }: 
                   {g.source.placeholder && <span className="sample-tag">Sample data</span>}
                 </button>
                 <div className="tile__actions">
+                  <FoldersButton count={folderCount(g.id)} onClick={() => onFolders(g)} />
                   <button
                     type="button"
                     className="tile__unlike"
