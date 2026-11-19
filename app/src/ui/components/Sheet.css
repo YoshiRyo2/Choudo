@@ -46,8 +46,15 @@
   cursor: pointer;
 }
 
+/* The main action stays in reach while the fit details scroll under it. */
 .sheet__actions {
+  position: sticky;
+  bottom: calc(-20px - env(safe-area-inset-bottom));
   display: grid;
+  margin: 0 -16px calc(-20px - env(safe-area-inset-bottom));
+  padding: 10px 16px calc(14px + env(safe-area-inset-bottom));
+  background: var(--paper-raised);
+  box-shadow: 0 -1px 0 var(--line);
 }
 
 @media (min-width: 600px) {
