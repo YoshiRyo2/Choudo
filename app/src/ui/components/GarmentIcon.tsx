@@ -40,6 +40,9 @@ function GarmentDrawing({ garment }: { garment: Garment }) {
   } else if (garment.category === 'bottom') {
     const wide = garment.type === 'trousers' ? 4 : garment.type === 'joggers' ? -2 : 0;
     d = `M14 6 H46 L${50 + wide} 58 H${34} L30 24 L26 58 H${10 - wide} Z`;
+  } else if (garment.category === 'outer') {
+    // A jacket: long sleeves, a stand collar, and a little longer than a top.
+    d = 'M21 4 L30 9 L39 4 L51 9 L59 52 L51 54 L45 24 L45 60 H15 L15 24 L9 54 L1 52 L9 9 Z';
   } else if (garment.sleeve === 'long') {
     d = 'M22 6 Q30 12 38 6 L50 10 L58 50 L50 52 L44 22 L44 58 H16 L16 22 L10 52 L2 50 L10 10 Z';
   } else {
@@ -49,6 +52,7 @@ function GarmentDrawing({ garment }: { garment: Garment }) {
     <svg viewBox="0 0 60 64" width="56" height="60" aria-hidden="true" className="garment-icon">
       <path d={d} fill={fill} stroke={stroke} strokeWidth="1.2" strokeLinejoin="round" />
       {garment.type === 'button-up' && <line x1="30" y1="11" x2="30" y2="58" stroke={stroke} strokeWidth="1" />}
+      {garment.category === 'outer' && <line x1="30" y1="9" x2="30" y2="60" stroke={stroke} strokeWidth="1" />}
       {garment.type === 'polo' && <path d="M26 9 L30 18 L34 9" fill="none" stroke={stroke} strokeWidth="1" />}
     </svg>
   );

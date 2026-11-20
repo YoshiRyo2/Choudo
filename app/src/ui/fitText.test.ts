@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../domain/body';
 import { fitGarment, preferenceSpec, VERDICTS, type GarmentOdds, type SizeOdds, type Verdict, type ZoneFit, type ZoneOdds } from '../domain/fit';
-import { findGarment } from '../domain/garments';
+import { findGarment, type GarmentType } from '../domain/garments';
 import { UNKNOWN_CHEST_TEE } from '../domain/garments/testFixtures';
 import {
   describeZone,
@@ -21,6 +21,9 @@ import {
   summarize,
   zoneLabelText,
   bodyPlaceText,
+  layerNoteLines,
+  layerNoteText,
+  wornOverText,
 } from './fitText';
 
 const zone = (patch: Partial<ZoneFit>): ZoneFit => ({
@@ -446,5 +449,60 @@ describe('jacket wording', () => {
     expect(jacket(35, 'knee-length')).toBe('Knee length: the hem ends 35.0 cm below your hip line.');
     const skirt = describeZone(zone({ zone: 'length', kind: 'landing', label: 'noted', diffCm: -6, landing: 'above-knee', bodyAt: 'knee' }), 'metric');
     expect(skirt).toMatch(/above your knee\.$/);
+  });
+});
+
+describe('layer wording', () => {
+  const hoodie = { garmentId: 'gildan-18500', type: 'hoodie' as const };
+
+  it('says what a jacket is worn over, by the type of the top', () => {
+    const over = (type: GarmentType) => wornOverText({ over: { garmentId: 'x', type } });
+    expect(wornOverText({})).toBeNull();
+    expect(over('hoodie')).toBe('With your hoodie under it');
+    expect(over('tee')).toBe('With your tee under it');
+    expect(over('long-sleeve-tee')).toBe('With your long-sleeve tee under it');
+    expect(over('button-up')).toBe('With your shirt under it');
+    expect(over('sweatshirt')).toBe('With your sweatshirt under it');
+  });
+
+  it('places a layered body number over the layer', () => {
+    expect(bodyPlaceText(zone({ bodyAt: 'over_layer' }), hoodie)).toBe(' with your hoodie under it');
+    expect(bodyPlaceText(zone({ bodyAt: 'over_layer' }))).toBe(' with what’s under it');
+  });
+
+  it('words each layer note', () => {
+    expect(layerNoteText({ kind: 'hem-shows', cm: 6 }, 'hoodie', 'jacket', 'metric')).toBe('Your hoodie shows 6.0 cm below the jacket’s hem.');
+    expect(layerNoteText({ kind: 'cuffs-show', cm: 2 }, 'hoodie', 'coat', 'metric')).toBe('Your hoodie’s cuffs show past the coat’s sleeves.');
+    expect(layerNoteText({ kind: 'bunches', cm: 4 }, 'sweatshirt', 'jacket', 'metric')).toBe(
+      'Your sweatshirt is roomier than the jacket leaves room for: expect it to bunch up underneath.',
+    );
+  });
+
+  it('gives a jacket the personal verdict words, as a top', () => {
+    const odds: GarmentOdds = {
+      garmentId: 'j',
+      recommended: 'M',
+      samples: 500,
+      sizes: [{ sizeLabel: 'M', zones: [], verdicts: { ...Object.fromEntries(VERDICTS.map((v) => [v, 0])), fits: 0.8 } as Record<Verdict, number>, likes: 0.8, meanGirthMissCm: 1 }],
+    };
+    const line = verdictLine(odds, 'M', { category: 'outer', fitIntent: 'regular' });
+    expect(line.headline).toBe('Very likely fits how you like');
+    expect(line.detail).toBe('80% chance it fits how you like.');
+    const chest: ZoneOdds = { zone: 'chest', kind: 'girth', labels: {}, personal: { under: 0.1, right: 0.8, over: 0.1, unknown: 0 } };
+    expect(personalOddsText(chest, { category: 'outer' }, false)).toMatch(/^As you like 80%/);
+    const landing: ZoneOdds = { zone: 'length', kind: 'landing', labels: { noted: 1 }, personal: { under: 0, right: 1, over: 0, unknown: 0 } };
+    expect(personalOddsText(landing, { category: 'outer' }, true)).toBeNull();
+  });
+});
+
+describe('layerNoteLines', () => {
+  it('words the notes for a jacket over a top, and gives none without one', () => {
+    const body = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
+    const hoodie = { garment: findGarment('gildan-18500')!, sizeLabel: 'XL' };
+    const jacket = { garment: findGarment('port-authority-j317')!, sizeLabel: 'S' };
+    const lines = layerNoteLines(body, hoodie, jacket, 'metric');
+    expect(lines.length).toBeGreaterThan(0);
+    expect(lines.every((l) => l.startsWith('Your hoodie'))).toBe(true);
+    expect(layerNoteLines(body, undefined, jacket, 'metric')).toEqual([]);
   });
 });

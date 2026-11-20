@@ -13,6 +13,7 @@ import {
   preferenceNote,
   sourceLine,
   summarize,
+  wornOverText,
   verdictLine,
   zoneLabelText,
   zoneName,
@@ -40,6 +41,8 @@ interface FitReadoutProps {
    * room turns it off: its fit strip already shows them.
    */
   summary?: boolean;
+  /** How the layers sit together, already worded (a jacket over a hoodie). */
+  layerNotes?: readonly string[];
   onEditBody: () => void;
 }
 
@@ -54,13 +57,15 @@ export function FitReadout({
   showOdds,
   onDetails,
   summary: showSummary = true,
+  layerNotes = [],
   onEditBody,
 }: FitReadoutProps) {
   const summary = summarize(fit);
   const verdict = verdictLine(odds, fit.sizeLabel, garment);
   const sizeOdds = odds.sizes.find((s) => s.sizeLabel === fit.sizeLabel);
   const hasLengthPreference = preference.anchor?.lengthCm != null;
-  const prefNote = garment.category === 'top' && verdict.verdict !== 'unknown' ? preferenceNote(preference) : null;
+  const prefNote = garment.category !== 'bottom' && verdict.verdict !== 'unknown' ? preferenceNote(preference) : null;
+  const over = wornOverText(fit);
   return (
     <section className="readout" aria-labelledby={showSummary ? 'readout-title' : undefined}>
       {showSummary ? (
@@ -85,6 +90,19 @@ export function FitReadout({
       ) : (
         // The headline lives elsewhere (the fit strip); what it's compared with stays here.
         prefNote && <p className="readout__pref">{prefNote}</p>
+      )}
+
+      {over && (
+        <div className="readout__layer">
+          <p className="readout__over">{over}</p>
+          {layerNotes.length > 0 && (
+            <ul className="readout__notes">
+              {layerNotes.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       {hint && (
@@ -112,7 +130,7 @@ export function FitReadout({
             <p className="zone__numbers">
               <span>
                 You <span className="num">{formatLength(z.bodyCm, units)}</span>
-                {bodyPlaceText(z)}
+                {bodyPlaceText(z, fit.over)}
                 {z.bodySource === 'estimated' && <span className="zone__est"> estimated</span>}
               </span>
               {z.garmentCm !== null && z.diffCm !== null && (
@@ -132,7 +150,7 @@ export function FitReadout({
       </ul>
 
       {/* With an anchor tee, a top's chest estimate cancels out, so measuring wouldn't help. */}
-      {!hint && summary.usesEstimates && !(garment.category === 'top' && preference.source === 'anchor') && (
+      {!hint && summary.usesEstimates && !(garment.category !== 'bottom' && preference.source === 'anchor') && (
         <p className="readout__estimates">
           Some of your numbers are estimates from height and weight.{' '}
           <button type="button" className="link-button" onClick={onEditBody}>

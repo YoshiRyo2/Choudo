@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { BodyModel } from '../../domain/body';
-import { fitAllSizes, measurementHint, type PreferenceSpec } from '../../domain/fit';
+import { fitAllSizes, measurementHint, type PreferenceSpec, type UnderLayer } from '../../domain/fit';
 import type { Garment } from '../../domain/garments';
 import { garmentOdds } from '../state/odds';
 import type { UnitSystem } from '../state/stored';
+import { layerNoteLines } from '../fitText';
 import { FitReadout } from './FitReadout';
 import { Sheet } from './Sheet';
 import { SizePicker } from './SizePicker';
@@ -20,6 +21,8 @@ interface FitSheetProps {
   /** The button text for onTryOn; defaults to "Try M in the fitting room". */
   actionLabel?: (size: string) => string;
   onEditBody: () => void;
+  /** Worn under this garment (the fitting room's top under a jacket): fit and odds over it. */
+  under?: UnderLayer;
 }
 
 const tryInFittingRoom = (size: string) => `Try ${size} in the fitting room`;
@@ -35,13 +38,14 @@ export function FitSheet({
   onTryOn,
   actionLabel = tryInFittingRoom,
   onEditBody,
+  under,
 }: FitSheetProps) {
   const [size, setSize] = useState(initialSize);
-  const fits = useMemo(() => fitAllSizes(model, garment), [model, garment]);
-  const odds = useMemo(() => garmentOdds(model, garment, preference), [model, garment, preference]);
+  const fits = useMemo(() => fitAllSizes(model, garment, under), [model, garment, under]);
+  const odds = useMemo(() => garmentOdds(model, garment, preference, under), [model, garment, preference, under]);
   const hint = useMemo(
-    () => measurementHint(model, garment, preference, { current: odds.recommended }),
-    [model, garment, preference, odds],
+    () => measurementHint(model, garment, preference, { current: odds.recommended, under }),
+    [model, garment, preference, odds, under],
   );
   const fit = fits.find((f) => f.sizeLabel === size) ?? fits[0]!;
 
@@ -56,6 +60,7 @@ export function FitSheet({
         preference={preference}
         hint={hint}
         showOdds
+        layerNotes={layerNoteLines(model, under, { garment, sizeLabel: size }, units)}
         onEditBody={onEditBody}
       />
       <p className="sheet__note">

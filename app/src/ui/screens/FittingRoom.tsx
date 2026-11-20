@@ -1,8 +1,17 @@
 import { useMemo, useRef, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
-import { fitAllSizes, measurementHint, type Anchor, type GarmentFit, type GarmentOdds, type PreferenceSpec } from '../../domain/fit';
+import {
+  fitAllSizes,
+  measurementHint,
+  type Anchor,
+  type GarmentFit,
+  type GarmentOdds,
+  type PreferenceSpec,
+  type UnderLayer,
+} from '../../domain/fit';
 import { catalogueFor, findGarment, GARMENTS, type CatalogueScope, type Garment, type GarmentCategory } from '../../domain/garments';
 import { catalogueToggle, emptyCategoryText } from '../catalogueText';
+import { layerNoteLines } from '../fitText';
 import { FitReadout } from '../components/FitReadout';
 import { FitSheet } from '../components/FitSheet';
 import { FitStrip } from '../components/FitStrip';
@@ -16,7 +25,7 @@ import { clickedByPointer, refocus } from '../focus';
 import { makeId } from '../state/closet';
 import { makeFitTest, predictionFor } from '../state/fitTests';
 import { garmentOdds } from '../state/odds';
-import { defaultSize, resolveOutfit } from '../state/outfit';
+import { defaultSize, resolveOutfit, wearGarment } from '../state/outfit';
 import type { FitTestRecord, Outfit, UnitSystem } from '../state/stored';
 import { FitTestPanel } from './FitTestPanel';
 import './FittingRoom.css';
@@ -77,11 +86,11 @@ export function FittingRoom({
   const [browsing, setBrowsing] = useState<GarmentCategory>('top');
   const [saving, setSaving] = useState<'naming' | 'saved' | null>(null);
 
-  const slot = (id: string | null, size: string | null): Slot | null => {
+  const slot = (id: string | null, size: string | null, under?: UnderLayer): Slot | null => {
     const garment = id ? findGarment(id) : undefined;
     if (!garment || !size) return null;
-    const fits = fitAllSizes(model, garment);
-    const odds = garmentOdds(model, garment, preference);
+    const fits = fitAllSizes(model, garment, under);
+    const odds = garmentOdds(model, garment, preference, under);
     return {
       garment,
       size,
@@ -94,31 +103,41 @@ export function FittingRoom({
   // A handful of sizes per garment — cheap enough to recompute every render.
   const top = slot(outfit.topId, outfit.topSize);
   const bottom = slot(outfit.bottomId, outfit.bottomSize);
+  // A jacket is fitted over the top under it (domain/fit/layers.ts); its size cards elsewhere stay bare-body.
+  const under: UnderLayer | undefined = top ? { garment: top.garment, sizeLabel: top.size } : undefined;
+  const outer = slot(outfit.outerId, outfit.outerSize, under);
 
-  const active = browsing === 'top' ? top : bottom;
+  const active = browsing === 'top' ? top : browsing === 'bottom' ? bottom : outer;
+  const activeUnder = browsing === 'outer' ? under : undefined;
   const [showDetails, setShowDetails] = useState(false);
   const activeGarment = active?.garment;
   const activeRecommended = active?.recommended ?? null;
   // Re-runs the sampler a few times, so only when the garment, body or preference changes.
-  const hint = useMemo(
-    () => (activeGarment ? measurementHint(model, activeGarment, preference, { current: activeRecommended }) : null),
-    [model, activeGarment, preference, activeRecommended],
-  );
+  const underId = activeUnder?.garment.id;
+  const underSize = activeUnder?.sizeLabel;
+  const hint = useMemo(() => {
+    if (!activeGarment) return null;
+    const layer = underId && underSize ? { garment: findGarment(underId)!, sizeLabel: underSize } : undefined;
+    return measurementHint(model, activeGarment, preference, { current: activeRecommended, under: layer });
+  }, [model, activeGarment, preference, activeRecommended, underId, underSize]);
+  const layerNotes =
+    outer && browsing === 'outer' ? layerNoteLines(model, under, { garment: outer.garment, sizeLabel: outer.size }, units) : [];
 
   function chooseGarment(id: string) {
     const garment = findGarment(id);
     if (!garment) return;
-    const size = defaultSize(model, garment, preference);
-    setSaved(
-      garment.category === 'top'
-        ? { ...outfit, topId: id, topSize: size }
-        : { ...outfit, bottomId: id, bottomSize: size },
-    );
+    // A jacket starts in the size suggested over the top it goes on.
+    const overTop = garment.category === 'outer' ? garmentOdds(model, garment, preference, under).recommended : null;
+    setSaved(wearGarment(outfit, garment, overTop ?? defaultSize(model, garment, preference)));
   }
 
   function chooseSize(size: string) {
-    setSaved(browsing === 'top' ? { ...outfit, topSize: size } : { ...outfit, bottomSize: size });
+    if (browsing === 'top') setSaved({ ...outfit, topSize: size });
+    else if (browsing === 'bottom') setSaved({ ...outfit, bottomSize: size });
+    else setSaved({ ...outfit, outerSize: size });
   }
+
+  const takeOffJacket = () => setSaved({ ...outfit, outerId: null, outerSize: null });
 
   // The carousel: what's on show in this category, plus the worn garment if the filter hides it.
   const inCategory = shown.filter((g) => g.category === browsing);
@@ -202,8 +221,9 @@ export function FittingRoom({
           hideLabel
           value={browsing}
           options={[
-            { value: 'top', label: top ? `Top: ${top.garment.name}` : 'Tops' },
-            { value: 'bottom', label: bottom ? `Bottom: ${bottom.garment.name}` : 'Bottoms' },
+            { value: 'top', label: 'Top' },
+            { value: 'bottom', label: 'Bottom' },
+            { value: 'outer', label: 'Jacket' },
           ]}
           onChange={setBrowsing}
         />
@@ -211,28 +231,35 @@ export function FittingRoom({
         {carousel.length > 0 ? (
           <GarmentCarousel
             key={`${browsing}-${catalogue}`}
-            label={browsing === 'top' ? 'Tops' : 'Bottoms'}
+            label={browsing === 'top' ? 'Tops' : browsing === 'bottom' ? 'Bottoms' : 'Jackets'}
             garments={carousel}
             selectedId={active?.garment.id ?? null}
             onSelect={chooseGarment}
             headerAction={
-              <button
-                type="button"
-                className="fitting__show"
-                aria-label={show.accessibleName}
-                ref={(el) => {
-                  if (el && refocusShow.current) {
-                    refocus(el, refocusShow.current === 'pointer');
-                    refocusShow.current = null;
-                  }
-                }}
-                onClick={(e) => {
-                  refocusShow.current = clickedByPointer(e) ? 'pointer' : 'keyboard';
-                  onCatalogueChange(show.next);
-                }}
-              >
-                {show.label}
-              </button>
+              <>
+                {browsing === 'outer' && outer && (
+                  <button type="button" className="fitting__show" onClick={takeOffJacket}>
+                    Take off
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="fitting__show"
+                  aria-label={show.accessibleName}
+                  ref={(el) => {
+                    if (el && refocusShow.current) {
+                      refocus(el, refocusShow.current === 'pointer');
+                      refocusShow.current = null;
+                    }
+                  }}
+                  onClick={(e) => {
+                    refocusShow.current = clickedByPointer(e) ? 'pointer' : 'keyboard';
+                    onCatalogueChange(show.next);
+                  }}
+                >
+                  {show.label}
+                </button>
+              </>
             }
           />
         ) : (
@@ -253,6 +280,7 @@ export function FittingRoom({
             preference={preference}
             hint={hint}
             summary={false}
+            layerNotes={layerNotes}
             onEditBody={onEditBody}
           />
         )}
@@ -298,6 +326,7 @@ export function FittingRoom({
             }}
             actionLabel={(size) => (size === active.size ? 'Done' : `Wear ${size}`)}
             onEditBody={onEditBody}
+            under={activeUnder}
           />
         )}
       </section>
