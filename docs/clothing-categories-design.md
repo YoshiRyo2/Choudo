@@ -717,6 +717,32 @@ Split into 1a (commits 1–2, Medium, no visible change) and 1b (3–8).
   picker picks a kit by template; `suggestPantsLandmarks` reads the outline row by row. Tested on a
   synthetic jeans outline and a synthetic PNG (not committed); no real pants photo yet.
 
+#### PR 2 as built (knits)
+
+- **Template** `knit` (hoodie, sweatshirt, sweater, cardigan), category `top`. Zones chest, length,
+  sleeve, hemBand (optional). No new body keys: centre-back targets are worked out from existing
+  ones in `domain/fit/tops.ts` (`bodyTarget` + `bodyAt: 'centre_back'`), so the sampler and every
+  existing golden line are unchanged.
+- **Centre back**: length target = torso − `BACK_NECK_DROP_CM` (2, assumed). Sleeve target = arm +
+  shoulder / 2 + `SHOULDER_CURVE_CM` — checked against ANSUR II `sleevelengthspinewrist`: our arm +
+  half shoulders runs 5.3 cm (men) / 5.5 cm (women) short of the survey means at their statures, so
+  that is the correction (not a regression; one per body type).
+- **Knit offset** `KNIT_EASE_OFFSET_CM` = 10 (assumed: Gildan 18500 vs 5000, 4 in fuller per size)
+  moves the chest bands and the personal target; knits aren't anchors.
+- **Hem band** (`hemBand`, relaxed) vs hips, `HEM_BAND` assumed (tight < −2 cm before stretch,
+  fitted ≤ +4, relaxed ≤ +12). The design's `hemBandStretched` isn't built: no chart prints it.
+- **Weight** `weight?: light | mid | heavy` with a per-template default (`weightOf`); unused until PR 4.
+- **Checks**: knit ranges, per-definition sleeve ranges (tops unchanged), a knit flat-chest limit
+  (95 cm; a 5XL hoodie is 86), relation `hemBand ≤ chest`, `scoredDefinitions` per template.
+- **Data**: Gildan 18500 and Comfort Colors 1566 from the brands' spec sheets on SanMar (tier B).
+  Neither prints a hem band: estimated at 85 % of the chest (assumed), so both grade `estimated`.
+  The 1566 chart has no sleeve.
+- **Drawing**: `topShape` + rib hem band, rib cuffs, hood (behind the neck) and drawcords;
+  `hoodTop` landmark is validated and drawn but not yet warped (no knit photos).
+- **Known effect**: a knit's best "fits how you like" odds run lower than a tee's (men 176/85:
+  Gildan L 13 % vs a tee's 27 %) — the sleeve adds a length zone and the estimated hem band widens
+  the garment spread. Not tuned.
+
 ### PR 2 — hoodies / sweaters (Medium)
 - `knit` zones: chest (personal, tee `INTENT_EASE` plus a knit offset), length (`hps` or `center_back` against
   `cervicaleHeightCm`), sleeve (`shoulder_to_cuff` or `center_back_to_cuff` against `sleevelengthspinewrist`),

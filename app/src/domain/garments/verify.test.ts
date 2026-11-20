@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeSize } from './normalize';
+import { KNIT_HOODIE_SEED } from './testFixtures';
 import type { SeedGarment, SeedSize } from './types';
 import {
   checkGarment,
@@ -253,5 +254,57 @@ describe('pants checks', () => {
   it('lists a leg opening whose method is unknown as unscorable, not required', () => {
     const g = pants({ legOpening: 40 }, { chart: { unit: 'cm', girth: { default: 'circumference', legOpening: 'unknown' } } });
     expect(unscorableZones(g)).toEqual([{ key: 'legOpening', reason: 'chart doesn’t say flat or full circumference', required: false }]);
+  });
+});
+
+describe('knit checks', () => {
+  const hoodie = (patch: Partial<SeedGarment> = {}): SeedGarment => ({ ...KNIT_HOODIE_SEED, ...patch });
+  const sizes = (g: SeedGarment) => g.sizes.map((s) => normalizeSize(s, g.chart));
+
+  it('passes a clean hoodie', () => {
+    const r = checkGarment(hoodie());
+    expect(r.errors).toEqual([]);
+    expect(r.warnings).toEqual([]);
+  });
+
+  it('warns when the hem band is wider than the chest', () => {
+    const g = hoodie({ sizes: [{ label: 'L', measurements: { chest: 24, length: 29, sleeve: 35, hemBand: 25 } }] });
+    expect(checkGarment(g).warnings).toContainEqual({
+      check: 'relation',
+      message: 'hemBand in L (127.0 cm) is wider than its chest (121.9 cm)',
+    });
+  });
+
+  it('checks a centre-back sleeve against a centre-back range, and the hem band against its own', () => {
+    const g = hoodie({ sizes: [{ label: 'L', measurements: { chest: 24, length: 29, sleeve: 50, hemBand: 10 } }] });
+    const out = checkRanges(g, sizes(g));
+    expect(out).toContain('sleeve in L is 127.0 cm, outside 70–110 cm');
+    expect(out).toContain('hemBand in L is 50.8 cm, outside 60–150 cm');
+  });
+
+  it('allows big knits a wider chest than tees', () => {
+    const g = hoodie({ sizes: [{ label: '5XL', measurements: { chest: 34, length: 34, sleeve: 40, hemBand: 29 } }] });
+    expect(checkRanges(g, sizes(g)).filter((w) => w.startsWith('chest in'))).toEqual([]);
+  });
+
+  it('scores centre-back lengths and sleeves on a knit (but not on a tee)', () => {
+    const cb = hoodie({ chart: { ...KNIT_HOODIE_SEED.chart, definitions: { length: 'center_back', sleeve: 'center_back_to_cuff' } } });
+    expect(unscorableZones(cb)).toEqual([]);
+    expect(unscorableZones({ ...tee, sleeve: 'long', chart: { ...tee.chart, sleeveDefinition: 'center_back_to_cuff' }, sizes: [{ label: 'M', measurements: { chest: 20, length: 29, sleeve: 34 } }] })).toEqual([
+      { key: 'sleeve', reason: 'sleeve isn’t measured shoulder to cuff', required: false },
+    ]);
+  });
+});
+
+describe('knit girth method limits', () => {
+  it("takes a 5XL hoodie's 34 in flat chest as flat, but still catches a circumference printed as flat", () => {
+    const big: SeedGarment = { ...KNIT_HOODIE_SEED, sizes: [{ label: '5XL', measurements: { chest: 34, length: 34, sleeve: 40, hemBand: 29 } }] };
+    expect(checkGirthMethod(big)).toEqual([]);
+    const round: SeedGarment = { ...KNIT_HOODIE_SEED, sizes: [{ label: 'M', measurements: { chest: 44, length: 28, sleeve: 34, hemBand: 18 } }] };
+    expect(checkGirthMethod(round)[0]?.message).toMatch(/chest is marked flat, but .* looks like a full circumference/);
+  });
+
+  it('keeps the tee limit for tees', () => {
+    expect(checkGirthMethod({ ...tee, sizes: [{ label: '5XL', measurements: { chest: 34, length: 35 } }] })[0]?.severity).toBe('error');
   });
 });

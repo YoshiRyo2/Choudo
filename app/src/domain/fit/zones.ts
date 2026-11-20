@@ -8,6 +8,7 @@
 
 import type { BodyMeasurements, MeasurementKey as BodyKey } from '../body';
 import {
+  definitionOf,
   stretchOf,
   templateOf,
   type DefinitionName,
@@ -19,7 +20,10 @@ import {
 import {
   BOTTOM_HIPS,
   BOTTOM_WAIST,
+  HEM_BAND,
   INSEAM,
+  KNIT_EASE_OFFSET_CM,
+  KNIT_GIRTH_RULES,
   LEG_OPENING,
   RISE,
   SLEEVE,
@@ -31,8 +35,25 @@ import {
   type LengthRule,
 } from './rules';
 import { bandHeight, girthAtHeight, riseForBand } from './pants';
+import { lengthTargetCm, sleeveTargetCm } from './tops';
 
-export type ZoneId = 'chest' | 'waist' | 'hips' | 'length' | 'sleeve' | 'inseam' | 'thigh' | 'rise' | 'legOpening';
+export type ZoneId =
+  | 'chest'
+  | 'waist'
+  | 'hips'
+  | 'length'
+  | 'sleeve'
+  | 'inseam'
+  | 'thigh'
+  | 'rise'
+  | 'legOpening'
+  | 'hemBand';
+
+/**
+ * Where a worked-out body number was taken: band = the body's girth where a
+ * waistband sits; centre_back = a length from the centre of the back neck.
+ */
+export type BodyAt = 'band' | 'centre_back';
 
 export type Rule = GirthRule | LengthRule | LandingRule;
 
@@ -59,6 +80,8 @@ export interface ZoneSpec {
    * (the waist at the height the band sits). `bodyKey` still gives its source.
    */
   bodyTarget?: (m: BodyMeasurements, garment: Garment, size: SizeMeasurements) => number;
+  /** What a worked-out target is, for the readout (set with bodyTarget). */
+  bodyAt?: BodyAt;
   /**
    * The size's overall result doesn't need this zone: when it can't be scored the
    * size isn't "unknown" because of it (a pants chart without a thigh).
@@ -76,8 +99,9 @@ export interface TemplateZones {
   /**
    * The zones the user's preference speaks to: a girth (target ease) and a length
    * (an anchor's length). null = objective labels only (pants have no personal target yet).
+   * easeOffsetCm: how much roomier than a tee this template's chest is aimed (knits).
    */
-  personal: { girth: ZoneId; length: ZoneId } | null;
+  personal: { girth: ZoneId; length: ZoneId; easeOffsetCm?: number } | null;
 }
 
 /** Body measurements a user can type in on the body screen. */
@@ -140,6 +164,7 @@ const PANTS_ZONES: readonly ZoneSpec[] = [
     bodyKey: 'waistCm',
     rule: BOTTOM_WAIST,
     bodyTarget: (m, g, s) => girthAtHeight(m, bandHeight(m, riseForBand(g, s))),
+    bodyAt: 'band',
   },
   { zone: 'hips', garmentKey: 'hips', bodyKey: 'hipsCm', rule: BOTTOM_HIPS },
   {
@@ -190,11 +215,46 @@ const PANTS_ZONES: readonly ZoneSpec[] = [
   },
 ];
 
+const KNIT_ZONES: readonly ZoneSpec[] = [
+  { zone: 'chest', garmentKey: 'chest', bodyKey: 'chestCm', rule: { bySizing: KNIT_GIRTH_RULES } },
+  {
+    zone: 'length',
+    garmentKey: 'length',
+    bodyKey: 'torsoLengthCm',
+    rule: TOP_LENGTH,
+    // Knit charts often measure from the back neck; that's comparable once the back-neck drop is allowed for.
+    bodyTarget: (m, g) => lengthTargetCm(m, definitionOf(g, 'length')) ?? m.torsoLengthCm,
+    bodyAt: 'centre_back',
+    needs: {
+      definition: 'length',
+      accepts: ['hps', 'center_back'],
+      reason: (brand) => `${brand}'s chart doesn't say where length is measured from.`,
+    },
+  },
+  {
+    zone: 'sleeve',
+    garmentKey: 'sleeve',
+    bodyKey: 'armLengthCm',
+    rule: SLEEVE,
+    applies: (g) => g.sleeve === 'long',
+    bodyTarget: (m, g) => sleeveTargetCm(m, definitionOf(g, 'sleeve')) ?? m.armLengthCm,
+    bodyAt: 'centre_back',
+    needs: {
+      definition: 'sleeve',
+      accepts: ['shoulder_to_cuff', 'center_back_to_cuff'],
+      reason: (brand) => `${brand} measures sleeves differently, so we can't compare it to your arm.`,
+    },
+  },
+  // The rib hem band against the hips (a top's length is scored to end at the hip line). Few charts list it.
+  { zone: 'hemBand', garmentKey: 'hemBand', bodyKey: 'hipsCm', rule: HEM_BAND, optional: true },
+];
+
 const TOP_PERSONAL = { girth: 'chest', length: 'length' } as const;
 
 export const TEMPLATE_ZONES: Record<TemplateId, TemplateZones> = {
   tee: { template: 'tee', zones: TOP_ZONES, personal: TOP_PERSONAL },
   shirt: { template: 'shirt', zones: TOP_ZONES, personal: TOP_PERSONAL },
+  knit: { template: 'knit', zones: KNIT_ZONES, personal: { ...TOP_PERSONAL, easeOffsetCm: KNIT_EASE_OFFSET_CM } },
   pants: { template: 'pants', zones: PANTS_ZONES, personal: null },
 };
 

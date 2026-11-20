@@ -41,7 +41,7 @@ export function Mannequin({ body, top, bottom, showFit = true, photos = 'license
 
   const topSize = top?.garment.sizes.find((s) => s.label === top.sizeLabel);
   const bottomSize = bottom?.garment.sizes.find((s) => s.label === bottom.sizeLabel);
-  const topDraw = top && topSize ? topShape(g, top.garment, topSize.measurements, body.chestCm) : null;
+  const topDraw = top && topSize ? topShape(g, top.garment, topSize.measurements, body.chestCm, body) : null;
   const bottomDraw = bottom && bottomSize ? pantsShape(g, body, bottom.garment, bottomSize.measurements) : null;
 
   // A product photo, when the garment has one, its licence allows warping and the
@@ -114,6 +114,13 @@ export function Mannequin({ body, top, bottom, showFit = true, photos = 'license
 
       <line className="mannequin__floor" x1={-40} x2={40} y1={g.y.floor + 0.5} y2={g.y.floor + 0.5} />
 
+      {/* A hood lying down sits behind the neck: drawn first, so the neck and head hide its middle. */}
+      {topDraw?.hood && top && (
+        <g className={garmentClass(topDraw.approximate, top.garment)} style={{ fill: top.garment.color }}>
+          <path d={topDraw.hood.back} />
+        </g>
+      )}
+
       {/* Body: arms behind the torso so the torso hides where they join. */}
       <g className="mannequin__form">
         <path className="mannequin__arm" d={g.paths.arms[0]} />
@@ -165,6 +172,26 @@ export function Mannequin({ body, top, bottom, showFit = true, photos = 'license
           </g>
           {texture('sleeveRight', topDraw.sleeves[0])}
           {texture('sleeveLeft', topDraw.sleeves[1])}
+          {/* Knits: rib hem band and cuffs over the body and sleeves, then the hood's edge and drawcords. */}
+          {topDraw.rib && (
+            <g className="mannequin__knit" aria-hidden="true">
+              <g className="mannequin__rib" style={{ fill: top.garment.color }}>
+                <path d={topDraw.rib.hem} />
+                {topDraw.rib.cuffs.map((d, i) => (
+                  <path key={`cuff-${i}`} d={d} />
+                ))}
+              </g>
+              {topDraw.rib.lines.map((d, i) => (
+                <path key={`rib-${i}`} className="mannequin__rib-line" d={d} />
+              ))}
+              {topDraw.hood?.edges.map((d, i) => (
+                <path key={`hood-${i}`} className="mannequin__hood-edge" d={d} />
+              ))}
+              {topDraw.hood?.cords.map((d, i) => (
+                <path key={`cord-${i}`} className="mannequin__cord" d={d} />
+              ))}
+            </g>
+          )}
         </g>
       )}
 

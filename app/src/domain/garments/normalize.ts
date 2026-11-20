@@ -16,7 +16,7 @@ import type {
   SizeMeasurements,
 } from './types';
 
-export const GIRTH_KEYS = ['chest', 'waist', 'hips', 'thigh', 'knee', 'legOpening'] as const;
+export const GIRTH_KEYS = ['chest', 'waist', 'hips', 'thigh', 'knee', 'legOpening', 'hemBand'] as const;
 export const LENGTH_KEYS = ['length', 'sleeve', 'shoulder', 'inseam', 'rise'] as const;
 /**
  * Every garment measurement key, in a fixed order: new keys go at the end. (The
@@ -34,6 +34,7 @@ export const MEASUREMENT_KEYS: readonly MeasurementKey[] = [
   'thigh',
   'knee',
   'legOpening',
+  'hemBand',
 ];
 
 export const isGirthKey = (key: MeasurementKey): key is (typeof GIRTH_KEYS)[number] =>

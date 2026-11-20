@@ -23,7 +23,7 @@ import {
   type LandingRule,
   type LengthRule,
 } from './rules';
-import { ruleFor, zoneSpecsFor, type Rule, type ZoneId, type ZoneSpec } from './zones';
+import { ruleFor, zoneSpecsFor, type BodyAt, type Rule, type ZoneId, type ZoneSpec } from './zones';
 
 export type { ZoneId } from './zones';
 export type GirthLabel = 'tight' | 'fitted' | 'relaxed' | 'loose';
@@ -59,9 +59,10 @@ export interface ZoneFit {
   optional?: true;
   /**
    * Set only when bodyCm isn't the body measurement itself but worked out from it:
-   * "band" = the body's girth where the waistband sits (pants waist below the navel).
+   * "band" = the body's girth where the waistband sits (pants waist below the navel);
+   * "centre_back" = a length from the centre of the back neck (knit length and sleeve).
    */
-  bodyAt?: 'band';
+  bodyAt?: BodyAt;
   /**
    * The label ranges for this zone, in cm of difference, lowest first. Lets the UI
    * draw a scale without knowing the rules. Ends are ±Infinity.
@@ -191,7 +192,7 @@ export function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, gs: G
     bands: bandsFor(rule, tightAllowanceCm),
     ...(garmentOrigin !== undefined ? { garmentOrigin } : {}),
     ...(spec.optional ? { optional: true as const } : {}),
-    ...(workedOut ? { bodyAt: 'band' as const } : {}),
+    ...(workedOut && spec.bodyAt ? { bodyAt: spec.bodyAt } : {}),
   } as const;
 
   const reason = unknownReason(spec, rule, garment, garmentCm);

@@ -19,7 +19,11 @@ export type GarmentType =
   | 'jeans'
   | 'chinos'
   | 'joggers'
-  | 'trousers';
+  | 'trousers'
+  | 'hoodie'
+  | 'sweatshirt'
+  | 'sweater'
+  | 'cardigan';
 
 /** Who the size chart is cut for. */
 export type GarmentSizing = 'mens' | 'womens' | 'unisex';
@@ -35,7 +39,7 @@ export type GirthMethod = 'flat' | 'circumference' | 'unknown';
 export const GIRTH_METHODS: readonly GirthMethod[] = ['flat', 'circumference', 'unknown'];
 
 /** The measurements that are girths (doubled when printed flat). */
-export type GirthKey = 'chest' | 'waist' | 'hips' | 'thigh' | 'knee' | 'legOpening';
+export type GirthKey = 'chest' | 'waist' | 'hips' | 'thigh' | 'knee' | 'legOpening' | 'hemBand';
 
 /**
  * A girth method per measurement, for charts that mix them (pants often print the
@@ -114,6 +118,14 @@ export const MEASUREMENT_ORIGINS: readonly MeasurementOrigin[] = ['chart', 'esti
 export type ConfidenceGrade = 'verified' | 'charted' | 'estimated' | 'unscored';
 
 /**
+ * How bulky the fabric is, for layering (a jacket over it): light (tee, shirt),
+ * mid (sweatshirt, knit), heavy (heavy hoodie, fleece). Rows may leave it out:
+ * each template has a default (weightOf).
+ */
+export type GarmentWeight = 'light' | 'mid' | 'heavy';
+export const GARMENT_WEIGHTS: readonly GarmentWeight[] = ['light', 'mid', 'heavy'];
+
+/**
  * How much the fabric gives. Lets a stretchy garment measure under the body without being "tight".
  * compression: leggings and shapewear, meant to sit well under the body.
  */
@@ -143,6 +155,8 @@ export interface SizeMeasurements {
   knee?: number;
   /** Pants: girth of the hem opening. */
   legOpening?: number;
+  /** Knits: the rib hem band (waistband of a sweatshirt), relaxed — before it's stretched. */
+  hemBand?: number;
 }
 
 export type MeasurementKey = keyof SizeMeasurements;
@@ -239,8 +253,15 @@ export const PANTS_LANDMARKS = [
 ] as const;
 export type PantsLandmarkName = (typeof PANTS_LANDMARKS)[number];
 
+/**
+ * Points a knit's photo may add to the top's 13: the top of the hood, as it lies
+ * behind the neck in a front photo. Optional — the warp uses it when it's there.
+ */
+export const KNIT_OPTIONAL_LANDMARKS = ['hoodTop'] as const;
+export type KnitLandmarkName = (typeof KNIT_OPTIONAL_LANDMARKS)[number];
+
 /** Any template's landmark name. Which ones a photo needs depends on its garment's template. */
-export type LandmarkName = TopLandmarkName | PantsLandmarkName;
+export type LandmarkName = TopLandmarkName | PantsLandmarkName | KnitLandmarkName;
 
 /**
  * What we may do with a garment photo.
@@ -313,6 +334,8 @@ interface GarmentBase {
   /** Tops only. */
   sleeve?: 'short' | 'long';
   stretch: Stretch;
+  /** Fabric bulk, for layering. Leave out for the template's default; read it with weightOf(). */
+  weight?: GarmentWeight;
   /** Pants only: the hem opens with a zip, so a narrow opening still gets over the heel. */
   ankleZip?: boolean;
   fitIntent: FitIntent;

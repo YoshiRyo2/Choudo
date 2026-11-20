@@ -110,11 +110,13 @@ Never guess. An unknown definition means that zone can't be scored, and the fit 
 | --- | --- | --- |
 | `unit` | `in`, `cm` | As printed. Don't convert. |
 | `girth` | `flat`, `circumference`, `unknown` | "Laid flat", "pit to pit" or "½ chest" means `flat`. "Chest" with no word on method means `unknown`. |
-| `lengthDefinition` | `hps`, `center_back`, `unknown` | Tops only. "High point of shoulder" or "from shoulder" means `hps`. "Centre back" or "back neck" means `center_back`. |
+| `lengthDefinition` | `hps`, `center_back`, `unknown` | Tops only. "High point of shoulder" or "from shoulder" means `hps`. "Centre back" or "back neck" means `center_back` (scored on knits only). |
 | `sleeveDefinition` | `shoulder_to_cuff`, `center_back_to_cuff`, `top_of_sleeve` | Leave it out if there's no sleeve row. |
 | `fitIntent` | `slim`, `regular`, `relaxed`, `oversized` | How the brand describes the cut. |
 | `sizing` | `mens`, `womens`, `unisex` | Who the size chart is cut for. Decides who sees it by default and, for tops, which chest thresholds apply (women's cuts sit closer). Anything else is an error. |
-| `stretch` | `none`, `some`, `high`, `compression` | How much the fabric gives. Elastic waistbands are `high`; `compression` is for leggings. |
+| `stretch` | `none`, `some`, `high`, `compression` | How much the fabric gives. Elastic waistbands are `high`; `compression` is for leggings. Knits: `{ "default": "none", "hemBand": "high" }` for a rib hem. |
+| `hemBand` (a size measurement) | number | Knits: the rib hem band, relaxed (a girth, so flat or full as `girth` says). Few charts print it; an estimate needs `origin: "estimated"` and a `how`. |
+| `weight` | `light`, `mid`, `heavy` | Optional fabric bulk (for layering later). Leave out for the template's default: tees light, knits mid. A heavy fleece (9 oz and up) is `heavy`. |
 
 When a chart mixes methods, or a garment stretches in one place only, give the field per
 measurement with a `default` for the rest. Definitions can also go in one

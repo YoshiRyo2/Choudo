@@ -33,7 +33,7 @@ app/src/
     body/        estimateBody(input) -> BodyModel (men's power law; women's ANSUR II regressions),
                  braSize.ts (parse "34DD", US/UK cups, bust estimate)
     garments/    types.ts (schema), seed.json, normalize.ts (printed -> cm + provenance),
-                 categories.ts (type -> template: tee | shirt | pants; CategorySpec data rules),
+                 categories.ts (type -> template: tee | shirt | knit | pants; CategorySpec data rules, weightOf),
                  chart.ts (per-measurement girth method, stretch, definitions),
                  validate.ts (structure), verify.ts + verifyRules.ts (stage-5 checks),
                  grade.ts (confidence grade), report.ts (npm run data:check text),
@@ -41,6 +41,7 @@ app/src/
     fit/         fitGarment(body, garment, size) -> per-zone fit results (rules.ts thresholds),
                  zones.ts (TemplateZones: each template's zones, rules, needed definitions),
                  pants.ts (bandHeight, girthAtHeight: where a waistband sits; the drawing reads it too),
+                 tops.ts (length / sleeve body targets per definition, centre back included; the drawing reads it too),
                  golden.test.ts + __golden__/ (byte-for-byte snapshot of every garment's fit and odds)
                  preference.ts (anchor tee / fit style -> personal verdict), sampleFit.ts
                  (seeded odds, recommendSize, measurementHint), uncertainty.ts (every spread),
@@ -115,6 +116,15 @@ inputs/outputs and unit tests. UI only calls their public functions.
   can't pass the heel with no stretch and no `ankleZip`. Thigh needs `definitions.thigh`.
   Thresholds (`THIGH`, `RISE`, `LEG_OPENING`) are assumed.
 - Woven shirts currently use the tee chest thresholds — likely too strict; tune in `rules.ts`.
+- Knits (hoodie, sweatshirt, sweater, cardigan → template `knit`, worn as a top): chest, length,
+  sleeve (long only) and hem band (optional). Chest = the top chest rule with fitted / relaxed /
+  ideal moved out by `KNIT_EASE_OFFSET_CM` (10, assumed from Gildan's 18500 vs 5000 grading); the
+  personal target moves by the same offset, and knits are never anchors. Length accepts `hps` or
+  `center_back` (target = torso − `BACK_NECK_DROP_CM`, 2, assumed); sleeve accepts
+  `shoulder_to_cuff` or `center_back_to_cuff` (target = arm + shoulder / 2 + `SHOULDER_CURVE_CM`,
+  men 5.3 / women 5.5 from ANSUR II spine-to-wrist means). `bodyAt: 'centre_back'` marks those
+  targets. Hem band (relaxed rib) vs hips, `HEM_BAND` (assumed); rows give `stretch.hemBand: high`.
+  Tees still score only `hps` length and `shoulder_to_cuff` sleeves.
 - Top chest/waist thresholds go by the **garment's** sizing (`TOP_GIRTH_RULES`): women's cuts use
   `WOMENS_TOP_CHEST` (fitted to +1 in, relaxed to +3 in — assumed, not sourced yet); men's and
   unisex keep the men's numbers on any body. Bottoms use one set for everyone.
@@ -184,11 +194,21 @@ inputs/outputs and unit tests. UI only calls their public functions.
   than the one before, or a flat girth that looks like a full circumference (or the reverse). Warnings need review:
   uneven grading, implausible ranges, chest ease for the fit intent, and audit vs chart.
   Thresholds are in `verifyRules.ts`.
+- Knit rows may give `hemBand` (relaxed rib, a girth: doubled when flat; last in `MEASUREMENT_KEYS`) and
+  `weight` (`light | mid | heavy`, for layering later; `weightOf` falls back to the template's
+  default: tee/shirt light, knit/pants mid). Knit checks: `KNIT_RANGES`, centre-back sleeve range,
+  their own flat-chest limit, `hemBand ≤ chest`; `scoredDefinitions` per template says which
+  length / sleeve definitions are scoreable (kept equal to the zones' `needs` by a test).
 - Mannequin (skin rule): the body's waist (navel), hip line, crotch and knee are drawn at the body
   model's heights; leg widths come from its thigh / knee / calf (`halfWidth.leg`). Pants
   (`pantsShape`) draw the band at the fit engine's `bandHeight()` and the thigh, knee and
   opening from the chart; a missing one falls back to a typical width and draws dashed.
-- Photo landmarks per template: tops `TOP_LANDMARKS` (13), pants `PANTS_LANDMARKS` (14: waist
+- Knits draw with `topShape` plus surface details: a rib hem band gathered to the chart's hem band
+  (stretched onto the body where smaller, never wider than the body above; body width without one),
+  rib cuffs, and for hoodies a hood behind the neck with drawcords. Length and a centre-back
+  sleeve are placed with `tops.ts`. A snapshot of every tee and shirt drawing guards `topShape`.
+- Photo landmarks per template: knits take the top's 13 plus an optional `hoodTop` (not warped yet);
+  tops `TOP_LANDMARKS` (13), pants `PANTS_LANDMARKS` (14: waist
   corners + centre, hips, crotch, knee and hem corners per leg). Read them with `topLandmarks()` /
   `pantsLandmarks()`. Pants warp (`warpPantsPieces`) = the top half as two mirrored fans, each leg
   in strips along the drawn leg's edges (hip/crotch → knee → hem), as long sleeves are.

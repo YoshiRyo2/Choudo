@@ -9,6 +9,7 @@ import { GIRTH_KEYS, MEASUREMENT_KEYS } from './normalize';
 import {
   DEFINITION_VALUES,
   GARMENT_SIZINGS,
+  GARMENT_WEIGHTS,
   GIRTH_METHODS,
   MEASUREMENT_ORIGINS,
   PHOTO_LICENCES,
@@ -43,6 +44,9 @@ export function validateGarment(g: SeedGarment): string[] {
   if (spec.sleeve === 'forbidden' && g.sleeve) problems.push("bottoms can't have a sleeve");
   if (spec.category === 'top' && g.ankleZip !== undefined) problems.push("tops can't have an ankle zip");
   problems.push(...validateStretch(g.stretch));
+  if (g.weight !== undefined && !GARMENT_WEIGHTS.includes(g.weight)) {
+    problems.push(`weight must be one of ${GARMENT_WEIGHTS.join(', ')}`);
+  }
   problems.push(...validateProvenance(g));
   if (g.sizes.length === 0) problems.push('no sizes');
   if (g.image !== undefined) {
@@ -193,7 +197,8 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' |
   if (image.photographedSize !== null && !g.sizes.some((s) => s.label === image.photographedSize)) {
     problems.push(`photographedSize "${image.photographedSize}" is not one of the garment's sizes`);
   }
-  const landmarks = categorySpec(g).landmarks;
+  const spec = categorySpec(g);
+  const landmarks = spec.landmarks;
   if (landmarks === null) {
     problems.push('photo textures are only supported for tops and pants');
     return problems;
@@ -208,10 +213,21 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' |
     problems.push(`landmarks need non-negative pixel x/y for ${missing.join(', ')}`);
     return problems;
   }
+  // Any other name must be one of the template's optional points (a knit's hoodTop).
+  const optional = spec.optionalLandmarks ?? [];
+  for (const name of Object.keys(lm ?? {})) {
+    if (!(landmarks as readonly string[]).includes(name) && !(optional as readonly string[]).includes(name)) {
+      problems.push(`${name} isn't a landmark for a ${g.type}`);
+    }
+  }
   const pants = pantsLandmarks(image);
-  if (categorySpec(g).template === 'pants' && pants) problems.push(...pantsOrder(pants));
+  if (spec.template === 'pants' && pants) problems.push(...pantsOrder(pants));
   const top = topLandmarks(image);
-  if (categorySpec(g).category === 'top' && top) problems.push(...topOrder(top));
+  if (spec.category === 'top' && top) problems.push(...topOrder(top));
+  const hood = lm?.hoodTop;
+  if (hood && top && optional.includes('hoodTop') && !(hood.y < Math.min(top.collarLeft.y, top.collarRight.y))) {
+    problems.push('hoodTop must sit above the collar points');
+  }
   return problems;
 }
 

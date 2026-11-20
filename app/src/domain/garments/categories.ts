@@ -10,15 +10,30 @@
 import type {
   GarmentCategory,
   GarmentImage,
+  GarmentWeight,
+  GirthKey,
   GarmentType,
   LandmarkName,
+  LengthDefinition,
   MeasurementKey,
   PantsLandmarkName,
   SizeMeasurements,
+  SleeveDefinition,
   TopLandmarkName,
 } from './types';
-import { PANTS_LANDMARKS, TOP_LANDMARKS } from './types';
-import { BOTTOM_RANGES, MAX_THIGH_TO_HIPS, TOP_LENGTH_RANGES, TOP_RANGES, type Range } from './verifyRules';
+import { KNIT_OPTIONAL_LANDMARKS, PANTS_LANDMARKS, TOP_LANDMARKS } from './types';
+import {
+  BOTTOM_RANGES,
+  KNIT_GIRTH_METHOD_LIMITS,
+  KNIT_LENGTH_RANGES,
+  KNIT_RANGES,
+  KNIT_SLEEVE_RANGES,
+  MAX_THIGH_TO_HIPS,
+  TOP_LENGTH_RANGES,
+  TOP_RANGES,
+  TOP_SLEEVE_RANGES,
+  type Range,
+} from './verifyRules';
 
 /** A check between two measurements of one size (cm, full circumference). Breaking it is a warning. */
 export interface Relation {
@@ -30,7 +45,7 @@ export interface Relation {
 }
 
 /** The template a garment type is fitted, checked and drawn with. */
-export type TemplateId = 'tee' | 'shirt' | 'pants';
+export type TemplateId = 'tee' | 'shirt' | 'knit' | 'pants';
 
 export const TYPE_TEMPLATE: Record<GarmentType, TemplateId> = {
   tee: 'tee',
@@ -41,6 +56,10 @@ export const TYPE_TEMPLATE: Record<GarmentType, TemplateId> = {
   chinos: 'pants',
   joggers: 'pants',
   trousers: 'pants',
+  hoodie: 'knit',
+  sweatshirt: 'knit',
+  sweater: 'knit',
+  cardigan: 'knit',
 };
 
 export const GARMENT_TYPES = Object.keys(TYPE_TEMPLATE) as GarmentType[];
@@ -53,6 +72,10 @@ export interface CategoryChecks {
   ranges: Partial<Record<MeasurementKey, Range>>;
   /** Top length (from the high point of the shoulder) by garment type. */
   lengthRanges?: Partial<Record<GarmentType, Range>>;
+  /** Where this template's girths differ from GIRTH_METHOD_LIMITS (knits run bigger). */
+  girthMethodLimits?: Partial<Record<GirthKey, { flatMax: number; circumferenceMin: number }>>;
+  /** Long sleeves by where they're measured from; a definition not listed isn't range-checked. */
+  sleeveRanges?: Partial<Record<SleeveDefinition, Range>>;
   /** Ease against a typical body for the size label: the chest for letter-sized tops, the waist for pants sized in inches. */
   labelEase: 'chest' | 'waist' | null;
   /** Checks between measurements of one size (pants: opening ≤ knee ≤ thigh). */
@@ -87,6 +110,15 @@ export interface CategorySpec {
   lengthDefinition: 'required' | 'forbidden';
   /** Photo landmark names, or null when this template can't take a photo texture yet. */
   landmarks: readonly LandmarkName[] | null;
+  /** Landmarks a photo may add (a knit's hoodTop); checked when given, never required. */
+  optionalLandmarks?: readonly LandmarkName[];
+  /** Fabric bulk when a row doesn't give its weight (design §3: tee and shirt light, knit mid). */
+  defaultWeight: GarmentWeight;
+  /**
+   * Tops: the length and sleeve definitions the fit can score (as the zones'
+   * `needs` in domain/fit/zones.ts). Any other leaves that zone unscored.
+   */
+  scoredDefinitions?: { length: readonly LengthDefinition[]; sleeve: readonly SleeveDefinition[] };
   checks: CategoryChecks;
 }
 
@@ -94,7 +126,26 @@ const TOP_CHECKS: CategoryChecks = {
   required: ['chest', 'length'],
   ranges: TOP_RANGES,
   lengthRanges: TOP_LENGTH_RANGES,
+  sleeveRanges: TOP_SLEEVE_RANGES,
   labelEase: 'chest',
+};
+
+const KNIT_RELATIONS: readonly Relation[] = [
+  {
+    keys: ['hemBand', 'chest'],
+    holds: (m) => m.hemBand <= m.chest,
+    message: (label, a, b) => `hemBand in ${label} (${a}) is wider than its chest (${b})`,
+  },
+];
+
+const KNIT_CHECKS: CategoryChecks = {
+  required: ['chest', 'length'],
+  ranges: KNIT_RANGES,
+  lengthRanges: KNIT_LENGTH_RANGES,
+  sleeveRanges: KNIT_SLEEVE_RANGES,
+  girthMethodLimits: KNIT_GIRTH_METHOD_LIMITS,
+  labelEase: 'chest',
+  relations: KNIT_RELATIONS,
 };
 
 const TOP_SPEC = {
@@ -103,11 +154,23 @@ const TOP_SPEC = {
   lengthDefinition: 'required',
   landmarks: TOP_LANDMARKS,
   checks: TOP_CHECKS,
+  defaultWeight: 'light',
+  scoredDefinitions: { length: ['hps'], sleeve: ['shoulder_to_cuff'] },
 } as const satisfies Omit<CategorySpec, 'template'>;
 
 export const CATEGORY_SPECS: Record<TemplateId, CategorySpec> = {
   tee: { template: 'tee', ...TOP_SPEC },
   shirt: { template: 'shirt', ...TOP_SPEC },
+  // Worn in the top slot until jackets bring layers (design §6, PR 4).
+  knit: {
+    template: 'knit',
+    ...TOP_SPEC,
+    checks: KNIT_CHECKS,
+    optionalLandmarks: KNIT_OPTIONAL_LANDMARKS,
+    defaultWeight: 'mid',
+    // Knit charts often measure from the centre back (domain/fit/tops.ts converts).
+    scoredDefinitions: { length: ['hps', 'center_back'], sleeve: ['shoulder_to_cuff', 'center_back_to_cuff'] },
+  },
   pants: {
     template: 'pants',
     category: 'bottom',
@@ -115,6 +178,7 @@ export const CATEGORY_SPECS: Record<TemplateId, CategorySpec> = {
     lengthDefinition: 'forbidden',
     landmarks: PANTS_LANDMARKS,
     checks: { required: ['waist', 'inseam'], ranges: BOTTOM_RANGES, labelEase: 'waist', relations: PANTS_RELATIONS },
+    defaultWeight: 'mid',
   },
 };
 
@@ -125,6 +189,10 @@ export const isGarmentType = (type: unknown): type is GarmentType =>
 export const templateOf = (g: { type: GarmentType }): TemplateId => TYPE_TEMPLATE[g.type];
 
 export const categorySpec = (g: { type: GarmentType }): CategorySpec => CATEGORY_SPECS[templateOf(g)];
+
+/** A garment's fabric bulk: the row's own, or its template's default. */
+export const weightOf = (g: { type: GarmentType; weight?: GarmentWeight }): GarmentWeight =>
+  g.weight ?? categorySpec(g).defaultWeight;
 
 type Point = { x: number; y: number };
 

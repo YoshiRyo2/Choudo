@@ -13,6 +13,6 @@ export type { AuditDiff, AuditResult, CheckIssue, GarmentCheck, UnscorableZone }
 export { gradeGarment } from './grade';
 export { canWarp, localOnlyFiles } from './photo';
 export { CATALOGUE_SCOPES, catalogueFor, fitsBodyType } from './catalogue';
-export { CATEGORY_SPECS, categorySpec, GARMENT_TYPES, isGarmentType, pantsLandmarks, templateOf, topLandmarks, TYPE_TEMPLATE } from './categories';
+export { CATEGORY_SPECS, categorySpec, GARMENT_TYPES, isGarmentType, pantsLandmarks, templateOf, topLandmarks, TYPE_TEMPLATE, weightOf } from './categories';
 export type { CategoryChecks, CategorySpec, TemplateId } from './categories';
 export type { CatalogueScope } from './catalogue';
