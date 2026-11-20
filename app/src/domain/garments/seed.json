@@ -795,6 +795,64 @@
           }
         }
       ]
+    },
+    {
+      "id": "landsend-a-line-skirt",
+      "brand": "Lands' End",
+      "name": "Women's Solid A-line Skirt, Below the Knee (Regular)",
+      "category": "bottom",
+      "type": "skirt",
+      "sizing": "womens",
+      "color": "#5a2e3f",
+      "stretch": "none",
+      "fitIntent": "regular",
+      "chart": { "unit": "in", "girth": "circumference", "definitions": { "length": "waist", "waist": "mid" } },
+      "source": {
+        "placeholder": false,
+        "tier": "B",
+        "url": "https://www.landsend.com/garment_measurements/430808_core_pdp_spec.pdf",
+        "capturedOn": "2026-11-20",
+        "snapshot": "chart-snapshots/landsend-a-line-skirt.pdf",
+        "notes": "Regular sizes 0-16 from Lands' End's item-dimensions PDF ('actual garment measurements in inches'); Tall and Plus left out. Rows: Garment waist, Garment hip, Garment length – center back, Garment sweep, all full circumferences (a 28 1/2 in waist on a 25 1/2-26 1/2 in body). Length is taken as centre back from the top of the waistband (the usual skirt definition; the PDF doesn't say more). The hip row gives no height, so it is compared at the fullest hips. Waist 'mid': the PDF gives none; Kohl's listing of this skirt calls it midrise (https://www.kohls.com/product/prd-6642600/womens-lands-end-solid-below-the-knee-a-line-skirt.jsp)."
+      },
+      "sizes": [
+        { "label": "0", "measurements": { "waist": 28.5, "hips": 37, "length": 24.5, "hemSweep": 43.5 } },
+        { "label": "2", "measurements": { "waist": 29.5, "hips": 38, "length": 24.5, "hemSweep": 44.5 } },
+        { "label": "4", "measurements": { "waist": 30.5, "hips": 39, "length": 24.5, "hemSweep": 45.5 } },
+        { "label": "6", "measurements": { "waist": 31.5, "hips": 40, "length": 24.5, "hemSweep": 46.5 } },
+        { "label": "8", "measurements": { "waist": 32.5, "hips": 41, "length": 24.5, "hemSweep": 47.5 } },
+        { "label": "10", "measurements": { "waist": 33.5, "hips": 42, "length": 24.5, "hemSweep": 48.5 } },
+        { "label": "12", "measurements": { "waist": 35, "hips": 43.5, "length": 24.5, "hemSweep": 50 } },
+        { "label": "14", "measurements": { "waist": 36.5, "hips": 45, "length": 24.5, "hemSweep": 51.5 } },
+        { "label": "16", "measurements": { "waist": 38.5, "hips": 46.5, "length": 24.5, "hemSweep": 53 } }
+      ]
+    },
+    {
+      "id": "landsend-easy-shorts",
+      "brand": "Lands' End",
+      "name": "Men's 5 1/2\" Lightweight Twill Easy Shorts (Regular)",
+      "category": "bottom",
+      "type": "shorts",
+      "sizing": "mens",
+      "color": "#b9a57e",
+      "stretch": { "default": "none", "waist": "high" },
+      "fitIntent": "regular",
+      "chart": { "unit": "in", "girth": "circumference", "definitions": { "rise": "front" } },
+      "source": {
+        "placeholder": false,
+        "tier": "B",
+        "url": "https://www.landsend.com/garment_measurements/552171_core_pdp_spec.pdf",
+        "capturedOn": "2026-11-20",
+        "snapshot": "chart-snapshots/landsend-easy-shorts.pdf",
+        "notes": "Lands' End's item-dimensions PDF ('actual garment measurements in inches'), sizes S(28-30) to XXL(44-46). Waist is 'Garment waist – relaxed' (an elastic waist: extended 36 3/4-51 3/4 in, so stretch high on the waist); hips are 'Garment seat'; rise is 'Garment front rise'; leg opening is 'Garment bottom opening'. All girths are full circumferences (a 29 in relaxed waist on a 28-30 in body). Back rise (15-18 5/8 in) isn't used. No thigh on the chart."
+      },
+      "sizes": [
+        { "label": "S", "measurements": { "waist": 29, "hips": 42.25, "inseam": 5.5, "rise": 10.5, "legOpening": 25.5 } },
+        { "label": "M", "measurements": { "waist": 32, "hips": 45.25, "inseam": 5.5, "rise": 11, "legOpening": 27 } },
+        { "label": "L", "measurements": { "waist": 36, "hips": 49.25, "inseam": 5.5, "rise": 11.625, "legOpening": 28.5 } },
+        { "label": "XL", "measurements": { "waist": 40, "hips": 52.25, "inseam": 5.5, "rise": 12, "legOpening": 30 } },
+        { "label": "XXL", "measurements": { "waist": 44, "hips": 55.25, "inseam": 5.5, "rise": 12.375, "legOpening": 31.5 } }
+      ]
     }
   ]
 }

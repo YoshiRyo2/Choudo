@@ -36,6 +36,8 @@ export const HEM_HALF: Record<GarmentType, number> = {
   chinos: 9,
   joggers: 6.5,
   trousers: 12.5,
+  shorts: 14,
+  skirt: 14,
   tee: 9,
   'long-sleeve-tee': 9,
   polo: 9,
@@ -67,7 +69,6 @@ export function pantsShape(g: BodyGeometry, body: BodyMeasurements, garment: Gar
   const chartGirth = (key: 'waist' | 'hips' | 'thigh' | 'knee' | 'legOpening') =>
     size[key] !== undefined && girthKnown(garment, key) ? size[key] : undefined;
   const [waist, hips, thigh, knee, opening] = (['waist', 'hips', 'thigh', 'knee', 'legOpening'] as const).map(chartGirth);
-  const approximate = !garment.girthVerified || thigh === undefined || knee === undefined || opening === undefined;
 
   // The band where the fit engine says it sits.
   const bandY = g.height - bandHeight(body, riseForBand(garment, size));
@@ -78,8 +79,9 @@ export function pantsShape(g: BodyGeometry, body: BodyMeasurements, garment: Gar
   const hipY = Math.max(g.y.hip, bandY + 1);
 
   const crotchY = g.y.crotch + 2;
-  const inseam = size.inseam ?? g.y.floor - crotchY;
-  const rawHem = crotchY + inseam;
+  // The hem is the inseam below the body's crotch, where the fit lands it (the seam is drawn a little lower).
+  const inseam = size.inseam ?? g.y.floor - g.y.crotch;
+  const rawHem = g.y.crotch + inseam;
   const pooled = rawHem > g.y.floor - 0.5;
   const hemY = Math.min(rawHem, g.y.floor - 0.5);
 
@@ -92,6 +94,9 @@ export function pantsShape(g: BodyGeometry, body: BodyMeasurements, garment: Gar
   const t = Math.min(1, Math.max(0, (hemY - g.y.knee) / (g.y.ankle - g.y.knee)));
   const hemX = hemY > g.y.knee ? lerp(g.leg.kneeX, g.leg.ankleX, t) : g.leg.kneeX;
   const kneeHalf = legHalf(knee, g.leg.kneeHalf);
+  // A leg that ends above the knee (shorts) has no knee girth to miss.
+  const reachesKnee = hemY > g.y.knee + 4;
+  const approximate = !garment.girthVerified || thigh === undefined || (reachesKnee && knee === undefined) || opening === undefined;
   const ankleHalf = g.leg.ankleHalf + MIN_ROOM_CM;
   const hemHalf = opening === undefined ? Math.max(HEM_HALF[garment.type] + (pooled ? 1.2 : 0), ankleHalf) : Math.max(halfWidth.leg(opening), ankleHalf);
 

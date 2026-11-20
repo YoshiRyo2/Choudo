@@ -29,6 +29,8 @@ import {
   KNIT_RANGES,
   KNIT_SLEEVE_RANGES,
   MAX_THIGH_TO_HIPS,
+  SHORTS_RANGES,
+  SKIRT_RANGES,
   TOP_LENGTH_RANGES,
   TOP_RANGES,
   TOP_SLEEVE_RANGES,
@@ -45,7 +47,7 @@ export interface Relation {
 }
 
 /** The template a garment type is fitted, checked and drawn with. */
-export type TemplateId = 'tee' | 'shirt' | 'knit' | 'pants';
+export type TemplateId = 'tee' | 'shirt' | 'knit' | 'pants' | 'shorts' | 'skirt';
 
 export const TYPE_TEMPLATE: Record<GarmentType, TemplateId> = {
   tee: 'tee',
@@ -56,6 +58,8 @@ export const TYPE_TEMPLATE: Record<GarmentType, TemplateId> = {
   chinos: 'pants',
   joggers: 'pants',
   trousers: 'pants',
+  shorts: 'shorts',
+  skirt: 'skirt',
   hoodie: 'knit',
   sweatshirt: 'knit',
   sweater: 'knit',
@@ -100,14 +104,33 @@ const PANTS_RELATIONS: readonly Relation[] = [
   },
 ];
 
+const SHORTS_RELATIONS: readonly Relation[] = [
+  {
+    keys: ['legOpening', 'thigh'],
+    holds: (m) => m.legOpening <= m.thigh,
+    message: (label, a, b) => `legOpening in ${label} (${a}) is wider than its thigh (${b})`,
+  },
+  PANTS_RELATIONS[2]!,
+];
+
+const SKIRT_RELATIONS: readonly Relation[] = [
+  {
+    keys: ['waist', 'hips'],
+    holds: (m) => m.waist <= m.hips,
+    message: (label, a, b) => `waist in ${label} (${a}) is wider than its hips (${b})`,
+  },
+];
+
 export interface CategorySpec {
   template: TemplateId;
   /** The category (outfit slot) every type of this template belongs to. */
   category: GarmentCategory;
   /** Whether rows must say short or long sleeve (tops), or must not (bottoms). */
   sleeve: 'required' | 'forbidden';
-  /** Whether rows must give chart.lengthDefinition (tops), or must not (bottoms have no top length). */
+  /** Whether rows must give a length definition (tops, skirts), or must not (pants and shorts have no length but the inseam). */
   lengthDefinition: 'required' | 'forbidden';
+  /** With a required length definition: the values a row may give. */
+  lengthDefinitions?: readonly LengthDefinition[];
   /** Photo landmark names, or null when this template can't take a photo texture yet. */
   landmarks: readonly LandmarkName[] | null;
   /** Landmarks a photo may add (a knit's hoodTop); checked when given, never required. */
@@ -152,6 +175,7 @@ const TOP_SPEC = {
   category: 'top',
   sleeve: 'required',
   lengthDefinition: 'required',
+  lengthDefinitions: ['hps', 'center_back', 'unknown'],
   landmarks: TOP_LANDMARKS,
   checks: TOP_CHECKS,
   defaultWeight: 'light',
@@ -179,6 +203,30 @@ export const CATEGORY_SPECS: Record<TemplateId, CategorySpec> = {
     landmarks: PANTS_LANDMARKS,
     checks: { required: ['waist', 'inseam'], ranges: BOTTOM_RANGES, labelEase: 'waist', relations: PANTS_RELATIONS },
     defaultWeight: 'mid',
+  },
+  // The pants template cut short: no knee, and the hem lands on the thigh (domain/fit/zones.ts).
+  shorts: {
+    template: 'shorts',
+    category: 'bottom',
+    sleeve: 'forbidden',
+    lengthDefinition: 'forbidden',
+    // No shorts photos yet; the pants landmarks have knees that shorts don't.
+    landmarks: null,
+    checks: { required: ['waist', 'inseam'], ranges: SHORTS_RANGES, labelEase: 'waist', relations: SHORTS_RELATIONS },
+    defaultWeight: 'light',
+  },
+  skirt: {
+    template: 'skirt',
+    category: 'bottom',
+    sleeve: 'forbidden',
+    // Skirt length runs from the top of the waistband (domain/fit/skirt.ts places the hem from the band).
+    lengthDefinition: 'required',
+    lengthDefinitions: ['waist', 'unknown'],
+    scoredDefinitions: { length: ['waist'], sleeve: [] },
+    // No skirt photos yet.
+    landmarks: null,
+    checks: { required: ['waist', 'length'], ranges: SKIRT_RANGES, labelEase: null, relations: SKIRT_RELATIONS },
+    defaultWeight: 'light',
   },
 };
 

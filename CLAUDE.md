@@ -33,7 +33,7 @@ app/src/
     body/        estimateBody(input) -> BodyModel (men's power law; women's ANSUR II regressions),
                  braSize.ts (parse "34DD", US/UK cups, bust estimate)
     garments/    types.ts (schema), seed.json, normalize.ts (printed -> cm + provenance),
-                 categories.ts (type -> template: tee | shirt | knit | pants; CategorySpec data rules, weightOf),
+                 categories.ts (type -> template: tee | shirt | knit | pants | shorts | skirt; CategorySpec data rules, weightOf),
                  chart.ts (per-measurement girth method, stretch, definitions),
                  validate.ts (structure), verify.ts + verifyRules.ts (stage-5 checks),
                  grade.ts (confidence grade), report.ts (npm run data:check text),
@@ -41,6 +41,8 @@ app/src/
     fit/         fitGarment(body, garment, size) -> per-zone fit results (rules.ts thresholds),
                  zones.ts (TemplateZones: each template's zones, rules, needed definitions),
                  pants.ts (bandHeight, girthAtHeight: where a waistband sits; the drawing reads it too),
+                 shorts.ts (crotchToKneeCm), skirt.ts (band / hip-point / hem heights, legGirthAt,
+                 strideGirthCm; the drawing reads them too),
                  tops.ts (length / sleeve body targets per definition, centre back included; the drawing reads it too),
                  golden.test.ts + __golden__/ (byte-for-byte snapshot of every garment's fit and odds)
                  preference.ts (anchor tee / fit style -> personal verdict), sampleFit.ts
@@ -49,7 +51,7 @@ app/src/
   ui/            React (app icons and favicon: app/public/, made by npm run icons)
     screens/     BodyScreen (input), AnchorScreen (fit reference), FittingRoom (browse + size + fit),
                  FitTestPanel (Test mode), Discover (swipe feed), Closet + closet/ (Liked, Folders, Outfits tabs)
-    components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts, photoWarp.ts + SVG),
+    components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts + skirt.ts, photoWarp.ts + SVG),
                  SwipeCard/ (pure swipe.ts),
                  FitStrip (size row + verdict line under the stage), sizeRow.ts (pure),
                  GarmentCarousel, GarmentBadge, SizePicker, FitReadout, FitSheet, Sheet (<dialog>), TabBar, NameForm,
@@ -116,6 +118,17 @@ inputs/outputs and unit tests. UI only calls their public functions.
   zone against the heel–ankle girth (skinny / slim / straight / wide) that is bad **only** when it
   can't pass the heel with no stretch and no `ankleZip`. Thigh needs `definitions.thigh`.
   Thresholds (`THIGH`, `RISE`, `LEG_OPENING`) are assumed.
+- Shorts (template `shorts`, category bottom): the pants waist, hips, thigh and rise as they are;
+  the inseam is a landing zone against crotch-to-knee (`SHORTS_INSEAM`: mid-thigh / above knee /
+  knee, assumed); no leg-opening zone. Drawn with `pantsShape` (the hem the inseam below the
+  body's crotch, as the fit lands it).
+- Skirts (template `skirt`, category bottom): waist at the band (`definitions.waist` natural / mid /
+  low → `SKIRT_BAND_DROP_CM` 0 / 4 / 8 cm below the navel, assumed; none or unknown → the navel);
+  hips at `chart.hipsBelowWaist` below the band, or the fullest hips without it; length (needs
+  `definitions.length: 'waist'`) a landing against band-to-knee (`SKIRT_LENGTH`: mini / above knee /
+  knee / midi / maxi, assumed); walking room (`hemSweep` vs `strideGirthCm` at the hem, legs
+  `STRIDE_ANGLE_DEG` 40° apart, assumed) is an optional landing whose `restricted` mark has tone
+  warn (`LandingRule` mark `tone`) and never decides the size. All in `domain/fit/skirt.ts`.
 - Woven shirts currently use the tee chest thresholds — likely too strict; tune in `rules.ts`.
 - Knits (hoodie, sweatshirt, sweater, cardigan → template `knit`, worn as a top): chest, length,
   sleeve (long only) and hem band (optional). Chest = the top chest rule with fitted / relaxed /
@@ -157,7 +170,7 @@ inputs/outputs and unit tests. UI only calls their public functions.
   and worked out against the current body; an anchor's ease is turned into its regular-cut
   equivalent. Targets and bands per style / fitIntent are `INTENT_EASE` in `rules.ts`.
 - Relaxed and oversized designs win when their ease is above the user's ("Oversized, as
-  designed"); slim and regular cuts are sized to the user. Pants have no personal target yet.
+  designed"); slim and regular cuts are sized to the user. Pants, shorts and skirts have no personal target yet.
 - `sampleFit` draws body, garment and preference 500 times (seed fixed) and returns per-size
   label, personal and verdict odds. Every spread is in `uncertainty.ts`, each with its source;
   estimated body spreads are per body type (women's from the ANSUR II residuals).
@@ -187,7 +200,7 @@ inputs/outputs and unit tests. UI only calls their public functions.
   `{ value, origin: chart | estimated | audited, how }`. `normalizeGarment` converts to cm
   and keeps each value's origin, printed number and conversions (`GarmentSize.provenance`).
 - Every row has `sizing: "mens" | "womens" | "unisex"` (who the chart is cut for). Gildan 5000
-  and Knightweave are unisex. The Fitting room and Discover show the body type's sizing plus
+  and Knightweave are unisex; the Lands' End A-line skirt is the first women's row. The Fitting room and Discover show the body type's sizing plus
   unisex, with a shared "Show: … & unisex | All" toggle (`catalogueFor`); a worn garment
   stays on even when hidden.
 - `checkGarment` (stage 5) returns errors and warnings. Errors leave the garment out of the
@@ -200,10 +213,17 @@ inputs/outputs and unit tests. UI only calls their public functions.
   default: tee/shirt light, knit/pants mid). Knit checks: `KNIT_RANGES`, centre-back sleeve range,
   their own flat-chest limit, `hemBand ≤ chest`; `scoredDefinitions` per template says which
   length / sleeve definitions are scoreable (kept equal to the zones' `needs` by a test).
+- Shorts checks: `SHORTS_RANGES` (inseam 5–35 cm, opening 40–100), `legOpening ≤ thigh`. Skirt
+  checks: `SKIRT_RANGES`, `waist ≤ hips`, a length definition from `lengthDefinitions`
+  (`waist | unknown`; tops can't use `waist`), `hipsBelowWaist` only on skirts, 5–30 cm and above
+  every hem. `hemSweep` is a girth, last in `MEASUREMENT_KEYS`. Skirts and shorts take no photo
+  landmarks yet (`landmarks: null`).
 - Mannequin (skin rule): the body's waist (navel), hip line, crotch and knee are drawn at the body
   model's heights; leg widths come from its thigh / knee / calf (`halfWidth.leg`). Pants
   (`pantsShape`) draw the band at the fit engine's `bandHeight()` and the thigh, knee and
-  opening from the chart; a missing one falls back to a typical width and draws dashed.
+  opening from the chart; a missing one falls back to a typical width and draws dashed. Skirts
+  (`skirtShape`) draw band, hip point and hem at `skirt.ts`'s heights, widths from waist / hips /
+  sweep (A-line or pencil follows); without a sweep, straight from the hips, dashed.
 - Knits draw with `topShape` plus surface details: a rib hem band gathered to the chart's hem band
   (stretched onto the body where smaller, never wider than the body above; body width without one),
   rib cuffs, and for hoodies a hood behind the neck with drawcords. Length and a centre-back

@@ -103,3 +103,19 @@ describe('pantsShape edge cases (from the branch review)', () => {
     expect(shape.legs.left).toContain(`${r(-thigh.x)} ${r(thigh.y)}`);
   });
 });
+
+describe('pantsShape for shorts', () => {
+  const shorts = findGarment('landsend-easy-shorts')!;
+  const s = shorts.sizes.find((x) => x.label === 'L')!.measurements;
+
+  it('ends the hem where the fit lands it: the inseam below the body’s crotch', () => {
+    const shape = pantsShape(g, m, shorts, s);
+    expect(shape.markers.inseam!.y).toBeCloseTo(g.y.crotch + s.inseam!);
+    expect(shape.markers.inseam!.y).toBeLessThan(g.y.knee);
+  });
+
+  it('doesn’t miss a knee girth on a leg that ends above the knee', () => {
+    const shape = pantsShape(g, m, shorts, { ...s, thigh: 66 });
+    expect(shape.approximate).toBe(false);
+  });
+});

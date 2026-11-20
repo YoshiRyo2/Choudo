@@ -26,15 +26,20 @@ import {
   KNIT_GIRTH_RULES,
   LEG_OPENING,
   RISE,
+  SHORTS_INSEAM,
+  SKIRT_LENGTH,
   SLEEVE,
   THIGH,
   TOP_GIRTH_RULES,
   TOP_LENGTH,
+  WALKING_ROOM,
   type GirthRule,
   type LandingRule,
   type LengthRule,
 } from './rules';
 import { bandHeight, girthAtHeight, riseForBand } from './pants';
+import { crotchToKneeCm } from './shorts';
+import { skirtBandHeight, skirtHemHeight, skirtHipHeight, strideGirthCm } from './skirt';
 import { lengthTargetCm, sleeveTargetCm } from './tops';
 
 export type ZoneId =
@@ -47,13 +52,17 @@ export type ZoneId =
   | 'thigh'
   | 'rise'
   | 'legOpening'
-  | 'hemBand';
+  | 'hemBand'
+  | 'walkingRoom';
 
 /**
  * Where a worked-out body number was taken: band = the body's girth where a
- * waistband sits; centre_back = a length from the centre of the back neck.
+ * waistband sits; centre_back = a length from the centre of the back neck;
+ * knee = a distance down to the knee (where a hem lands against it);
+ * hip_point = the body's girth where a skirt chart measures its hips;
+ * stride = the girth round both legs mid-stride, at the hem.
  */
-export type BodyAt = 'band' | 'centre_back';
+export type BodyAt = 'band' | 'centre_back' | 'knee' | 'hip_point' | 'stride';
 
 export type Rule = GirthRule | LengthRule | LandingRule;
 
@@ -215,6 +224,71 @@ const PANTS_ZONES: readonly ZoneSpec[] = [
   },
 ];
 
+/**
+ * Shorts: the pants waist, hips, thigh and rise as they are; the inseam says where
+ * the hem lands against the knee (it isn't meant to reach the ankle), and there's
+ * no leg opening zone (pants measure it against the heel).
+ */
+const SHORTS_ZONES: readonly ZoneSpec[] = [
+  ...PANTS_ZONES.filter((z) => z.zone !== 'inseam' && z.zone !== 'legOpening'),
+  {
+    zone: 'inseam',
+    garmentKey: 'inseam',
+    bodyKey: 'inseamCm',
+    rule: SHORTS_INSEAM,
+    bodyTarget: (m) => crotchToKneeCm(m),
+    bodyAt: 'knee',
+  },
+];
+
+/**
+ * Skirts: the waist where the band sits, the hips where the chart measures them,
+ * where the hem lands against the knee, and whether the hem opens to a stride.
+ */
+const SKIRT_ZONES: readonly ZoneSpec[] = [
+  {
+    zone: 'waist',
+    garmentKey: 'waist',
+    bodyKey: 'waistCm',
+    rule: BOTTOM_WAIST,
+    bodyTarget: (m, g) => girthAtHeight(m, skirtBandHeight(m, g)),
+    bodyAt: 'band',
+  },
+  {
+    zone: 'hips',
+    garmentKey: 'hips',
+    bodyKey: 'hipsCm',
+    rule: BOTTOM_HIPS,
+    bodyTarget: (m, g) => (g.hipsBelowWaistCm === undefined ? m.hipsCm : girthAtHeight(m, skirtHipHeight(m, g))),
+    bodyAt: 'hip_point',
+  },
+  {
+    zone: 'length',
+    garmentKey: 'length',
+    bodyKey: 'kneeHeightCm',
+    rule: SKIRT_LENGTH,
+    // Band to knee: a skirt this long ends at the middle of the kneecap.
+    bodyTarget: (m, g) => skirtBandHeight(m, g) - m.kneeHeightCm,
+    bodyAt: 'knee',
+    needs: {
+      definition: 'length',
+      accepts: ['waist'],
+      reason: (brand) => `${brand}'s chart doesn't say the length runs from the waistband, so we can't place the hem.`,
+    },
+  },
+  {
+    zone: 'walkingRoom',
+    garmentKey: 'hemSweep',
+    bodyKey: 'thighCm',
+    rule: WALKING_ROOM,
+    optional: true,
+    // Needs the hem's height, so only with a length.
+    applies: (_g, s) => s.length !== undefined,
+    bodyTarget: (m, g, s) => strideGirthCm(m, skirtHemHeight(m, g, s)),
+    bodyAt: 'stride',
+  },
+];
+
 const KNIT_ZONES: readonly ZoneSpec[] = [
   { zone: 'chest', garmentKey: 'chest', bodyKey: 'chestCm', rule: { bySizing: KNIT_GIRTH_RULES } },
   {
@@ -256,6 +330,8 @@ export const TEMPLATE_ZONES: Record<TemplateId, TemplateZones> = {
   shirt: { template: 'shirt', zones: TOP_ZONES, personal: TOP_PERSONAL },
   knit: { template: 'knit', zones: KNIT_ZONES, personal: { ...TOP_PERSONAL, easeOffsetCm: KNIT_EASE_OFFSET_CM } },
   pants: { template: 'pants', zones: PANTS_ZONES, personal: null },
+  shorts: { template: 'shorts', zones: SHORTS_ZONES, personal: null },
+  skirt: { template: 'skirt', zones: SKIRT_ZONES, personal: null },
 };
 
 export const templateZones = (g: Pick<Garment, 'type'>): TemplateZones => TEMPLATE_ZONES[templateOf(g)];

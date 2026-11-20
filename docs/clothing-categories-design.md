@@ -743,6 +743,39 @@ Split into 1a (commits 1–2, Medium, no visible change) and 1b (3–8).
   Gildan L 13 % vs a tee's 27 %) — the sleeve adds a length zone and the estimated hem band widens
   the garment spread. Not tuned.
 
+#### PR 3 as built (skirts / shorts)
+
+- **Templates** `shorts` and `skirt`, both category `bottom`. No new body keys, so every existing
+  golden line is unchanged (two garments add 14 lines).
+- **Shorts** = the pants zones without the leg opening (pants measure it against the heel), the
+  inseam a landing against crotch-to-knee (`SHORTS_INSEAM`: mid-thigh, above knee from −12 cm,
+  knee from −4 cm; assumed from 5–7 / 9 / 11 in inseams on a ~30 cm crotch-to-knee).
+- **Skirt** (`domain/fit/skirt.ts`): band = navel − `SKIRT_BAND_DROP_CM` (natural 0, mid 4, low 8;
+  assumed, matching the pants rise marks; no definition → navel, as pants without a rise). Hips at
+  `chart.hipsBelowWaist` (chart unit, a garment-level field rather than a definition, since it's a
+  number) or the fullest hips. Length (`definitions.length: 'waist'`) lands against band − knee
+  height (`SKIRT_LENGTH`: mini < −15, above knee, knee ±5, midi from +5, maxi from +28; assumed).
+- **Walking room**: the hem must go round both legs a stride apart. Two leg sections of girth c
+  with centres D apart measure c + 2D round; side to side D = c / π (legs touching), front to back
+  2 · d · sin(20°) at d below the crotch (`STRIDE_ANGLE_DEG` 40, assumed from gait: ~30° flexion +
+  ~10° extension). Leg girth runs thigh → knee girth, then the calf. A landing zone whose
+  `restricted` mark carries `tone: 'warn'` (new on `LandingRule` marks): it shows a warning and,
+  like every landing, never decides the size. No slit/vent field yet, so a vented pencil skirt
+  warns too.
+- **Checks**: `SHORTS_RANGES`, `SKIRT_RANGES`, `waist ≤ hips`, `legOpening ≤ thigh`, hem-sweep
+  flat/round limits, `CategorySpec.lengthDefinitions` (tops hps / center_back / unknown, skirts
+  waist / unknown), hip point 5–30 cm and above each hem.
+- **Data**: Lands' End item-dimension PDFs (tier B, as the Super-T): Women's Solid A-line Skirt
+  Below the Knee 430808 (Regular 0–16; waist `mid` from the retailer's "midrise") and Men's 5½"
+  Lightweight Twill Easy Shorts 552171 (relaxed elastic waist, stretch high; front rise; bottom
+  opening = leg opening; no thigh, so drawn dashed). Both grade charted.
+- **Drawing**: `templates/skirt.ts` (band, hip point, hem from `skirt.ts`; widths from the chart).
+  `pantsShape` now ends the hem the inseam below the body's crotch, where the fit puts it (it was
+  2 cm lower), and only needs a knee girth on a leg that reaches the knee.
+- **Not built**: skirt/shorts photo landmarks and warp (no photos); `waistStretched` for elastic
+  waists — a relaxed elastic waist reads "fitted" well under the body on stretch alone (Easy Shorts M
+  on a men's 176/85: −12.7 cm), so smaller sizes look right more often than they should.
+
 ### PR 2 — hoodies / sweaters (Medium)
 - `knit` zones: chest (personal, tee `INTENT_EASE` plus a knit offset), length (`hps` or `center_back` against
   `cervicaleHeightCm`), sleeve (`shoulder_to_cuff` or `center_back_to_cuff` against `sleevelengthspinewrist`),

@@ -5,7 +5,11 @@ export function GarmentIcon({ garment }: { garment: Garment }) {
   const fill = garment.color;
   const stroke = 'color-mix(in srgb, var(--ink) 55%, transparent)';
   let d: string;
-  if (garment.category === 'bottom') {
+  if (garment.type === 'skirt') {
+    d = 'M18 6 H42 L44 16 L54 56 H6 L16 16 Z';
+  } else if (garment.type === 'shorts') {
+    d = 'M12 6 H48 L54 36 H34 L30 22 L26 36 H6 Z';
+  } else if (garment.category === 'bottom') {
     const wide = garment.type === 'trousers' ? 4 : garment.type === 'joggers' ? -2 : 0;
     d = `M14 6 H46 L${50 + wide} 58 H${34} L30 24 L26 58 H${10 - wide} Z`;
   } else if (garment.sleeve === 'long') {

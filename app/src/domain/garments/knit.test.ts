@@ -17,11 +17,11 @@ describe('knit template', () => {
 });
 
 describe('hem band', () => {
-  it('is a girth: a flat hem band is doubled, and it is the last measurement key', () => {
+  it('is a girth: a flat hem band is doubled, and it comes after the pants keys', () => {
     const l = KNIT_HOODIE.sizes.find((s) => s.label === 'L')!;
     expect(l.measurements.hemBand).toBeCloseTo(20.5 * 2 * 2.54, 6);
     expect(l.provenance.hemBand?.conversions).toEqual(['flat width doubled to a full circumference', 'inches to cm']);
-    expect(MEASUREMENT_KEYS[MEASUREMENT_KEYS.length - 1]).toBe('hemBand');
+    expect(MEASUREMENT_KEYS.indexOf('hemBand')).toBe(MEASUREMENT_KEYS.indexOf('legOpening') + 1);
   });
 });
 

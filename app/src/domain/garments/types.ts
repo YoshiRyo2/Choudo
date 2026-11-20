@@ -20,6 +20,8 @@ export type GarmentType =
   | 'chinos'
   | 'joggers'
   | 'trousers'
+  | 'shorts'
+  | 'skirt'
   | 'hoodie'
   | 'sweatshirt'
   | 'sweater'
@@ -39,7 +41,7 @@ export type GirthMethod = 'flat' | 'circumference' | 'unknown';
 export const GIRTH_METHODS: readonly GirthMethod[] = ['flat', 'circumference', 'unknown'];
 
 /** The measurements that are girths (doubled when printed flat). */
-export type GirthKey = 'chest' | 'waist' | 'hips' | 'thigh' | 'knee' | 'legOpening' | 'hemBand';
+export type GirthKey = 'chest' | 'waist' | 'hips' | 'thigh' | 'knee' | 'legOpening' | 'hemBand' | 'hemSweep';
 
 /**
  * A girth method per measurement, for charts that mix them (pants often print the
@@ -57,15 +59,22 @@ export type SleeveDefinition = 'shoulder_to_cuff' | 'center_back_to_cuff' | 'top
  * Where a top's length is measured from:
  *  - hps: high point of shoulder (by the collar) down to the hem — what we compare to the body
  *  - center_back: centre of the back neck down to the hem (a couple of cm shorter)
+ *  - waist: skirts — the top of the waistband down to the hem
  *  - unknown: the chart doesn't say. Length then can't be scored.
  */
-export type LengthDefinition = 'hps' | 'center_back' | 'unknown';
+export type LengthDefinition = 'hps' | 'center_back' | 'waist' | 'unknown';
 
 /** Where a pants rise is measured: front = top of the waistband to the crotch seam, at the front. */
 export type RiseDefinition = 'front' | 'back' | 'total' | 'unknown';
 
 /** Where a pants thigh is measured: at the crotch, or a little (2.5 cm, 1 in) below it. */
 export type ThighDefinition = 'at_crotch' | 'below_crotch_2_5cm' | 'unknown';
+
+/**
+ * Where a skirt's waistband sits: natural (at the waist, which ANSUR II measures
+ * at the navel), mid or low (further down towards the hips). See domain/fit/skirt.ts.
+ */
+export type WaistDefinition = 'natural' | 'mid' | 'low' | 'unknown';
 
 /**
  * Where each measurement is taken, as the chart defines it. A zone that needs a
@@ -76,15 +85,18 @@ export interface Definitions {
   sleeve?: SleeveDefinition;
   rise?: RiseDefinition;
   thigh?: ThighDefinition;
+  /** Skirts: where the waistband sits. */
+  waist?: WaistDefinition;
 }
 export type DefinitionName = keyof Definitions;
 
 /** The values each definition may take. */
 export const DEFINITION_VALUES: { [K in DefinitionName]-?: readonly NonNullable<Definitions[K]>[] } = {
-  length: ['hps', 'center_back', 'unknown'],
+  length: ['hps', 'center_back', 'waist', 'unknown'],
   sleeve: ['shoulder_to_cuff', 'center_back_to_cuff', 'top_of_sleeve'],
   rise: ['front', 'back', 'total', 'unknown'],
   thigh: ['at_crotch', 'below_crotch_2_5cm', 'unknown'],
+  waist: ['natural', 'mid', 'low', 'unknown'],
 };
 
 /** How the brand means the garment to sit. Used to judge whether its ease is plausible. */
@@ -157,6 +169,8 @@ export interface SizeMeasurements {
   legOpening?: number;
   /** Knits: the rib hem band (waistband of a sweatshirt), relaxed — before it's stretched. */
   hemBand?: number;
+  /** Skirts: the hem's circumference (the "sweep"), what a stride has to fit through. */
+  hemSweep?: number;
 }
 
 export type MeasurementKey = keyof SizeMeasurements;
@@ -361,6 +375,12 @@ export interface SeedGarment extends Omit<GarmentBase, 'stretch'> {
     sleeveDefinition?: SleeveDefinition;
     /** Where measurements are taken. length and sleeve may be given here or as the fields above, not both. */
     definitions?: Definitions;
+    /**
+     * Skirts: how far below the top of the waistband the chart measures the hips,
+     * in the chart's unit, when it says ("hip measured 7 in below the waist").
+     * Without it the hips are compared at the body's fullest.
+     */
+    hipsBelowWaist?: number;
   };
   sizes: SeedSize[];
 }
@@ -378,8 +398,10 @@ export interface Garment extends GarmentBase {
   stretchByKey?: Partial<Record<MeasurementKey, Stretch>>;
   lengthDefinition?: LengthDefinition;
   sleeveDefinition?: SleeveDefinition;
-  /** Every other definition the chart gives (rise, thigh). Read any definition with definitionOf(). */
+  /** Every other definition the chart gives (rise, thigh, a skirt's waist). Read any definition with definitionOf(). */
   definitions?: Omit<Definitions, 'length' | 'sleeve'>;
+  /** Skirts: chart.hipsBelowWaist in cm. */
+  hipsBelowWaistCm?: number;
   sizes: GarmentSize[];
   grade: ConfidenceGrade;
 }
