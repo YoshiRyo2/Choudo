@@ -57,6 +57,23 @@ export interface BodyMeasurements {
    * from the same high shoulder point, so the two compare directly.
    */
   torsoLengthCm: number;
+  // ---- legs (pants). Estimated only; none can be typed in yet. ----
+  /** Thigh circumference at its fullest, just below the seat. */
+  thighCm: number;
+  /** Circumference just above the knee (ANSUR II "lower thigh"). */
+  kneeCm: number;
+  /** Calf circumference at its fullest. */
+  calfCm: number;
+  /** Round the heel and the top of the instep: what a leg opening has to pass over. */
+  heelAnkleCm: number;
+  /** Front rise of the body: navel to crotch at the front, along the body. */
+  frontRiseCm: number;
+  /** Floor to navel (where ANSUR II measures the waist). */
+  waistHeightCm: number;
+  /** Floor to the fullest part of the seat (the hip line, where hipsCm is measured). */
+  hipHeightCm: number;
+  /** Floor to the middle of the kneecap. */
+  kneeHeightCm: number;
 }
 
 /** Keys of BodyMeasurements that are measurements (not height/weight/bodyType). */
@@ -67,11 +84,35 @@ export type MeasurementKey =
   | 'inseamCm'
   | 'shoulderWidthCm'
   | 'armLengthCm'
-  | 'torsoLengthCm';
+  | 'torsoLengthCm'
+  | LegKey;
+
+/** The leg keys pants are fitted and drawn with. */
+export type LegKey =
+  | 'thighCm'
+  | 'kneeCm'
+  | 'calfCm'
+  | 'heelAnkleCm'
+  | 'frontRiseCm'
+  | 'waistHeightCm'
+  | 'hipHeightCm'
+  | 'kneeHeightCm';
+
+export const LEG_KEYS: readonly LegKey[] = [
+  'thighCm',
+  'kneeCm',
+  'calfCm',
+  'heelAnkleCm',
+  'frontRiseCm',
+  'waistHeightCm',
+  'hipHeightCm',
+  'kneeHeightCm',
+];
 
 /**
- * Every body measurement key, in a fixed order. The sampler draws them in this
- * order, so add new keys at the end or a seed stops meaning the same draws.
+ * Every body measurement key, in a fixed order. New keys go at the end. (The
+ * sampler draws the first seven from its main stream and every later key from
+ * its own, so adding one never moves a seeded result; see fit/sampleFit.ts.)
  */
 export const BODY_MEASUREMENT_KEYS: readonly MeasurementKey[] = [
   'chestCm',
@@ -81,6 +122,7 @@ export const BODY_MEASUREMENT_KEYS: readonly MeasurementKey[] = [
   'shoulderWidthCm',
   'armLengthCm',
   'torsoLengthCm',
+  ...LEG_KEYS,
 ];
 
 /** Where each value came from: our estimate, or the user's own tape measure. */

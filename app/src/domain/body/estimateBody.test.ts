@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { inToCm } from '../units';
-import { estimateBody, MENS_MODEL, validateBodyInput, WOMENS_REGRESSION } from './estimateBody';
+import {
+  estimateBody,
+  LEG_ESTIMATE_LIMITS,
+  MENS_LEG_RATIO,
+  MENS_MODEL,
+  validateBodyInput,
+  WOMENS_LEG_REGRESSION,
+  WOMENS_REGRESSION,
+} from './estimateBody';
+import { BODY_MEASUREMENT_KEYS } from './types';
 import type { BodyInput } from './types';
 
 const average: BodyInput = { heightCm: 176, weightKg: 85, bodyType: 'mens' };
@@ -127,5 +136,77 @@ describe('validateBodyInput', () => {
   it('checks a bra size', () => {
     const errors = validateBodyInput({ heightCm: 165, weightKg: 60, bodyType: 'womens', overrides: { braSize: { band: 34, cup: 'Q', system: 'us' } } });
     expect(errors.map((e) => e.field)).toEqual(['braSize']);
+  });
+});
+
+describe('leg keys (pants)', () => {
+  const LEG_KEYS = ['thighCm', 'kneeCm', 'calfCm', 'heelAnkleCm', 'frontRiseCm', 'waistHeightCm', 'hipHeightCm', 'kneeHeightCm'] as const;
+
+  it('come after the original keys, in a fixed order', () => {
+    expect(BODY_MEASUREMENT_KEYS.slice(7)).toEqual([...LEG_KEYS]);
+    expect(Object.keys(WOMENS_LEG_REGRESSION).sort()).toEqual([...LEG_KEYS].sort());
+  });
+
+  it("women's leg keys follow the ANSUR II regressions", () => {
+    const { measurements: m } = estimateBody({ heightCm: 163, weightKg: 68, bodyType: 'womens' });
+    expect(m.thighCm).toBeCloseTo(61.7, 1);
+    expect(m.frontRiseCm).toBeCloseTo(27.9, 1);
+    expect(m.waistHeightCm).toBeCloseTo(98.1, 1);
+    expect(m.hipHeightCm).toBeCloseTo(83.5, 1);
+    expect(m.kneeHeightCm).toBeCloseTo(44.95, 1);
+  });
+
+  it("men's leg keys are assumed ratios (girths of the hips, heights of the height)", () => {
+    const { measurements: m } = estimateBody(average);
+    expect(m.thighCm).toBeCloseTo(MENS_LEG_RATIO.thigh * 103);
+    expect(m.kneeCm).toBeCloseTo(0.4 * 103);
+    expect(m.calfCm).toBeCloseTo(0.385 * 103);
+    expect(m.heelAnkleCm).toBeCloseTo(0.196 * 176);
+    expect(m.frontRiseCm).toBeCloseTo(0.152 * 176);
+    expect(m.waistHeightCm).toBeCloseTo(0.601 * 176);
+    expect(m.hipHeightCm).toBeCloseTo(0.505 * 176);
+    expect(m.kneeHeightCm).toBeCloseTo(0.278 * 176);
+  });
+
+  it("men's existing keys don't move", () => {
+    const { measurements: m } = estimateBody(average);
+    expect([m.chestCm, m.waistCm, m.hipsCm]).toEqual([104, 94, 103]);
+    expect(m.inseamCm).toBeCloseTo(79.2, 10);
+    expect(m.shoulderWidthCm).toBeCloseTo(45.76, 10);
+    expect(m.armLengthCm).toBeCloseTo(61.6, 10);
+    expect(m.torsoLengthCm).toBeCloseTo(72.16, 10);
+  });
+
+  it('keeps heights in order when an entered inseam is far from the estimate', () => {
+    for (const bodyType of ['womens', 'mens'] as const) {
+      const { measurements: m } = estimateBody({ heightCm: 160, weightKg: 60, bodyType, overrides: { inseamCm: 95 } });
+      expect(m.inseamCm).toBe(95);
+      expect(m.kneeHeightCm).toBeLessThan(95);
+      expect(m.hipHeightCm).toBeGreaterThan(95);
+      expect(m.waistHeightCm).toBeGreaterThan(m.hipHeightCm);
+    }
+  });
+
+  it('stays finite, in its limits and in order across the whole input range', () => {
+    for (const bodyType of ['womens', 'mens'] as const)
+      for (const heightCm of [120, 160, 230])
+        for (const weightKg of [30, 90, 250]) {
+          const { measurements: m } = estimateBody({ heightCm, weightKg, bodyType });
+          for (const key of LEG_KEYS) {
+            expect(Number.isFinite(m[key])).toBe(true);
+            const { min, max } = LEG_ESTIMATE_LIMITS[key];
+            // The order guard may lift a height past its clamp, never below it.
+            expect(m[key]).toBeGreaterThanOrEqual(min);
+            if (key !== 'hipHeightCm' && key !== 'waistHeightCm') expect(m[key]).toBeLessThanOrEqual(max);
+          }
+          expect(m.kneeHeightCm).toBeLessThan(m.inseamCm);
+          expect(m.inseamCm).toBeLessThan(m.hipHeightCm);
+          expect(m.hipHeightCm).toBeLessThan(m.waistHeightCm);
+        }
+  });
+
+  it('are estimated', () => {
+    const model = estimateBody({ heightCm: 163, weightKg: 68, bodyType: 'womens' });
+    for (const key of LEG_KEYS) expect(model.sources[key]).toBe('estimated');
   });
 });
