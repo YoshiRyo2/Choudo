@@ -16,4 +16,4 @@ export * from './fitTestReport';
 export * as fitRules from './rules';
 export * as fitUncertainty from './uncertainty';
 export { bandHeight, girthAtHeight, riseForBand } from './pants';
-export { hpsLengthCm, lengthTargetCm, sleeveFromShoulderPointCm, sleeveTargetCm } from './tops';
+export { hpsLengthCm, lengthTargetCm, SHOULDER_CURVE_CM, sleeveFromShoulderPointCm, sleeveTargetCm } from './tops';

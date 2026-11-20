@@ -28,7 +28,7 @@ describe('catalogueFor', () => {
 
   it('leaves a women’s body only the unisex garments in today’s seed (no women’s rows yet)', () => {
     const tops = catalogueFor(GARMENTS, 'womens', 'matching', 'top').map((x) => x.id);
-    expect(tops).toEqual(['gildan-5000', 'knightweave-tee']);
+    expect(tops).toEqual(['gildan-5000', 'knightweave-tee', 'gildan-18500', 'comfort-colors-1566']);
     expect(catalogueFor(GARMENTS, 'womens', 'matching').every((x) => x.sizing === 'unisex')).toBe(true);
   });
 });

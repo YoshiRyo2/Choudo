@@ -187,7 +187,7 @@ export function checkGirthMethod(g: SeedGarment): { severity: 'error' | 'warning
       .filter((v) => v !== undefined)
       .map((v) => (unit === 'in' ? inToCm(readValue(v).value) : readValue(v).value)); // no doubling
     if (printed.length === 0) continue;
-    const { flatMax, circumferenceMin } = GIRTH_METHOD_LIMITS[key];
+    const { flatMax, circumferenceMin } = categorySpec(g).checks.girthMethodLimits?.[key] ?? GIRTH_METHOD_LIMITS[key];
     const span = `${cm(Math.min(...printed))}–${cm(Math.max(...printed))} as printed`;
     const tooBigForFlat = printed.filter((v) => v > flatMax);
     const tooSmallForRound = printed.filter((v) => v < circumferenceMin);

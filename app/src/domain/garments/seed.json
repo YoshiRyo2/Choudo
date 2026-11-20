@@ -540,6 +540,261 @@
           }
         }
       ]
+    },
+    {
+      "id": "gildan-18500",
+      "brand": "Gildan",
+      "name": "Heavy Blend Hooded Sweatshirt (18500)",
+      "category": "top",
+      "type": "hoodie",
+      "sizing": "unisex",
+      "color": "#2b3448",
+      "sleeve": "long",
+      "stretch": {
+        "default": "none",
+        "hemBand": "high"
+      },
+      "fitIntent": "regular",
+      "chart": {
+        "unit": "in",
+        "girth": "flat",
+        "definitions": {
+          "length": "hps",
+          "sleeve": "center_back_to_cuff"
+        }
+      },
+      "source": {
+        "placeholder": false,
+        "tier": "B",
+        "url": "https://www.sanmar.com/p/115/specSheetMeasurements",
+        "capturedOn": "2026-11-20",
+        "snapshot": "chart-snapshots/gildan-18500.jpg",
+        "notes": "Gildan's spec sheet as published by SanMar (Gildan's distributor; gildan.com refuses automated reads and has no chart page for 18500). Chest laid flat 1 in below the armhole; length from the high point of the shoulder to the hem at the back; sleeve from the centre of the neck, down the shoulder and sleeve. No hem band on the chart: estimated from the chest (see each value). 8 oz 50/50 cotton/poly fleece; 1x1 rib cuffs and waistband with spandex, so the hem band stretches (high)."
+      },
+      "sizes": [
+        {
+          "label": "XS",
+          "measurements": {
+            "chest": 18,
+            "length": 26,
+            "sleeve": 32.5,
+            "hemBand": {
+              "value": 15.25,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        },
+        {
+          "label": "S",
+          "measurements": {
+            "chest": 20,
+            "length": 27,
+            "sleeve": 33,
+            "hemBand": {
+              "value": 17,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        },
+        {
+          "label": "M",
+          "measurements": {
+            "chest": 22,
+            "length": 28,
+            "sleeve": 34,
+            "hemBand": {
+              "value": 18.75,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        },
+        {
+          "label": "L",
+          "measurements": {
+            "chest": 24,
+            "length": 29,
+            "sleeve": 35,
+            "hemBand": {
+              "value": 20.5,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        },
+        {
+          "label": "XL",
+          "measurements": {
+            "chest": 26,
+            "length": 30,
+            "sleeve": 36,
+            "hemBand": {
+              "value": 22,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        },
+        {
+          "label": "2XL",
+          "measurements": {
+            "chest": 28,
+            "length": 31,
+            "sleeve": 37,
+            "hemBand": {
+              "value": 23.75,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        },
+        {
+          "label": "3XL",
+          "measurements": {
+            "chest": 30,
+            "length": 32,
+            "sleeve": 38,
+            "hemBand": {
+              "value": 25.5,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        },
+        {
+          "label": "4XL",
+          "measurements": {
+            "chest": 32,
+            "length": 33,
+            "sleeve": 39,
+            "hemBand": {
+              "value": 27.25,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        },
+        {
+          "label": "5XL",
+          "measurements": {
+            "chest": 34,
+            "length": 34,
+            "sleeve": 40,
+            "hemBand": {
+              "value": 29,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "comfort-colors-1566",
+      "brand": "Comfort Colors",
+      "name": "Ring Spun Crewneck Sweatshirt (1566)",
+      "category": "top",
+      "type": "sweatshirt",
+      "sizing": "unisex",
+      "color": "#5d7a93",
+      "sleeve": "long",
+      "stretch": {
+        "default": "none",
+        "hemBand": "high"
+      },
+      "weight": "heavy",
+      "fitIntent": "relaxed",
+      "chart": {
+        "unit": "in",
+        "girth": "flat",
+        "definitions": {
+          "length": "hps"
+        }
+      },
+      "source": {
+        "placeholder": false,
+        "tier": "B",
+        "url": "https://www.sanmar.com/p/9677/specSheetMeasurements",
+        "capturedOn": "2026-11-20",
+        "snapshot": "chart-snapshots/comfort-colors-1566.jpg",
+        "notes": "Comfort Colors' spec sheet as published by SanMar (the brand's site shows no chart without JavaScript). Chest laid flat 1 in below the armhole; length from the high point of the shoulder to the hem at the back. The chart has no sleeve, so it is left out (retailers print a centre-back sleeve, but not from the brand). No hem band either: estimated from the chest. 9.5 oz 80/20 ring-spun fleece (weight heavy), garment dyed; 1x1 rib collar, cuffs and hem (stretch high). Cut relaxed, as retailers describe it."
+      },
+      "sizes": [
+        {
+          "label": "S",
+          "measurements": {
+            "chest": 21,
+            "length": 27.5,
+            "hemBand": {
+              "value": 17.75,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        },
+        {
+          "label": "M",
+          "measurements": {
+            "chest": 23,
+            "length": 28.5,
+            "hemBand": {
+              "value": 19.5,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        },
+        {
+          "label": "L",
+          "measurements": {
+            "chest": 25,
+            "length": 29.5,
+            "hemBand": {
+              "value": 21.25,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        },
+        {
+          "label": "XL",
+          "measurements": {
+            "chest": 26.5,
+            "length": 30.5,
+            "hemBand": {
+              "value": 22.5,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        },
+        {
+          "label": "2XL",
+          "measurements": {
+            "chest": 28,
+            "length": 31.5,
+            "hemBand": {
+              "value": 23.75,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        },
+        {
+          "label": "3XL",
+          "measurements": {
+            "chest": 29.5,
+            "length": 32.5,
+            "hemBand": {
+              "value": 25,
+              "origin": "estimated",
+              "how": "Not on the chart. 85% of the chest width (a rib band is cut about 15% shorter than the body it gathers; assumed), rounded to ¼ in."
+            }
+          }
+        }
+      ]
     }
   ]
 }

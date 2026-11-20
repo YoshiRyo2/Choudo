@@ -11,6 +11,7 @@ import type {
   GarmentCategory,
   GarmentImage,
   GarmentWeight,
+  GirthKey,
   GarmentType,
   LandmarkName,
   LengthDefinition,
@@ -23,6 +24,7 @@ import type {
 import { KNIT_OPTIONAL_LANDMARKS, PANTS_LANDMARKS, TOP_LANDMARKS } from './types';
 import {
   BOTTOM_RANGES,
+  KNIT_GIRTH_METHOD_LIMITS,
   KNIT_LENGTH_RANGES,
   KNIT_RANGES,
   KNIT_SLEEVE_RANGES,
@@ -70,6 +72,8 @@ export interface CategoryChecks {
   ranges: Partial<Record<MeasurementKey, Range>>;
   /** Top length (from the high point of the shoulder) by garment type. */
   lengthRanges?: Partial<Record<GarmentType, Range>>;
+  /** Where this template's girths differ from GIRTH_METHOD_LIMITS (knits run bigger). */
+  girthMethodLimits?: Partial<Record<GirthKey, { flatMax: number; circumferenceMin: number }>>;
   /** Long sleeves by where they're measured from; a definition not listed isn't range-checked. */
   sleeveRanges?: Partial<Record<SleeveDefinition, Range>>;
   /** Ease against a typical body for the size label: the chest for letter-sized tops, the waist for pants sized in inches. */
@@ -139,6 +143,7 @@ const KNIT_CHECKS: CategoryChecks = {
   ranges: KNIT_RANGES,
   lengthRanges: KNIT_LENGTH_RANGES,
   sleeveRanges: KNIT_SLEEVE_RANGES,
+  girthMethodLimits: KNIT_GIRTH_METHOD_LIMITS,
   labelEase: 'chest',
   relations: KNIT_RELATIONS,
 };

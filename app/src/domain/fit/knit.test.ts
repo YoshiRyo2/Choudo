@@ -14,7 +14,7 @@ import {
   TOP_CHEST,
   WOMENS_TOP_CHEST,
 } from './rules';
-import { hpsLengthCm, lengthTargetCm, sleeveFromShoulderPointCm, sleeveTargetCm } from './tops';
+import { hpsLengthCm, lengthTargetCm, SHOULDER_CURVE_CM, sleeveFromShoulderPointCm, sleeveTargetCm } from './tops';
 import { ruleFor, TEMPLATE_ZONES, templateZones, zoneSpecsFor } from './zones';
 
 const body = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
@@ -30,9 +30,19 @@ describe('top length and sleeve targets (tops.ts)', () => {
     expect(lengthTargetCm(m, 'unknown')).toBeNull();
   });
 
-  it('compares a shoulder sleeve with the arm, and a centre-back one with half the shoulders plus the arm', () => {
+  it('compares a shoulder sleeve with the arm, and a centre-back one with the back, shoulder curve and arm', () => {
     expect(sleeveTargetCm(m, 'shoulder_to_cuff')).toBe(m.armLengthCm);
-    expect(sleeveTargetCm(m, 'center_back_to_cuff')).toBeCloseTo(m.armLengthCm + m.shoulderWidthCm / 2, 9);
+    expect(sleeveTargetCm(m, 'center_back_to_cuff')).toBeCloseTo(m.armLengthCm + m.shoulderWidthCm / 2 + SHOULDER_CURVE_CM.mens, 9);
+    const w = estimateBody({ heightCm: 163, weightKg: 68, bodyType: 'womens' }).measurements;
+    expect(sleeveTargetCm(w, 'center_back_to_cuff')).toBeCloseTo(w.armLengthCm + w.shoulderWidthCm / 2 + SHOULDER_CURVE_CM.womens, 9);
+  });
+
+  it("lands the centre-back target on ANSUR II's mean spine-to-wrist at the survey's mean height", () => {
+    // ANSUR II means: men 175.6 cm tall, sleevelengthspinewrist 89.6 cm; women 162.8 cm, 80.7 cm.
+    const at = (heightCm: number, bodyType: 'mens' | 'womens') =>
+      sleeveTargetCm(estimateBody({ heightCm, weightKg: 70, bodyType }).measurements, 'center_back_to_cuff')!;
+    expect(at(175.6, 'mens')).toBeCloseTo(89.6, 0);
+    expect(at(162.8, 'womens')).toBeCloseTo(80.7, 0);
     expect(sleeveTargetCm(m, 'top_of_sleeve')).toBeNull();
   });
 
@@ -41,7 +51,7 @@ describe('top length and sleeve targets (tops.ts)', () => {
     expect(hpsLengthCm(KNIT_HOODIE, l)).toBe(l.length);
     const cb = knit({ chart: { ...KNIT_HOODIE_SEED.chart, definitions: { length: 'center_back', sleeve: 'center_back_to_cuff' } } });
     expect(hpsLengthCm(cb, l)).toBeCloseTo(l.length! + BACK_NECK_DROP_CM, 9);
-    expect(sleeveFromShoulderPointCm(KNIT_HOODIE, l, m)).toBeCloseTo(l.sleeve! - m.shoulderWidthCm / 2, 9);
+    expect(sleeveFromShoulderPointCm(KNIT_HOODIE, l, m)).toBeCloseTo(l.sleeve! - m.shoulderWidthCm / 2 - SHOULDER_CURVE_CM.mens, 9);
     expect(sleeveFromShoulderPointCm(normalizeGarment({ ...UNKNOWN_CHEST_SEED, sleeve: 'long' }), l, m)).toBeUndefined();
   });
 });
@@ -65,9 +75,9 @@ describe('knit zones', () => {
     expect(KNIT_GIRTH_RULES.womens.fittedMax).toBe(WOMENS_TOP_CHEST.fittedMax + KNIT_EASE_OFFSET_CM);
   });
 
-  it('scores a centre-back sleeve against half the shoulders plus the arm, and says so', () => {
+  it('scores a centre-back sleeve against the centre-back target, and says so', () => {
     const z = zone(KNIT_HOODIE, 'L', 'sleeve');
-    expect(z.bodyCm).toBeCloseTo(m.armLengthCm + m.shoulderWidthCm / 2, 9);
+    expect(z.bodyCm).toBeCloseTo(sleeveTargetCm(m, 'center_back_to_cuff')!, 9);
     expect(z.label).not.toBe('unknown');
     expect(z.bodyAt).toBe('centre_back');
   });

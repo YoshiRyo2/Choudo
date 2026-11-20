@@ -29,6 +29,15 @@ export const GIRTH_METHOD_LIMITS: Record<GirthKey, { flatMax: number; circumfere
   hemBand: { flatMax: 75, circumferenceMin: 55 },
 };
 
+/**
+ * Knits run bigger than tees: a 5XL hoodie is 34 in (86 cm) flat across the
+ * chest, past the tee limit. ASSUMED; still well under an adult chest
+ * circumference printed by mistake (100 cm and up).
+ */
+export const KNIT_GIRTH_METHOD_LIMITS: Partial<typeof GIRTH_METHOD_LIMITS> = {
+  chest: { flatMax: 95, circumferenceMin: 65 },
+};
+
 /** Plausible garment measurements (cm, full circumferences) for tops. */
 export const TOP_RANGES: Partial<Record<MeasurementKey, Range>> = {
   chest: { min: 75, max: 170 },

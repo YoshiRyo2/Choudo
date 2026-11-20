@@ -10,7 +10,7 @@
  * because a dropped shoulder moves the seam but not the back neck.
  */
 
-import type { BodyMeasurements } from '../body';
+import type { BodyMeasurements, BodyType } from '../body';
 import { definitionOf, type Garment, type LengthDefinition, type SizeMeasurements, type SleeveDefinition } from '../garments';
 import { BACK_NECK_DROP_CM } from './rules';
 
@@ -24,14 +24,25 @@ export function lengthTargetCm(m: Pick<BodyMeasurements, 'torsoLengthCm'>, defin
   return null;
 }
 
+/**
+ * What a tape from the centre of the back neck to the wrist measures beyond our
+ * straight-line half shoulder width + arm length (cm): it follows the back and
+ * the curve over the shoulder. From ANSUR II, at each survey's own statures:
+ * mean sleevelengthspinewrist − mean (arm + shoulder / 2) by our ratios =
+ * men 89.6 − 84.3 = 5.3 (SD 2.6), women 80.7 − 75.2 = 5.5 (SD 2.3).
+ */
+export const SHOULDER_CURVE_CM: Record<BodyType, number> = { mens: 5.3, womens: 5.5 };
+
+type SleeveBody = Pick<BodyMeasurements, 'armLengthCm' | 'shoulderWidthCm' | 'bodyType'>;
+
+/** Centre back neck to the body's shoulder point, along the back and over the shoulder (cm). */
+const backToShoulderPointCm = (m: Pick<BodyMeasurements, 'shoulderWidthCm' | 'bodyType'>) =>
+  m.shoulderWidthCm / 2 + SHOULDER_CURVE_CM[m.bodyType];
+
 /** The body length a printed sleeve is compared with, or null when the definition can't be compared. */
-export function sleeveTargetCm(
-  m: Pick<BodyMeasurements, 'armLengthCm' | 'shoulderWidthCm'>,
-  definition: SleeveDefinition | undefined,
-): number | null {
+export function sleeveTargetCm(m: SleeveBody, definition: SleeveDefinition | undefined): number | null {
   if (definition === 'shoulder_to_cuff') return m.armLengthCm;
-  // Centre back to the shoulder point is half the across-the-back shoulder width; then down the arm.
-  if (definition === 'center_back_to_cuff') return m.armLengthCm + m.shoulderWidthCm / 2;
+  if (definition === 'center_back_to_cuff') return backToShoulderPointCm(m) + m.armLengthCm;
   return null;
 }
 
@@ -53,8 +64,8 @@ export function hpsLengthCm(garment: DefinitionHolder, size: SizeMeasurements): 
 export function sleeveFromShoulderPointCm(
   garment: DefinitionHolder,
   size: SizeMeasurements,
-  m: Pick<BodyMeasurements, 'shoulderWidthCm'>,
+  m: Pick<BodyMeasurements, 'shoulderWidthCm' | 'bodyType'>,
 ): number | undefined {
   if (size.sleeve === undefined) return undefined;
-  return definitionOf(garment, 'sleeve') === 'center_back_to_cuff' ? size.sleeve - m.shoulderWidthCm / 2 : undefined;
+  return definitionOf(garment, 'sleeve') === 'center_back_to_cuff' ? size.sleeve - backToShoulderPointCm(m) : undefined;
 }

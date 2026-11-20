@@ -295,3 +295,16 @@ describe('knit checks', () => {
     ]);
   });
 });
+
+describe('knit girth method limits', () => {
+  it("takes a 5XL hoodie's 34 in flat chest as flat, but still catches a circumference printed as flat", () => {
+    const big: SeedGarment = { ...KNIT_HOODIE_SEED, sizes: [{ label: '5XL', measurements: { chest: 34, length: 34, sleeve: 40, hemBand: 29 } }] };
+    expect(checkGirthMethod(big)).toEqual([]);
+    const round: SeedGarment = { ...KNIT_HOODIE_SEED, sizes: [{ label: 'M', measurements: { chest: 44, length: 28, sleeve: 34, hemBand: 18 } }] };
+    expect(checkGirthMethod(round)[0]?.message).toMatch(/chest is marked flat, but .* looks like a full circumference/);
+  });
+
+  it('keeps the tee limit for tees', () => {
+    expect(checkGirthMethod({ ...tee, sizes: [{ label: '5XL', measurements: { chest: 34, length: 35 } }] })[0]?.severity).toBe('error');
+  });
+});
