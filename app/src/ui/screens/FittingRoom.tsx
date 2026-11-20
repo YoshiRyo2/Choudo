@@ -1,16 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
 import { fitAllSizes, measurementHint, type Anchor, type GarmentFit, type GarmentOdds, type PreferenceSpec } from '../../domain/fit';
 import { catalogueFor, findGarment, GARMENTS, type CatalogueScope, type Garment, type GarmentCategory } from '../../domain/garments';
-import { catalogueOptions, emptyCategoryText } from '../catalogueText';
+import { catalogueToggle, emptyCategoryText } from '../catalogueText';
 import { FitReadout } from '../components/FitReadout';
 import { FitSheet } from '../components/FitSheet';
+import { FitStrip } from '../components/FitStrip';
 import { GarmentCarousel } from '../components/GarmentCarousel';
 import { Mannequin, type WornGarment } from '../components/Mannequin/Mannequin';
 import { NameForm } from '../components/NameForm';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Sheet } from '../components/Sheet';
-import { SizePicker } from '../components/SizePicker';
 import { Wordmark } from '../components/Wordmark';
 import { makeId } from '../state/closet';
 import { makeFitTest, predictionFor } from '../state/fitTests';
@@ -123,6 +123,11 @@ export function FittingRoom({
   const inCategory = shown.filter((g) => g.category === browsing);
   const carousel = active && !inCategory.includes(active.garment) ? [active.garment, ...inCategory] : inCategory;
 
+  // The Show chip lives in the carousel, which remounts when the scope changes;
+  // put focus back on the new chip so a keyboard user isn't dropped.
+  const show = catalogueToggle(body.bodyType, catalogue);
+  const refocusShow = useRef(false);
+
   const worn = (s: Slot | null): WornGarment | undefined =>
     s ? { garment: s.garment, sizeLabel: s.size, fit: s.fit } : undefined;
 
@@ -147,10 +152,27 @@ export function FittingRoom({
 
       <section className="fitting__stage" aria-label="Mannequin">
         <Mannequin body={model.measurements} top={worn(top)} bottom={worn(bottom)} />
-        <button type="button" className="button button--outline button--small fitting__save" onClick={() => setSaving('naming')}>
-          Save outfit
+        <button type="button" className="fitting__save" aria-label="Save outfit" title="Save outfit" onClick={() => setSaving('naming')}>
+          {/* A bookmark with a plus: keep this outfit. */}
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path d="M6.5 3.5h11a1 1 0 0 1 1 1v16l-6.5-4.2-6.5 4.2v-16a1 1 0 0 1 1-1ZM12 7.5v6M9 10.5h6" />
+          </svg>
         </button>
       </section>
+
+      {active && (
+        <section className="fitting__strip" aria-label="Size and fit">
+          <FitStrip
+            garment={active.garment}
+            fits={active.fits}
+            size={active.size}
+            recommended={active.recommended}
+            odds={active.odds}
+            onSelectSize={chooseSize}
+            onDetails={() => setShowDetails(true)}
+          />
+        </section>
+      )}
 
       {saving && (
         <Sheet title={saving === 'saved' ? 'Saved to your Closet' : 'Save this outfit'} onClose={() => setSaving(null)}>
@@ -184,13 +206,6 @@ export function FittingRoom({
           onChange={setBrowsing}
         />
 
-        <SegmentedControl
-          label="Show"
-          value={catalogue}
-          options={catalogueOptions(body.bodyType)}
-          onChange={onCatalogueChange}
-        />
-
         {carousel.length > 0 ? (
           <GarmentCarousel
             key={`${browsing}-${catalogue}`}
@@ -198,6 +213,25 @@ export function FittingRoom({
             garments={carousel}
             selectedId={active?.garment.id ?? null}
             onSelect={chooseGarment}
+            headerAction={
+              <button
+                type="button"
+                className="fitting__show"
+                aria-label={show.accessibleName}
+                ref={(el) => {
+                  if (el && refocusShow.current) {
+                    refocusShow.current = false;
+                    el.focus();
+                  }
+                }}
+                onClick={() => {
+                  refocusShow.current = true;
+                  onCatalogueChange(show.next);
+                }}
+              >
+                {show.label}
+              </button>
+            }
           />
         ) : (
           <div className="fitting__empty">
@@ -209,24 +243,16 @@ export function FittingRoom({
         )}
 
         {active && (
-          <>
-            <SizePicker
-              fits={active.fits}
-              selected={active.size}
-              recommended={active.recommended}
-              onSelect={chooseSize}
-            />
-            <FitReadout
-              garment={active.garment}
-              fit={active.fit}
-              units={units}
-              odds={active.odds}
-              preference={preference}
-              hint={hint}
-              onDetails={() => setShowDetails(true)}
-              onEditBody={onEditBody}
-            />
-          </>
+          <FitReadout
+            garment={active.garment}
+            fit={active.fit}
+            units={units}
+            odds={active.odds}
+            preference={preference}
+            hint={hint}
+            summary={false}
+            onEditBody={onEditBody}
+          />
         )}
 
         {/* import.meta.env.DEV here, not only in App, so the build drops the panel's code. */}

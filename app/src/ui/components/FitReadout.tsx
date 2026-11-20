@@ -35,37 +35,57 @@ interface FitReadoutProps {
   showOdds?: boolean;
   /** Opens the fit details sheet; leave out where the readout already is one. */
   onDetails?: () => void;
+  /**
+   * Show the headline, its odds and the Fit details button (default). The fitting
+   * room turns it off: its fit strip already shows them.
+   */
+  summary?: boolean;
   onEditBody: () => void;
 }
 
 /** How the chosen size fits, zone by zone, measured against the body and what the user likes. */
-export function FitReadout({ garment, fit, units, odds, preference, hint, showOdds, onDetails, onEditBody }: FitReadoutProps) {
+export function FitReadout({
+  garment,
+  fit,
+  units,
+  odds,
+  preference,
+  hint,
+  showOdds,
+  onDetails,
+  summary: showSummary = true,
+  onEditBody,
+}: FitReadoutProps) {
   const summary = summarize(fit);
   const verdict = verdictLine(odds, fit.sizeLabel, garment);
   const sizeOdds = odds.sizes.find((s) => s.sizeLabel === fit.sizeLabel);
   const hasLengthPreference = preference.anchor?.lengthCm != null;
+  const prefNote = garment.category === 'top' && verdict.verdict !== 'unknown' ? preferenceNote(preference) : null;
   return (
-    <section className="readout" aria-labelledby="readout-title">
-      <header className={`readout__summary tone-${verdict.tone}`}>
-        <h2 id="readout-title" className="readout__headline">
-          {verdict.headline}
-          <span className="readout__size">
-            {' '}
-            in {fit.sizeLabel}
-          </span>
-        </h2>
-        {verdict.verdict === 'unknown'
-          ? summary.detail && <p className="readout__detail">{summary.detail}</p>
-          : verdict.detail && <p className="readout__detail">{verdict.detail}</p>}
-        {garment.category === 'top' && verdict.verdict !== 'unknown' && (
-          <p className="readout__pref">{preferenceNote(preference)}</p>
-        )}
-        {onDetails && (
-          <button type="button" className="button button--outline button--small readout__details" onClick={onDetails}>
-            Fit details
-          </button>
-        )}
-      </header>
+    <section className="readout" aria-labelledby={showSummary ? 'readout-title' : undefined}>
+      {showSummary ? (
+        <header className={`readout__summary tone-${verdict.tone}`}>
+          <h2 id="readout-title" className="readout__headline">
+            {verdict.headline}
+            <span className="readout__size">
+              {' '}
+              in {fit.sizeLabel}
+            </span>
+          </h2>
+          {verdict.verdict === 'unknown'
+            ? summary.detail && <p className="readout__detail">{summary.detail}</p>
+            : verdict.detail && <p className="readout__detail">{verdict.detail}</p>}
+          {prefNote && <p className="readout__pref">{prefNote}</p>}
+          {onDetails && (
+            <button type="button" className="button button--outline button--small readout__details" onClick={onDetails}>
+              Fit details
+            </button>
+          )}
+        </header>
+      ) : (
+        // The headline lives elsewhere (the fit strip); what it's compared with stays here.
+        prefNote && <p className="readout__pref">{prefNote}</p>
+      )}
 
       {hint && (
         <p className="readout__hint">

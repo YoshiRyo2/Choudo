@@ -20,6 +20,22 @@
   padding-top: 8px;
 }
 
+/* One row that scrolls sideways (the fitting room's fit strip). The row is the
+   chips' offsetParent, so the selected chip can be centred by its offsetLeft. */
+.sizes--row .sizes__row {
+  position: relative;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  /* Bleed to the screen edges, keeping the first chip in line with the text. */
+  margin: 0 -16px;
+  padding: 8px 16px 2px;
+  scroll-padding-inline: 16px;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.sizes--row .sizes__row::-webkit-scrollbar { display: none; }
+.sizes--row .size-chip { flex: none; }
+
 .size-chip {
   position: relative;
   display: inline-flex;

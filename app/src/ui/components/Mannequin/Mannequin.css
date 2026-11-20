@@ -101,6 +101,12 @@
   stroke: var(--paper);
   stroke-width: 0.6;
 }
+/* Couldn't be checked: a hollow ring, so it reads as "no answer", not broken. */
+.mannequin__pin.tone-unknown circle {
+  fill: var(--paper);
+  stroke: var(--muted);
+  stroke-width: 0.5;
+}
 
 .tone-good { color: var(--chalk-good); }
 .tone-warn { color: var(--chalk-warn); }

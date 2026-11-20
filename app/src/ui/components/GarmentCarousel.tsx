@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import type { Garment } from '../../domain/garments';
 import { GarmentBadge } from './GarmentBadge';
 import { GarmentIcon } from './GarmentIcon';
@@ -9,13 +9,15 @@ interface GarmentCarouselProps {
   garments: Garment[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** A small control in the header row, after the count (the fitting room's Show chip). */
+  headerAction?: ReactNode;
 }
 
 /**
  * Swipe sideways through garments. Whichever card settles in the middle is
  * selected; tapping a card or using the arrow buttons does the same.
  */
-export function GarmentCarousel({ label, garments, selectedId, onSelect }: GarmentCarouselProps) {
+export function GarmentCarousel({ label, garments, selectedId, onSelect, headerAction }: GarmentCarouselProps) {
   const trackRef = useRef<HTMLUListElement>(null);
   const settleTimer = useRef<number | undefined>(undefined);
   const selectedIndex = Math.max(0, garments.findIndex((g) => g.id === selectedId));
@@ -72,6 +74,7 @@ export function GarmentCarousel({ label, garments, selectedId, onSelect }: Garme
         <span className="carousel__count num" aria-hidden="true">
           {selectedIndex + 1} of {garments.length}
         </span>
+        {headerAction}
         <div className="carousel__arrows">
           <button type="button" onClick={() => step(-1)} disabled={selectedIndex === 0} aria-label={`Previous ${label.toLowerCase()}`}>
             <span className="carousel__arrow carousel__arrow--prev" aria-hidden="true" />
