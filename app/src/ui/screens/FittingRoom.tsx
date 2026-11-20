@@ -229,7 +229,8 @@ export function FittingRoom({
           </>
         )}
 
-        {testing && (
+        {/* import.meta.env.DEV here, not only in App, so the build drops the panel's code. */}
+        {import.meta.env.DEV && testing && (
           <FitTestPanel
             key={active ? `${active.garment.id}-${active.size}` : 'none'}
             garment={active ? active.garment : null}

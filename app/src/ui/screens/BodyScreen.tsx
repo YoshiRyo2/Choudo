@@ -344,7 +344,8 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
           Saved on this device only. No account, no photos, nothing sent anywhere.
         </p>
 
-        {testMode && (
+        {/* Dev only: the build drops this switch (see ui/devTools.ts). */}
+        {import.meta.env.DEV && testMode && (
           <details className="testers" open={testMode.on}>
             <summary>For fit testers</summary>
             <label className="testers__switch">

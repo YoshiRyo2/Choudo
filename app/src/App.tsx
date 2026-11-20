@@ -3,6 +3,7 @@ import type { BodyInput } from './domain/body';
 import { preferenceSpec, type Anchor, type FitStyle } from './domain/fit';
 import { findGarment, type CatalogueScope, type Garment } from './domain/garments';
 import { TabBar, type Tab } from './ui/components/TabBar';
+import { DEV_TOOLS, devToolsOn } from './ui/devTools';
 import { fitReferenceLine } from './ui/fitText';
 import { AnchorScreen } from './ui/screens/AnchorScreen';
 import { BodyScreen } from './ui/screens/BodyScreen';
@@ -85,7 +86,7 @@ export function App() {
           }
         }}
         onCancel={body ? () => setScreen('tabs') : undefined}
-        testMode={body ? { on: testMode, onChange: setTestMode } : undefined}
+        testMode={body && DEV_TOOLS ? { on: testMode, onChange: setTestMode } : undefined}
         fitReference={
           body
             ? {
@@ -135,7 +136,7 @@ export function App() {
           onUnitsChange={setUnits}
           onEditBody={editBody}
           testing={
-            testMode
+            devToolsOn(testMode, DEV_TOOLS)
               ? {
                   records: fitTests,
                   anchor,
