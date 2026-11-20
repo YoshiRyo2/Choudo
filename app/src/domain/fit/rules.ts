@@ -22,7 +22,8 @@
  */
 
 import { inToCm } from '../units';
-import type { FitIntent, GarmentSizing, Stretch } from '../garments';
+import type { BodyMeasurements } from '../body';
+import type { FitIntent, Garment, GarmentSizing, SizeMeasurements, Stretch } from '../garments';
 
 export interface GirthRule {
   kind: 'girth';
@@ -51,6 +52,19 @@ export interface LengthRule {
 export interface LandingRule {
   kind: 'landing';
   marks: readonly { label: string; atCm: number }[];
+  /**
+   * A hard stop: where the edge lands makes the garment unwearable (a band below
+   * the hip line, a hem that can't pass the heel). Returns the label to report
+   * (tone bad) and why, or null. Only blocking makes a landing zone count.
+   */
+  blocks?: (ctx: LandingContext) => { label: 'tight' | 'short'; note: string } | null;
+}
+
+export interface LandingContext {
+  body: BodyMeasurements;
+  garment: Garment;
+  size: SizeMeasurements;
+  garmentCm: number;
 }
 
 /** A girth rule with its bounds in cm of ease, for one body measurement. cm rules come back unchanged. */
@@ -131,6 +145,51 @@ export const BOTTOM_HIPS: GirthRule = {
   fittedMax: 6,
   relaxedMax: 12,
   ideal: 3,
+};
+
+/**
+ * Pants thigh (garment thigh − body thigh). ASSUMED, not sourced yet (no pants
+ * fit tests): a little closer than the seat, since a thigh has less to move.
+ * Tune with Test mode.
+ */
+export const THIGH: GirthRule = {
+  kind: 'girth',
+  tightBelow: -1,
+  fittedMax: 5,
+  relaxedMax: 10,
+  ideal: 3,
+};
+
+/**
+ * Where a pants waistband sits, by garment front rise − body front rise (cm along
+ * the body; × RISE_VERTICAL_RATIO is how far below the navel). ASSUMED marks:
+ * high from 2 cm short (about 1.5 cm below the navel, or above it), mid down to
+ * 7 cm short (about 5 cm below), low below that. Never bad, except below the hip
+ * line (the zone's blocks check in zones.ts).
+ */
+export const RISE: LandingRule = {
+  kind: 'landing',
+  marks: [
+    { label: 'low', atCm: -Infinity },
+    { label: 'mid', atCm: -7 },
+    { label: 'high', atCm: -2 },
+  ],
+};
+
+/**
+ * A pants leg opening, by opening − heel–ankle girth (cm). ASSUMED marks from
+ * typical cuts (skinny under the heel girth, needing stretch; slim to +6 cm;
+ * straight to +14; wide beyond). Never bad, except when it can't pass the heel
+ * (the zone's blocks check in zones.ts).
+ */
+export const LEG_OPENING: LandingRule = {
+  kind: 'landing',
+  marks: [
+    { label: 'skinny', atCm: -Infinity },
+    { label: 'slim', atCm: 0 },
+    { label: 'straight', atCm: 6 },
+    { label: 'wide', atCm: 14 },
+  ],
 };
 
 /** Top length vs. body torso length (high shoulder point -> hip line). */

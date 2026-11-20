@@ -1,16 +1,19 @@
 import { useId, useState, type FormEvent } from 'react';
 import type { BodyType } from '../../domain/body';
+import type { GarmentFit } from '../../domain/fit';
 import type { Garment } from '../../domain/garments';
 import { zoneName } from '../fitText';
 import { ConfirmButton } from '../components/ConfirmButton';
-import { csvFileName, fitTestsCsv, type TesterAnswers } from '../state/fitTests';
-import { CHEST_ANSWERS, LENGTH_ANSWERS, type ChestAnswer, type FitTestRecord, type LengthAnswer } from '../state/stored';
+import { answersFor, csvFileName, fitTestsCsv, testQuestions, type PickedAnswers, type TesterAnswers } from '../state/fitTests';
+import { CHEST_ANSWERS, LENGTH_ANSWERS, type GirthAnswer, type FitTestRecord, type LengthAnswer } from '../state/stored';
 import './FitTestPanel.css';
 
 interface FitTestPanelProps {
-  /** The top on the mannequin, or null when browsing bottoms. */
+  /** The garment being browsed (top or bottom), or null when none is on. */
   garment: Garment | null;
   size: string | null;
+  /** How that size fits: decides whether the thigh is asked. */
+  fit: GarmentFit | null;
   records: FitTestRecord[];
   onSave: (answers: TesterAnswers) => void;
   onClear: () => void;
@@ -18,7 +21,7 @@ interface FitTestPanelProps {
   bodyType: BodyType;
 }
 
-const CHEST_TEXT: Record<ChestAnswer, string> = {
+const GIRTH_TEXT: Record<GirthAnswer, string> = {
   'too-tight': 'Too tight',
   'just-right': 'Just right',
   'too-loose': 'Too loose',
@@ -31,21 +34,22 @@ const LENGTH_TEXT: Record<LengthAnswer, string> = {
 const NONE = '__none__';
 
 /** Test mode: record how the garment on the mannequin actually fits the tester. */
-export function FitTestPanel({ garment, size, records, onSave, onClear, bodyType }: FitTestPanelProps) {
+export function FitTestPanel({ garment, size, fit, records, onSave, onClear, bodyType }: FitTestPanelProps) {
   const [tester, setTester] = useState(() => records[records.length - 1]?.tester ?? '');
-  const [chest, setChest] = useState<ChestAnswer | null>(null);
-  const [length, setLength] = useState<LengthAnswer | null>(null);
+  const empty: PickedAnswers = { chest: null, waist: null, thigh: null, length: null };
+  const [picked, setPicked] = useState<PickedAnswers>(empty);
   const [kept, setKept] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const id = useId();
-  const ready = tester.trim() !== '' && chest !== null && length !== null && kept !== null;
+  const questions = garment && fit ? testQuestions(fit, garment) : [];
+  const answers = answersFor(questions, picked, tester, kept === null ? undefined : kept === NONE ? null : kept);
+  const pick = (q: keyof PickedAnswers) => (v: string) => setPicked((p) => ({ ...p, [q]: v }));
 
   function submit(e: FormEvent) {
     e.preventDefault();
-    if (!ready || !chest || !length || kept === null) return;
-    onSave({ tester, chest, length, keptSize: kept === NONE ? null : kept });
-    setChest(null);
-    setLength(null);
+    if (!answers) return;
+    onSave(answers);
+    setPicked(empty);
     setKept(null);
     setSaved(true);
   }
@@ -74,8 +78,27 @@ export function FitTestPanel({ garment, size, records, onSave, onClear, bodyType
             Tester
             <input value={tester} onChange={(e) => setTester(e.target.value)} placeholder="e.g. T03" autoComplete="off" />
           </label>
-          <Choices legend={zoneName('chest', bodyType)} name={`${id}-chest`} options={CHEST_ANSWERS.map((a) => [a, CHEST_TEXT[a]])} value={chest} onChange={setChest} />
-          <Choices legend="Length" name={`${id}-length`} options={LENGTH_ANSWERS.map((a) => [a, LENGTH_TEXT[a]])} value={length} onChange={setLength} />
+          {questions.map((q) =>
+            q === 'length' ? (
+              <Choices
+                key={q}
+                legend={garment.category === 'top' ? 'Length' : zoneName('inseam', bodyType)}
+                name={`${id}-length`}
+                options={LENGTH_ANSWERS.map((a) => [a, LENGTH_TEXT[a]])}
+                value={picked.length}
+                onChange={pick('length')}
+              />
+            ) : (
+              <Choices
+                key={q}
+                legend={zoneName(q, bodyType)}
+                name={`${id}-${q}`}
+                options={CHEST_ANSWERS.map((a) => [a, GIRTH_TEXT[a]])}
+                value={picked[q]}
+                onChange={pick(q)}
+              />
+            ),
+          )}
           <Choices
             legend="Which size would they keep?"
             name={`${id}-kept`}
@@ -84,14 +107,14 @@ export function FitTestPanel({ garment, size, records, onSave, onClear, bodyType
             onChange={setKept}
           />
           <div className="test-panel__actions">
-            <button type="submit" className="button button--primary button--small" aria-disabled={!ready}>
+            <button type="submit" className="button button--primary button--small" aria-disabled={!answers}>
               Save result
             </button>
             {saved && <span role="status">Saved.</span>}
           </div>
         </form>
       ) : (
-        <p className="test-panel__what">Test mode records tops. Switch to Tops and pick one to record a result.</p>
+        <p className="test-panel__what">Put a garment on the mannequin to record how it really fits.</p>
       )}
 
       <footer className="test-panel__results">

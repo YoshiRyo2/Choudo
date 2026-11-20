@@ -13,6 +13,9 @@ export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 export const LEGACY_KEYS = {
   bodyV1: 'nimbus.body.v1',
   fitTestsV1: 'nimbus.fitTests.v1',
+  fitTestsV2: 'choudo.fitTests.v2',
+  /** v2 under the app's old name, from before the rename (the rename only moves current keys). */
+  fitTestsV2Old: 'nimbus.fitTests.v2',
 } as const;
 
 /** The app was called Nimbus; its keys started with this prefix before the rename to Choudo. */
@@ -36,15 +39,25 @@ export function migrateBodyV1(v: unknown): BodyInput | null {
   return isStoredBody(next) && next !== null ? (next as BodyInput) : null;
 }
 
-/** v1 fit-test records, with each prediction's body moved to v2. Records that still don't fit are dropped. */
+/** v1 fit-test records, with each prediction's body moved to v2, then on to v3. Records that still don't fit are dropped. */
 export function migrateFitTestsV1(v: unknown): FitTestRecord[] {
+  if (!Array.isArray(v)) return [];
+  const v2: unknown[] = [];
+  for (const r of v) {
+    if (!isRecord(r) || !isRecord(r.prediction)) continue;
+    const body = migrateBodyV1(r.prediction.body);
+    if (body) v2.push({ ...r, prediction: { ...r.prediction, body } });
+  }
+  return migrateFitTestsV2(v2);
+}
+
+/** v2 fit-test records to v3: every v2 result was a top. Records that don't fit are dropped. */
+export function migrateFitTestsV2(v: unknown): FitTestRecord[] {
   if (!Array.isArray(v)) return [];
   const out: FitTestRecord[] = [];
   for (const r of v) {
     if (!isRecord(r) || !isRecord(r.prediction)) continue;
-    const body = migrateBodyV1(r.prediction.body);
-    if (!body) continue;
-    const next: unknown[] = [{ ...r, prediction: { ...r.prediction, body } }];
+    const next: unknown[] = [{ ...r, category: 'top', prediction: { ...r.prediction, category: 'top' } }];
     if (isFitTestList(next)) out.push(...next);
   }
   return out;
@@ -93,6 +106,9 @@ export function migrateStorage(given?: StorageLike): void {
     // Rename first, so a current-version key beats a v1 one, as it did before the rename.
     migrateAppRename(storage);
     move(storage, LEGACY_KEYS.bodyV1, STORAGE_KEYS.body, migrateBodyV1);
+    // Newest first: move() never overwrites, so the most recent data wins.
+    move(storage, LEGACY_KEYS.fitTestsV2, STORAGE_KEYS.fitTests, migrateFitTestsV2);
+    move(storage, LEGACY_KEYS.fitTestsV2Old, STORAGE_KEYS.fitTests, migrateFitTestsV2);
     move(storage, LEGACY_KEYS.fitTestsV1, STORAGE_KEYS.fitTests, migrateFitTestsV1);
   } catch {
     // Storage unavailable or full: the app falls back to defaults.

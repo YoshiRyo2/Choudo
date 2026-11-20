@@ -24,7 +24,7 @@ export const STORAGE_KEYS = {
   /** Garments to show: "matching" (the body type's sizing plus unisex) or "all". */
   catalogue: 'choudo.catalogue.v1',
   /** Results recorded in Test mode. v2: each prediction's body uses `bodyType`. */
-  fitTests: 'choudo.fitTests.v2',
+  fitTests: 'choudo.fitTests.v3',
 } as const;
 
 /** Display units. Metric = cm + kg, imperial = in + lb. Storage is always metric. */
@@ -65,8 +65,10 @@ export interface SavedOutfit extends Outfit {
   savedAt: string;
 }
 
+/** A tester's answer about a girth: the chest on a top, the waist or thigh on a bottom. */
+export type GirthAnswer = 'too-tight' | 'just-right' | 'too-loose';
 /** A tester's answer about the chest. */
-export type ChestAnswer = 'too-tight' | 'just-right' | 'too-loose';
+export type ChestAnswer = GirthAnswer;
 /** A tester's answer about the length. */
 export type LengthAnswer = 'too-short' | 'just-right' | 'too-long';
 export const CHEST_ANSWERS: readonly ChestAnswer[] = ['too-tight', 'just-right', 'too-loose'];
@@ -84,6 +86,8 @@ export interface ZoneChances {
  * later changes to the engine don't rewrite old predictions.
  */
 export interface FitTestPrediction {
+  /** What was recorded: a top (chest + length) or a bottom (waist, thigh + inseam). Records from v2 are tops. */
+  category: 'top' | 'bottom';
   body: BodyInput;
   chestCm: number;
   chestSource: 'estimated' | 'entered';
@@ -93,17 +97,27 @@ export interface FitTestPrediction {
   style: string;
   /** "Gildan 5000 in M", "measured 53 × 74 cm", or "" without one. */
   anchor: string;
-  preferredChestEaseCm: number;
+  /** null on a bottom: there's no chest target. */
+  preferredChestEaseCm: number | null;
   preferredLengthDiffCm: number | null;
   recommendedSize: string | null;
   /** The most likely verdict for this size, and the chance it fits how you like. */
   verdict: string;
   likes: number;
-  /** Objective labels at the point estimate. */
+  /** Objective labels at the point estimate. On a bottom, length is the inseam and the chest is "unknown". */
   chestLabel: string;
   lengthLabel: string;
   chest: ZoneChances;
   length: ZoneChances;
+  // ---- bottoms only ----
+  inseamCm?: number;
+  /** The body's girth where the waistband sits. */
+  waistCm?: number;
+  thighCm?: number;
+  waistLabel?: string;
+  thighLabel?: string;
+  waist?: ZoneChances;
+  thigh?: ZoneChances;
 }
 
 /** One tester, one garment, one size: how it actually fit. */
@@ -115,7 +129,13 @@ export interface FitTestRecord {
   at: string;
   garmentId: string;
   size: string;
-  chest: ChestAnswer;
+  category: 'top' | 'bottom';
+  /** Tops only (null on a bottom). */
+  chest: GirthAnswer | null;
+  /** Bottoms only. The thigh is only asked when the app could score it. */
+  waist?: GirthAnswer;
+  thigh?: GirthAnswer;
+  /** A top's length, or a bottom's inseam. */
   length: LengthAnswer;
   /** The size they'd keep, or null for none. */
   keptSize: string | null;
@@ -209,9 +229,14 @@ function isZoneChances(v: unknown): v is ZoneChances {
   return isRecord(v) && isNumber(v.under) && isNumber(v.right) && isNumber(v.over);
 }
 
+const isCategory = (v: unknown): v is 'top' | 'bottom' => v === 'top' || v === 'bottom';
+const optional = <T>(guard: (x: unknown) => x is T) => (x: unknown) => x === undefined || guard(x);
+const isGirthAnswer = (v: unknown): v is GirthAnswer => (CHEST_ANSWERS as readonly unknown[]).includes(v);
+
 function isPrediction(v: unknown): v is FitTestPrediction {
   return (
     isRecord(v) &&
+    isCategory(v.category) &&
     isStoredBody(v.body) &&
     v.body !== null &&
     isNumber(v.chestCm) &&
@@ -220,7 +245,7 @@ function isPrediction(v: unknown): v is FitTestPrediction {
     (v.preferenceSource === 'anchor' || v.preferenceSource === 'style' || v.preferenceSource === 'default') &&
     isString(v.style) &&
     isString(v.anchor) &&
-    isNumber(v.preferredChestEaseCm) &&
+    (v.preferredChestEaseCm === null || isNumber(v.preferredChestEaseCm)) &&
     (v.preferredLengthDiffCm === null || isNumber(v.preferredLengthDiffCm)) &&
     isStringOrNull(v.recommendedSize) &&
     isString(v.verdict) &&
@@ -228,7 +253,14 @@ function isPrediction(v: unknown): v is FitTestPrediction {
     isString(v.chestLabel) &&
     isString(v.lengthLabel) &&
     isZoneChances(v.chest) &&
-    isZoneChances(v.length)
+    isZoneChances(v.length) &&
+    optional(isNumber)(v.inseamCm) &&
+    optional(isNumber)(v.waistCm) &&
+    optional(isNumber)(v.thighCm) &&
+    optional(isString)(v.waistLabel) &&
+    optional(isString)(v.thighLabel) &&
+    optional(isZoneChances)(v.waist) &&
+    optional(isZoneChances)(v.thigh)
   );
 }
 
@@ -240,7 +272,10 @@ function isFitTestRecord(v: unknown): v is FitTestRecord {
     isString(v.at) &&
     isString(v.garmentId) &&
     isString(v.size) &&
-    (CHEST_ANSWERS as readonly unknown[]).includes(v.chest) &&
+    isCategory(v.category) &&
+    (v.chest === null || isGirthAnswer(v.chest)) &&
+    optional(isGirthAnswer)(v.waist) &&
+    optional(isGirthAnswer)(v.thigh) &&
     (LENGTH_ANSWERS as readonly unknown[]).includes(v.length) &&
     isStringOrNull(v.keptSize) &&
     isPrediction(v.prediction)

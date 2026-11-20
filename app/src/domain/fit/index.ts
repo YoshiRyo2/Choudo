@@ -15,3 +15,4 @@ export * from './fitTestCsv';
 export * from './fitTestReport';
 export * as fitRules from './rules';
 export * as fitUncertainty from './uncertainty';
+export { bandHeight, girthAtHeight, riseForBand } from './pants';

@@ -19,6 +19,8 @@ import {
   sizeLine,
   sourceLine,
   summarize,
+  zoneLabelText,
+  bodyPlaceText,
 } from './fitText';
 
 const zone = (patch: Partial<ZoneFit>): ZoneFit => ({
@@ -270,5 +272,83 @@ describe('preferenceNote', () => {
     expect(preferenceNote(preferenceSpec({ kind: 'catalogue', garmentId: 'gildan-5000', size: 'M' }, null))).toBe(
       'Compared with the tee you own and like.',
     );
+  });
+});
+
+describe('pants wording', () => {
+  const rise = (diffCm: number, landing: string) => zone({ zone: 'rise', kind: 'landing', label: 'noted', diffCm, landing });
+  const opening = (diffCm: number, landing: string) => zone({ zone: 'legOpening', kind: 'landing', label: 'noted', diffCm, landing });
+
+  it('names the new zones', () => {
+    expect(['thigh', 'rise', 'legOpening'].map((z) => zoneName(z as ZoneFit['zone']))).toEqual(['Thigh', 'Rise', 'Leg opening']);
+  });
+
+  it('describes the thigh like the other girths', () => {
+    expect(describeZone(zone({ zone: 'thigh', diffCm: 3 }), 'metric')).toBe('3.0 cm of room at your thigh.');
+    expect(describeZone(zone({ zone: 'thigh', diffCm: 3 }), 'imperial')).toBe('1.2 in of room at your thigh.');
+  });
+
+  it('says where the waistband sits against the navel (0.71 a cm of rise for a women’s body)', () => {
+    expect(describeZone(rise(-10, 'low'), 'metric', 'womens')).toBe('Low rise: the waistband sits about 7.1 cm below your navel.');
+    expect(describeZone(rise(-4, 'mid'), 'imperial', 'womens')).toBe('Mid rise: the waistband sits about 1.1 in below your navel.');
+    expect(describeZone(rise(0.3, 'high'), 'metric', 'womens')).toBe('High rise: the waistband sits at your navel.');
+    expect(describeZone(rise(3, 'high'), 'metric', 'womens')).toBe('High rise: the waistband sits about 2.1 cm above your navel.');
+    expect(describeZone(rise(-1.5, 'high'), 'metric', 'mens')).toBe('High rise: the waistband sits about 1.2 cm below your navel.');
+  });
+
+  it('compares the leg opening with the heel', () => {
+    expect(describeZone(opening(-2, 'skinny'), 'metric')).toBe('Skinny: 2.0 cm narrower than your heel, so it relies on stretch or a zip to get on.');
+    expect(describeZone(opening(3, 'slim'), 'metric')).toBe('Slim leg: 3.0 cm wider than your heel.');
+    expect(describeZone(opening(8, 'straight'), 'imperial')).toBe('Straight leg: 3.1 in wider than your heel.');
+    expect(describeZone(opening(16, 'wide'), 'metric')).toBe('Wide leg: 16.0 cm wider than your heel.');
+  });
+
+  it('gives a blocked zone the engine’s reason', () => {
+    const blocked = zone({ zone: 'legOpening', kind: 'landing', label: 'tight', tone: 'bad', diffCm: -3, landing: 'skinny', note: 'Too narrow to get over your heel: no stretch and no zip.' });
+    expect(describeZone(blocked, 'metric')).toBe('Too narrow to get over your heel: no stretch and no zip.');
+    expect(zoneLabelText(blocked)).toBe('Won’t go on');
+    const low = zone({ zone: 'rise', kind: 'landing', label: 'short', tone: 'bad', diffCm: -20, landing: 'low', note: 'x' });
+    expect(zoneLabelText(low)).toBe('Won’t stay up');
+  });
+
+  it('labels a landing zone by where it lands', () => {
+    expect(zoneLabelText(rise(-4, 'mid'))).toBe('Mid rise');
+    expect(zoneLabelText(opening(8, 'straight'))).toBe('Straight leg');
+    expect(zoneLabelText(opening(-2, 'skinny'))).toBe('Skinny');
+    expect(zoneLabelText(zone({ label: 'fitted' }))).toBe('Fitted');
+  });
+
+  it('summarize names a blocked opening', () => {
+    const body = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
+    const jean = findGarment('corvo-relaxed-jean')!;
+    const narrow = { ...jean, sizes: jean.sizes.map((s) => ({ ...s, measurements: { ...s.measurements, legOpening: 30 } })) };
+    const s = summarize(fitGarment(body, narrow, '32x32'));
+    expect(s.headline).toBe('Probably won’t fit');
+    expect(s.detail).toMatch(/won’t go on at the hem/i);
+  });
+});
+
+describe('landing-zone odds', () => {
+  const landing = (zone: ZoneOdds['zone'], labels: ZoneOdds['labels']): ZoneOdds => ({
+    zone,
+    kind: 'landing',
+    labels,
+    personal: { under: 0, right: 1, over: 0, unknown: 0 },
+  });
+
+  it('gives only the chance it won’t go on or stay up', () => {
+    expect(labelOddsText(landing('legOpening', { noted: 0.96, tight: 0.04 }))).toBe('Won’t go on 4%');
+    expect(labelOddsText(landing('rise', { noted: 0.9, short: 0.1 }))).toBe('Won’t stay up 10%');
+  });
+
+  it('says nothing when it always lands', () => {
+    expect(labelOddsText(landing('rise', { noted: 1 }))).toBe('');
+  });
+});
+
+describe('a body number worked out at the band', () => {
+  it('says where it was measured', () => {
+    expect(bodyPlaceText(zone({ zone: 'waist', bodyAt: 'band' }))).toBe(' where the waistband sits');
+    expect(bodyPlaceText(zone({ zone: 'waist' }))).toBe('');
   });
 });

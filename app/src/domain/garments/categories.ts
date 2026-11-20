@@ -7,9 +7,18 @@
  * today exist; hoodies, skirts, jackets and the rest come with their own PRs.
  */
 
-import type { GarmentCategory, GarmentType, MeasurementKey, TopLandmarkName } from './types';
+import type { GarmentCategory, GarmentType, MeasurementKey, SizeMeasurements, TopLandmarkName } from './types';
 import { TOP_LANDMARKS } from './types';
-import { BOTTOM_RANGES, TOP_LENGTH_RANGES, TOP_RANGES, type Range } from './verifyRules';
+import { BOTTOM_RANGES, MAX_THIGH_TO_HIPS, TOP_LENGTH_RANGES, TOP_RANGES, type Range } from './verifyRules';
+
+/** A check between two measurements of one size (cm, full circumference). Breaking it is a warning. */
+export interface Relation {
+  /** Which measurements it needs; the check is skipped unless the size has both. */
+  keys: readonly [MeasurementKey, MeasurementKey];
+  holds: (m: Required<Pick<SizeMeasurements, MeasurementKey>>) => boolean;
+  /** The warning, for a size label and the two values. */
+  message: (label: string, a: string, b: string) => string;
+}
 
 /** The template a garment type is fitted, checked and drawn with. */
 export type TemplateId = 'tee' | 'shirt' | 'pants';
@@ -37,7 +46,27 @@ export interface CategoryChecks {
   lengthRanges?: Partial<Record<GarmentType, Range>>;
   /** Ease against a typical body for the size label: the chest for letter-sized tops, the waist for pants sized in inches. */
   labelEase: 'chest' | 'waist' | null;
+  /** Checks between measurements of one size (pants: opening ≤ knee ≤ thigh). */
+  relations?: readonly Relation[];
 }
+
+const PANTS_RELATIONS: readonly Relation[] = [
+  {
+    keys: ['legOpening', 'knee'],
+    holds: (m) => m.legOpening <= m.knee,
+    message: (label, a, b) => `legOpening in ${label} (${a}) is wider than its knee (${b})`,
+  },
+  {
+    keys: ['knee', 'thigh'],
+    holds: (m) => m.knee <= m.thigh,
+    message: (label, a, b) => `knee in ${label} (${a}) is wider than its thigh (${b})`,
+  },
+  {
+    keys: ['thigh', 'hips'],
+    holds: (m) => m.thigh <= MAX_THIGH_TO_HIPS * m.hips,
+    message: (label, a, b) => `thigh in ${label} (${a}) is more than ${MAX_THIGH_TO_HIPS} × its hips (${b})`,
+  },
+];
 
 export interface CategorySpec {
   template: TemplateId;
@@ -76,7 +105,7 @@ export const CATEGORY_SPECS: Record<TemplateId, CategorySpec> = {
     sleeve: 'forbidden',
     lengthDefinition: 'forbidden',
     landmarks: null,
-    checks: { required: ['waist', 'inseam'], ranges: BOTTOM_RANGES, labelEase: 'waist' },
+    checks: { required: ['waist', 'inseam'], ranges: BOTTOM_RANGES, labelEase: 'waist', relations: PANTS_RELATIONS },
   },
 };
 

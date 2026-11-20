@@ -50,3 +50,11 @@ describe('validateGarment with templates', () => {
     expect(validateGarment(row)).toContain('size M: missing length');
   });
 });
+
+describe('ankle zip', () => {
+  it('is a problem on a top, fine on pants', () => {
+    expect(validateGarment({ ...UNKNOWN_CHEST_SEED, ankleZip: true })).toContain("tops can't have an ankle zip");
+    const jeans = SEED_GARMENTS.find((g) => g.id === 'corvo-slim-jean')!;
+    expect(validateGarment({ ...jeans, ankleZip: true })).toEqual([]);
+  });
+});

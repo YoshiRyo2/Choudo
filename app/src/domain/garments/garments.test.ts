@@ -4,10 +4,12 @@ import {
   findGarment,
   garmentsByCategory,
   normalizeGarment,
+  SEED_GARMENTS,
   seedGarmentsForTesting,
   validateSeed,
 } from './garments';
 import type { SeedGarment } from './types';
+import { checkGarment } from './verify';
 import { UNKNOWN_CHEST_TEE } from './testFixtures';
 
 const base: SeedGarment = {
@@ -242,5 +244,19 @@ describe('garment photos', () => {
     expect(problems).toMatch(/left side must run/);
     expect(problems).toMatch(/right sleeve opening/);
     expect(problems).toMatch(/neckFront must sit between/);
+  });
+});
+
+describe('seed bottoms', () => {
+  it('have no errors under the pants checks', () => {
+    for (const g of SEED_GARMENTS.filter((s) => s.category === 'bottom')) expect(checkGarment(g).errors).toEqual([]);
+  });
+
+  it('give both Corvo jeans a thigh, knee, leg opening and front rise', () => {
+    for (const id of ['corvo-slim-jean', 'corvo-relaxed-jean']) {
+      const g = SEED_GARMENTS.find((s) => s.id === id)!;
+      expect(g.chart.definitions).toEqual({ rise: 'front', thigh: 'below_crotch_2_5cm' });
+      for (const s of g.sizes) expect(Object.keys(s.measurements)).toEqual(expect.arrayContaining(['thigh', 'knee', 'legOpening', 'rise']));
+    }
   });
 });

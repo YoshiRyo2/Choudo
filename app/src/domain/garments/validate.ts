@@ -36,6 +36,7 @@ export function validateGarment(g: SeedGarment): string[] {
   if (!GARMENT_SIZINGS.includes(g.sizing)) problems.push('sizing must be "mens", "womens" or "unisex"');
   if (spec.sleeve === 'required' && !g.sleeve) problems.push('tops need a sleeve type');
   if (spec.sleeve === 'forbidden' && g.sleeve) problems.push("bottoms can't have a sleeve");
+  if (spec.category === 'top' && g.ankleZip !== undefined) problems.push("tops can't have an ankle zip");
   problems.push(...validateStretch(g.stretch));
   problems.push(...validateProvenance(g));
   if (g.sizes.length === 0) problems.push('no sizes');

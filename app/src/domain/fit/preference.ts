@@ -290,11 +290,15 @@ function combine(
   target: ChestTarget | null,
   personalGirth: ZoneId | null,
 ): Verdict {
-  const girths = fit.zones.filter((z) => z.kind === 'girth');
-  const lengths = fit.zones.filter((z) => z.kind === 'length');
+  // Optional zones we couldn't score are left out, as in overallTone.
+  const scoredOrNeeded = (z: GarmentFit['zones'][number]) => !(z.optional && z.label === 'unknown');
+  const girths = fit.zones.filter((z) => z.kind === 'girth' && scoredOrNeeded(z));
+  const lengths = fit.zones.filter((z) => z.kind === 'length' && scoredOrNeeded(z));
+  const blocked = fit.zones.filter((z) => z.kind === 'landing' && z.tone === 'bad');
   // Same rule as overallTone: without every girth we can't say a size fits.
   if (girths.some((z) => z.label === 'unknown')) return 'unknown';
-  if (girths.some((z) => z.label === 'tight')) return 'too-tight';
+  if (girths.some((z) => z.label === 'tight') || blocked.some((z) => z.label === 'tight')) return 'too-tight';
+  if (blocked.some((z) => z.label === 'short')) return 'shorter';
   for (const z of girths) {
     const r = zones[z.zone];
     if (r === 'under') return 'snugger';

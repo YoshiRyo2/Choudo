@@ -5,7 +5,7 @@
  */
 
 import { inToCm } from '../units';
-import type { FitIntent, GarmentType, MeasurementKey } from './types';
+import type { FitIntent, GarmentType, GirthKey, MeasurementKey } from './types';
 
 export interface Range {
   min: number;
@@ -17,10 +17,14 @@ export interface Range {
  * one printed as "circumference" below `circumferenceMin` looks like a flat width.
  * Values are the printed number in cm, before doubling. Adult sizes only.
  */
-export const GIRTH_METHOD_LIMITS: Record<'chest' | 'waist' | 'hips', { flatMax: number; circumferenceMin: number }> = {
+export const GIRTH_METHOD_LIMITS: Record<GirthKey, { flatMax: number; circumferenceMin: number }> = {
   chest: { flatMax: 85, circumferenceMin: 65 },
   waist: { flatMax: 75, circumferenceMin: 55 },
   hips: { flatMax: 85, circumferenceMin: 65 },
+  // Pants legs, ASSUMED from typical charts (thigh 25–40 flat, opening 12–30 flat).
+  thigh: { flatMax: 50, circumferenceMin: 40 },
+  knee: { flatMax: 40, circumferenceMin: 28 },
+  legOpening: { flatMax: 35, circumferenceMin: 22 },
 };
 
 /** Plausible garment measurements (cm, full circumferences) for tops. */
@@ -46,7 +50,18 @@ export const BOTTOM_RANGES: Partial<Record<MeasurementKey, Range>> = {
   hips: { min: 75, max: 170 },
   inseam: { min: 60, max: 95 },
   rise: { min: 18, max: 40 },
+  // Legs, ASSUMED from typical charts: skinny to wide, small to big sizes.
+  thigh: { min: 40, max: 100 },
+  knee: { min: 28, max: 70 },
+  legOpening: { min: 22, max: 80 },
 };
+
+/**
+ * A pants thigh over this share of its seat is probably a typo or a mixed-up
+ * method. Real cuts run about 0.55–0.68 (§2.5's "hips / 2 + 8" flags ordinary
+ * relaxed jeans once both are full circumferences). ASSUMED.
+ */
+export const MAX_THIGH_TO_HIPS = 0.7;
 
 /**
  * A typical men's / unisex body chest for each letter size, in inches: the

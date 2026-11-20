@@ -119,6 +119,13 @@ measurement with a `default` for the rest. Definitions can also go in one
 | `rise` | `front`, `back`, `total`, `unknown` | Pants. "Front rise" means waistband top to crotch seam, at the front. |
 | `thigh` | `at_crotch`, `below_crotch_2_5cm`, `unknown` | Pants. Many charts measure 1 in (2.5 cm) below the crotch. |
 
+Pants measurements: `waist`, `hips`, `inseam`, `rise`, and, when the chart lists them,
+`thigh`, `knee` and `legOpening`. Thigh, knee and leg opening are girths: flat widths are
+doubled like the waist (give `girth` per measurement if the chart mixes methods). The rise
+only places the waistband when `definitions.rise` is `front`; the thigh is only scored with
+`definitions.thigh`. If the hem opens with a zip, add `"ankleZip": true` (a narrow opening
+then still gets over the heel).
+
 ## 5. Copy the numbers exactly as printed
 
 - Copy every size row as printed: same unit, same flat/round, fractions as decimals

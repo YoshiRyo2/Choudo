@@ -35,7 +35,7 @@ export type GirthMethod = 'flat' | 'circumference' | 'unknown';
 export const GIRTH_METHODS: readonly GirthMethod[] = ['flat', 'circumference', 'unknown'];
 
 /** The measurements that are girths (doubled when printed flat). */
-export type GirthKey = 'chest' | 'waist' | 'hips';
+export type GirthKey = 'chest' | 'waist' | 'hips' | 'thigh' | 'knee' | 'legOpening';
 
 /**
  * A girth method per measurement, for charts that mix them (pants often print the
@@ -137,6 +137,12 @@ export interface SizeMeasurements {
   shoulder?: number;
   inseam?: number;
   rise?: number;
+  /** Pants: thigh girth, where `definitions.thigh` says (at the crotch, or 1 in below it). */
+  thigh?: number;
+  /** Pants: girth at the knee. */
+  knee?: number;
+  /** Pants: girth of the hem opening. */
+  legOpening?: number;
 }
 
 export type MeasurementKey = keyof SizeMeasurements;
@@ -264,6 +270,8 @@ interface GarmentBase {
   /** Tops only. */
   sleeve?: 'short' | 'long';
   stretch: Stretch;
+  /** Pants only: the hem opens with a zip, so a narrow opening still gets over the heel. */
+  ankleZip?: boolean;
   fitIntent: FitIntent;
   source: GarmentSource;
   /** Optional hand measurement of one real garment, to check the chart against. */

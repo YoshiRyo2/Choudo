@@ -8,6 +8,8 @@ import {
   auditGapsCm,
   bodySdCm,
   garmentSdCm,
+  MAIN_STREAM_BODY_KEYS,
+  MAIN_STREAM_GARMENT_KEYS,
   measurementHint,
   pickSize,
   recommendSize,
@@ -203,7 +205,8 @@ describe('recommendSize', () => {
 
   it('skips tight pants and picks the matching inseam', () => {
     const jean = findGarment('corvo-slim-jean')!;
-    const b = bodyWith({ waistCm: 83, hipsCm: 99, inseamCm: 81 });
+    // The thigh to go with those hips (men's thigh is 0.61 × hips).
+    const b = bodyWith({ waistCm: 83, hipsCm: 99, inseamCm: 81, thighCm: 0.61 * 99 });
     expect(recommendSize(b, jean, regular)).toBe('32x32');
   });
 
@@ -258,5 +261,20 @@ describe('measurementHint', () => {
 
   it('says nothing when there is no recommendation', () => {
     expect(measurementHint(bodyWith({ chestCm: 100 }, 'estimated'), UNKNOWN_CHEST_TEE, regular)).toBeNull();
+  });
+});
+
+describe('sampler streams', () => {
+  it('keeps the main stream to the keys it has always drawn', () => {
+    expect(MAIN_STREAM_BODY_KEYS).toEqual([
+      'chestCm',
+      'waistCm',
+      'hipsCm',
+      'inseamCm',
+      'shoulderWidthCm',
+      'armLengthCm',
+      'torsoLengthCm',
+    ]);
+    expect(MAIN_STREAM_GARMENT_KEYS).toEqual(['chest', 'waist', 'hips', 'length', 'sleeve', 'shoulder', 'inseam', 'rise']);
   });
 });

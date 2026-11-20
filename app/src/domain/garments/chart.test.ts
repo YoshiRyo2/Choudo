@@ -133,3 +133,9 @@ describe('definitions', () => {
     expect(validateGarment(row)).toContain('bottoms have no top length: leave out chart.lengthDefinition');
   });
 });
+
+describe('pants girth keys', () => {
+  it('chart.girth accepts thigh, knee and legOpening', () => {
+    expect(validateChart({ unit: 'cm', girth: { default: 'circumference', thigh: 'flat', knee: 'flat', legOpening: 'flat' } })).toEqual([]);
+  });
+});

@@ -19,7 +19,7 @@ import {
   type ZoneId,
   type ZoneOdds,
 } from '../domain/fit';
-import type { BodyType } from '../domain/body';
+import { RISE_VERTICAL_RATIO, type BodyType } from '../domain/body';
 import type { ConfidenceGrade, FitIntent, Garment, SourceTier } from '../domain/garments';
 import { cmToIn } from '../domain/units';
 import type { UnitSystem } from './state/stored';
@@ -31,6 +31,9 @@ export const ZONE_NAME: Record<ZoneId, string> = {
   length: 'Length',
   sleeve: 'Sleeve',
   inseam: 'Inseam',
+  thigh: 'Thigh',
+  rise: 'Rise',
+  legOpening: 'Leg opening',
 };
 
 export const LABEL_TEXT: Record<FitLabel, string> = {
@@ -41,7 +44,7 @@ export const LABEL_TEXT: Record<FitLabel, string> = {
   short: 'Short',
   good: 'Good length',
   long: 'Long',
-  // Landing zones (none in the catalogue yet) say where an edge ends; the mark carries the detail.
+  // Landing zones say where an edge ends; zoneLabelText shows the mark instead ("Mid rise").
   noted: 'Where it ends',
   unknown: 'Can’t tell',
 };
@@ -54,6 +57,9 @@ const ZONE_PLACE: Record<ZoneId, string> = {
   length: 'in length',
   sleeve: 'in the sleeves',
   inseam: 'in the leg',
+  thigh: 'at the thigh',
+  rise: 'in the rise',
+  legOpening: 'at the hem',
 };
 
 /**
@@ -96,10 +102,14 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
   const under = z.diffCm <= -MATCH_CM;
   const part = zoneName(z.zone, bodyType).toLowerCase();
 
+  // A blocked landing (won't go on, won't stay up): the engine says why.
+  if (z.kind === 'landing' && z.tone === 'bad' && z.note) return z.note;
+
   switch (z.zone) {
     case 'chest':
     case 'waist':
     case 'hips':
+    case 'thigh':
       if (over) return `${d} of room at your ${part}.`;
       if (!under) return `Matches your ${part} exactly.`;
       return z.label === 'tight'
@@ -117,7 +127,50 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
       if (over) return `${d} longer than your inseam.`;
       if (under) return `${d} shorter than your inseam.`;
       return 'Matches your inseam.';
+    case 'rise': {
+      // The rise difference is along the body; the band moves this share of it up or down.
+      const v = RISE_VERTICAL_RATIO[bodyType] * z.diffCm;
+      const where =
+        Math.abs(v) < MATCH_CM
+          ? 'at your navel'
+          : `about ${formatLength(Math.abs(v), units)} ${v > 0 ? 'above' : 'below'} your navel`;
+      return `${LANDING_TEXT[z.landing ?? ''] ?? 'This rise'}: the waistband sits ${where}.`;
+    }
+    case 'legOpening':
+      if (z.diffCm < 0) {
+        return `${LANDING_TEXT[z.landing ?? ''] ?? 'Narrow'}: ${d} narrower than your heel, so it relies on stretch or a zip to get on.`;
+      }
+      return `${LANDING_TEXT[z.landing ?? ''] ?? 'This leg'}: ${d} wider than your heel.`;
   }
+}
+
+/** Where a worked-out body number was taken, after "You 84.1 cm": the waist of a jean is where its band sits. */
+export function bodyPlaceText(z: ZoneFit): string {
+  return z.bodyAt === 'band' ? ' where the waistband sits' : '';
+}
+
+/** How a landing zone's mark reads on its own: "Mid rise", "Straight leg". */
+const LANDING_TEXT: Record<string, string> = {
+  low: 'Low rise',
+  mid: 'Mid rise',
+  high: 'High rise',
+  skinny: 'Skinny',
+  slim: 'Slim leg',
+  straight: 'Straight leg',
+  wide: 'Wide leg',
+};
+
+/**
+ * A zone's short label for the readout: the objective label for girths and
+ * lengths, where it lands for a landing zone, and what goes wrong when one blocks.
+ */
+export function zoneLabelText(z: ZoneFit): string {
+  if (z.kind === 'landing') {
+    if (z.label === 'tight') return 'Won’t go on';
+    if (z.label === 'short') return 'Won’t stay up';
+    if (z.label === 'noted' && z.landing) return LANDING_TEXT[z.landing] ?? LABEL_TEXT.noted;
+  }
+  return LABEL_TEXT[z.label];
 }
 
 export interface FitSummary {
@@ -133,7 +186,7 @@ export function summarize(fit: GarmentFit): FitSummary {
   const problems = fit.zones.filter((z) => z.tone === fit.overall && z.tone !== 'good');
   const detail =
     problems.length > 0
-      ? sentence(problems.map((z) => `${LABEL_TEXT[z.label].toLowerCase()} ${zonePlace(z.zone, fit.bodyType)}`))
+      ? sentence(problems.map((z) => `${zoneLabelText(z).toLowerCase()} ${zonePlace(z.zone, fit.bodyType)}`))
       : null;
 
   switch (fit.overall) {
@@ -381,8 +434,16 @@ export function measureHintText(hint: MeasureHint, bodyType: BodyType = 'mens'):
   return `Measure your ${name} to decide between ${listOf(hint.sizes)}.`;
 }
 
-/** Objective labels by chance, likeliest first: "Fitted 61% · Relaxed 30% · Tight 9%". Under 1% is left out. */
+/**
+ * Objective labels by chance, likeliest first: "Fitted 61% · Relaxed 30% · Tight 9%". Under 1% is left out.
+ * A landing zone has no scale of labels, only the chance it blocks ("Won’t go on 4%"), or "" when it never does.
+ */
 export function labelOddsText(z: ZoneOdds): string {
+  if (z.kind === 'landing') {
+    const blocked = (z.labels.tight ?? 0) + (z.labels.short ?? 0);
+    if (blocked < 0.01) return '';
+    return `${z.labels.tight ? 'Won’t go on' : 'Won’t stay up'} ${formatPercent(blocked)}`;
+  }
   return Object.entries(z.labels)
     .filter(([, p]) => p >= 0.01)
     .sort((a, b) => b[1] - a[1])
