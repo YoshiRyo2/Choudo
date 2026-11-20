@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-REPO="YoshiRyo2/nimbus"
+REPO="YoshiRyo2/Choudo"
 
 mk() { gh issue create --repo "$REPO" --title "$1" --body "$2"; }
 
