@@ -110,7 +110,7 @@ Never guess. An unknown definition means that zone can't be scored, and the fit 
 | --- | --- | --- |
 | `unit` | `in`, `cm` | As printed. Don't convert. |
 | `girth` | `flat`, `circumference`, `unknown` | "Laid flat", "pit to pit" or "½ chest" means `flat`. "Chest" with no word on method means `unknown`. |
-| `lengthDefinition` | `hps`, `center_back`, `unknown` | Tops only. "High point of shoulder" or "from shoulder" means `hps`. "Centre back" or "back neck" means `center_back` (scored on knits only). |
+| `lengthDefinition` | `hps`, `center_back`, `waist`, `unknown` | Tops and skirts. "High point of shoulder" or "from shoulder" means `hps`. "Centre back" or "back neck" means `center_back` (scored on knits only). Skirts: `waist` when the length runs from the top of the waistband (a skirt's "centre back length" does); tops can't use it. |
 | `sleeveDefinition` | `shoulder_to_cuff`, `center_back_to_cuff`, `top_of_sleeve` | Leave it out if there's no sleeve row. |
 | `fitIntent` | `slim`, `regular`, `relaxed`, `oversized` | How the brand describes the cut. |
 | `sizing` | `mens`, `womens`, `unisex` | Who the size chart is cut for. Decides who sees it by default and, for tops, which chest thresholds apply (women's cuts sit closer). Anything else is an error. |
@@ -132,6 +132,7 @@ measurement with a `default` for the rest. Definitions can also go in one
 | `length`, `sleeve` | as `lengthDefinition`, `sleeveDefinition` above | Either spelling works. |
 | `rise` | `front`, `back`, `total`, `unknown` | Pants. "Front rise" means waistband top to crotch seam, at the front. |
 | `thigh` | `at_crotch`, `below_crotch_2_5cm`, `unknown` | Pants. Many charts measure 1 in (2.5 cm) below the crotch. |
+| `waist` | `natural`, `mid`, `low`, `unknown` | Skirts: where the band sits. Charts rarely say; the product copy often does ("sits at the natural waist", "mid-rise"). Without it the band sits at the navel. |
 
 Pants measurements: `waist`, `hips`, `inseam`, `rise`, and, when the chart lists them,
 `thigh`, `knee` and `legOpening`. Thigh, knee and leg opening are girths: flat widths are
@@ -139,6 +140,18 @@ doubled like the waist (give `girth` per measurement if the chart mixes methods)
 only places the waistband when `definitions.rise` is `front`; the thigh is only scored with
 `definitions.thigh`. If the hem opens with a zip, add `"ankleZip": true` (a narrow opening
 then still gets over the heel).
+
+Shorts (`"type": "shorts"`) take the pants measurements. Their inseam isn't compared with
+yours: it says where the hem lands (mid-thigh, above the knee, at the knee), and there's
+no leg-opening zone. A "bottom opening" row is `legOpening`.
+
+Skirts (`"type": "skirt"`) give `waist`, `length` (with `definitions.length: "waist"`),
+and, when the chart lists them, `hips` and `hemSweep` (the hem's circumference, "sweep":
+a girth, doubled when flat). Set `definitions.waist` from the product copy. If the chart
+says where it measures the hips ("hip 7 in below the waist"), give
+`"chart": { …, "hipsBelowWaist": 7 }` in the chart's unit; without it the hips are compared
+at the fullest. The sweep is checked against a full stride at the hem ("walking room");
+without one that zone is left unscored.
 
 ## 5. Copy the numbers exactly as printed
 
