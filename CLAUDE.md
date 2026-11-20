@@ -48,7 +48,8 @@ app/src/
   ui/            React (app icons and favicon: app/public/, made by npm run icons)
     screens/     BodyScreen (input), AnchorScreen (fit reference), FittingRoom (browse + size + fit),
                  FitTestPanel (Test mode), Discover (swipe feed), Closet + closet/ (Liked, Folders, Outfits tabs)
-    components/  Mannequin/ (pure geometry.ts, topShape.ts, photoWarp.ts + SVG), SwipeCard/ (pure swipe.ts),
+    components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts, photoWarp.ts + SVG),
+                 SwipeCard/ (pure swipe.ts),
                  GarmentCarousel, GarmentBadge, SizePicker, FitReadout, FitSheet, Sheet (<dialog>), TabBar, NameForm,
                  ConfirmButton, TapeScale, SegmentedControl, NumberInput
     state/       usePersistentState (localStorage), stored.ts (keys + guards), outfit.ts,
@@ -56,8 +57,9 @@ app/src/
                  odds.ts (cached sampleFit), fitTests.ts (Test mode records + CSV)
     fitText.ts   all user-facing fit wording
     styles.css   design tokens (colours, type scale)
-  dev/landmarks/ dev-only landmark picker (/dev/landmarks): suggest.ts (landmarks from the
-                 outline), seedWrite.ts (writes one "image" into seed.json), pickerModel.ts
+  dev/landmarks/ dev-only landmark picker (/dev/landmarks), tops and pants: suggest.ts (landmarks
+                 from the outline), seedWrite.ts (writes one "image" into seed.json), pickerModel.ts
+                 (a kit per template: place order, labels, diagram)
 app/dev/       landmarks.html + landmarksServer.ts: the picker page and its save endpoint,
                Vite dev server only (apply: 'serve'), never in npm run build
 app/scripts/   data-check.mjs (npm run data:check), fit-report.mjs (npm run fit:report),
@@ -177,6 +179,14 @@ inputs/outputs and unit tests. UI only calls their public functions.
   than the one before, or a flat girth that looks like a full circumference (or the reverse). Warnings need review:
   uneven grading, implausible ranges, chest ease for the fit intent, and audit vs chart.
   Thresholds are in `verifyRules.ts`.
+- Mannequin (skin rule): the body's waist (navel), hip line, crotch and knee are drawn at the body
+  model's heights; leg widths come from its thigh / knee / calf (`halfWidth.leg`). Pants
+  (`pantsShape`) draw the band at the fit engine's `bandHeight()` and the thigh, knee and
+  opening from the chart; a missing one falls back to a typical width and draws dashed.
+- Photo landmarks per template: tops `TOP_LANDMARKS` (13), pants `PANTS_LANDMARKS` (14: waist
+  corners + centre, hips, crotch, knee and hem corners per leg). Read them with `topLandmarks()` /
+  `pantsLandmarks()`. Pants warp (`warpPantsPieces`) = the top half as two mirrored fans, each leg
+  in strips along the drawn leg's edges (hip/crotch → knee → hem), as long sleeves are.
 - Images: every `image.file` must be in `app/public/` (committed) and at least
   `MIN_IMAGE_WIDTH_PX` (800) wide, or `npm run data:check` fails. A cut-out from a photo we don't
   hold the rights to (Gildan 5000's) is listed in `app/.gitignore` and skipped; without it the

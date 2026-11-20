@@ -701,6 +701,22 @@ Split into 1a (commits 1–2, Medium, no visible change) and 1b (3–8).
 - **Readout**: a waist worked out at the band says so ("You 84.1 cm where the waistband sits",
   estimated), and landing zones' odds give only the chance they block ("Won't go on 4%").
 
+#### PR 1b-2 as built (pants drawing)
+
+- **Body geometry** (skin-rule fix): `y.waist / hip / crotch / knee` are the body model's navel,
+  hip-line, crotch and knee heights. Leg widths are its thigh, knee and calf through
+  `halfWidth.leg = C / 6.75` (a flattened-ellipse front width; C/2π made two thighs wider than the
+  hips), with the drawn thigh capped so the thighs fill the hips side by side.
+- **Pants template** `ui/components/Mannequin/templates/pants.ts` (`pantsShape`, replacing
+  `bottomShape`): band at `bandHeight()`, widths from the chart, `HEM_HALF` and a +2 cm thigh/knee
+  only as dashed fallbacks. It also returns the drawn landmarks, each leg's edges (for strips)
+  and each leg's outline (so a leg's photo is clipped to that leg).
+- **Warp**: `warpPantsPieces` beside the tee's `warpPieces` (sharing the strip and clip code). The
+  tee path is unchanged, pinned by snapshot tests taken before the change.
+- **Landmarks**: 14 required points (§2.4's list; the knees are required, not optional). The
+  picker picks a kit by template; `suggestPantsLandmarks` reads the outline row by row. Tested on a
+  synthetic jeans outline and a synthetic PNG (not committed); no real pants photo yet.
+
 ### PR 2 — hoodies / sweaters (Medium)
 - `knit` zones: chest (personal, tee `INTENT_EASE` plus a knit offset), length (`hps` or `center_back` against
   `cervicaleHeightCm`), sleeve (`shoulder_to_cuff` or `center_back_to_cuff` against `sleevelengthspinewrist`),
