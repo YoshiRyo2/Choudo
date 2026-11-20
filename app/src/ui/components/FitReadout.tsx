@@ -6,7 +6,6 @@ import {
   formatDiff,
   formatLength,
   GRADE_EXPLAINED,
-  LABEL_TEXT,
   labelOddsText,
   measureHintText,
   personalOddsText,
@@ -14,6 +13,7 @@ import {
   sourceLine,
   summarize,
   verdictLine,
+  zoneLabelText,
   zoneName,
 } from '../fitText';
 import { GarmentBadge } from './GarmentBadge';
@@ -80,7 +80,7 @@ export function FitReadout({ garment, fit, units, odds, preference, hint, showOd
           <li key={z.zone} className="zone">
             <div className="zone__head">
               <span className="zone__name">{zoneName(z.zone, fit.bodyType)}</span>
-              <span className={`zone__label tone-${z.tone}`}>{LABEL_TEXT[z.label]}</span>
+              <span className={`zone__label tone-${z.tone}`}>{zoneLabelText(z)}</span>
               {z.diffCm !== null && <span className="zone__diff num">{formatDiff(z.diffCm, units)}</span>}
             </div>
             {z.diffCm !== null && z.kind !== 'landing' && (
