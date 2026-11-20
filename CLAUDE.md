@@ -40,6 +40,7 @@ app/src/
                  catalogue.ts (garments for a body type: its sizing + unisex, or all)
     fit/         fitGarment(body, garment, size) -> per-zone fit results (rules.ts thresholds),
                  zones.ts (TemplateZones: each template's zones, rules, needed definitions),
+                 pants.ts (bandHeight, girthAtHeight: where a waistband sits; the drawing reads it too),
                  golden.test.ts + __golden__/ (byte-for-byte snapshot of every garment's fit and odds)
                  preference.ts (anchor tee / fit style -> personal verdict), sampleFit.ts
                  (seeded odds, recommendSize, measurementHint), uncertainty.ts (every spread),
@@ -78,7 +79,7 @@ inputs/outputs and unit tests. UI only calls their public functions.
 - Zones come from the garment's **template** (`TYPE_TEMPLATE` → `TEMPLATE_ZONES` in `zones.ts`),
   never from `category === 'top'` checks. A new category is a template: zones + rules + data
   checks (`CATEGORY_SPECS`) + a drawing. See `docs/clothing-categories-design.md`.
-- Girth zones (chest, waist, hips): ease = garment − body (cm).
+- Girth zones (chest, waist, hips, thigh): ease = garment − body (cm).
   Labels: tight / fitted / relaxed / loose (ported from `src/fit.py`, converted to cm).
 - Length zones (top length, sleeve, inseam): garment − target length derived from body.
   Labels: short / good / long.
@@ -94,7 +95,18 @@ inputs/outputs and unit tests. UI only calls their public functions.
   its own allowance.
 - A girth rule's bounds are cm, or (`scale: "fraction"`) a share of the body, which may be
   negative (leggings). Landing zones (`kind: "landing"`) only say where an edge ends; they never
-  change the overall result or the suggested size. New thresholds ship labelled "assumed".
+  change the overall result or the suggested size, **unless they block** (`LandingRule.blocks`:
+  the garment won't go on or stay up — then the size is bad). New thresholds ship labelled "assumed".
+- A zone may be `optional` (thigh, rise, leg opening): when it can't be scored the size isn't
+  "unknown" because of it. A zone's body target may be worked out (`ZoneSpec.bodyTarget`).
+- Pants zones: waist, hips, thigh, rise, inseam, leg opening. The **waist is compared where the
+  band sits**: `bandHeight` = navel height − `RISE_VERTICAL_RATIO` × (body front rise − garment
+  front rise), and the body girth there is interpolated between navel (waist) and hip line (hips).
+  Without a front-rise definition the band is at the navel. Rise is a landing zone (low / mid /
+  high) that is bad **only** when the band lands below the hip line; leg opening is a landing
+  zone against the heel–ankle girth (skinny / slim / straight / wide) that is bad **only** when it
+  can't pass the heel with no stretch and no `ankleZip`. Thigh needs `definitions.thigh`.
+  Thresholds (`THIGH`, `RISE`, `LEG_OPENING`) are assumed.
 - Woven shirts currently use the tee chest thresholds — likely too strict; tune in `rules.ts`.
 - Top chest/waist thresholds go by the **garment's** sizing (`TOP_GIRTH_RULES`): women's cuts use
   `WOMENS_TOP_CHEST` (fitted to +1 in, relaxed to +3 in — assumed, not sourced yet); men's and
@@ -113,6 +125,11 @@ inputs/outputs and unit tests. UI only calls their public functions.
   its own spread (`BRA_BUST_SD_CM`).
 - A cup above C widens the torso-length spread (`CUP_TORSO_SD_CM_PER_IN`) — an assumption,
   never a shift in the length itself.
+- Leg keys (pants; estimated only, none can be entered yet): thigh, knee (just above it), calf,
+  heel–ankle, front rise, and navel / hip-line (fullest seat) / knee heights. Women's are ANSUR II
+  regressions (`WOMENS_LEG_REGRESSION`); men's are **assumed** ratios of the ANSUR II male means
+  (`MENS_LEG_RATIO`: girths × the hips estimate, the rest × height) until the men's re-fit.
+  Heights are kept in order (knee < crotch < hip line < navel); an entered inseam never moves.
 
 ## Personal fit and odds (source of truth is `domain/fit/`)
 - Zone labels stay objective. The **verdict** is personal: fits how you like / a bit snugger /
@@ -127,8 +144,10 @@ inputs/outputs and unit tests. UI only calls their public functions.
   label, personal and verdict odds. Every spread is in `uncertainty.ts`, each with its source;
   estimated body spreads are per body type (women's from the ANSUR II residuals).
   One body draw is shared by all sizes and the anchor, so an anchor cancels chest-estimate error.
-  It draws every schema key in a fixed order (`MEASUREMENT_KEYS`, `BODY_MEASUREMENT_KEYS`): add
-  new keys at the **end** of those lists, or every seeded result moves.
+  It draws every schema key: the original 7 body and 8 garment keys from the main stream in a
+  fixed order (`MAIN_STREAM_*_KEYS`, frozen — never add to them), and every later key from its own
+  stream (`keyedSeed`), so adding a key never moves an existing result. New keys still go at the
+  end of `MEASUREMENT_KEYS` / `BODY_MEASUREMENT_KEYS`.
 - The golden test (`fit/golden.test.ts`) must stay byte-equal through refactors. When a change
   is meant to move results, regenerate it with `npx vitest run src/domain/fit/golden.test.ts -u`
   and review the diff.
@@ -189,7 +208,8 @@ version when a stored shape changes, and move old data in `ui/state/migrate.ts` 
 start-up). Keys today: `body` (v2: `bodyType`, optional `braSize`), `units`, `outfit` (fitting
 room), `swipes` (one `{garmentId, sizeShown, liked, at}` per garment), `folders`, `outfits`
 (saved), `anchor` (tee the user likes), `fitStyle`, `catalogue` (`matching` | `all`),
-`testMode`, `fitTests` (v2, Test mode results; the CSV column stays `sizing`). Keys from
+`testMode`, `fitTests` (v3, Test mode results with a `category`: tops record chest + length,
+bottoms waist, thigh + inseam; the CSV column stays `sizing`, bottoms columns come last). Keys from
 before the Choudo rename used the app's old prefix; `migrateAppRename` moves them over
 (when both exist, the `choudo.*` key wins).
 

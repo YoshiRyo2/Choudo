@@ -671,6 +671,30 @@ Split into 1a (commits 1–2, Medium, no visible change) and 1b (3–8).
   label `noted` and a `landing` mark.
 - Also new: `validateGarment` rejects an unknown type, and a category that isn't the type's template's.
 
+#### PR 1b-1 as built (pants fit)
+
+- **Sampler streams**: the main random stream is frozen to the 7 body and 8 garment keys it drew
+  before; every key added since draws from its own stream (`keyedSeed(seed, key)`). Tops stayed
+  byte-identical in the golden test through the whole PR.
+- **Body keys**: thigh, knee, calf, heel–ankle, front rise, navel / hip-line / knee heights.
+  Women's from the ANSUR II female file (coefficients in `WOMENS_LEG_REGRESSION`, spreads in
+  `uncertainty.ts`). Men's are assumed ratios of the ANSUR II male means; thigh, knee and calf ride
+  on the men's hips estimate rather than height, so they grow with weight. The hip line is
+  `buttockheight` (where the seat girth is measured).
+- **Band height** is anchored at the navel, not the crotch:
+  `waistHeight − RISE_VERTICAL_RATIO × (bodyFrontRise − garmentRise)`; at the survey mean this is
+  §2.6's `crotchHeight + 0.71 × rise`, and it uses the body's own front rise. Ratio 0.71 women's,
+  0.79 men's (male means, assumed).
+- **Engine**: `ZoneSpec.bodyTarget`, `ZoneSpec.optional`, `LandingRule.blocks`. Blocked landings
+  reuse existing labels (`tight` → "too tight", `short` → "shorter"), so no new verdict.
+- **Checks**: relations are `legOpening ≤ knee ≤ thigh` and `thigh ≤ 0.7 × hips` (not §2.5's
+  `hips / 2 + 8`, which flags ordinary relaxed jeans once both are full circumferences).
+- **Test mode** records bottoms (waist, thigh when scored, inseam); records are v3.
+- **Known effect, not changed**: body and garment errors are drawn independently per key, so each
+  extra girth zone adds its own chance of "too tight". Pants (waist, hips, thigh) lean towards
+  "too tight" in the odds on estimated data more than a single-girth tee does. Drawing thigh with
+  hips (ANSUR residual correlation) would fix it; that's a follow-up.
+
 ### PR 2 — hoodies / sweaters (Medium)
 - `knit` zones: chest (personal, tee `INTENT_EASE` plus a knit offset), length (`hps` or `center_back` against
   `cervicaleHeightCm`), sleeve (`shoulder_to_cuff` or `center_back_to_cuff` against `sleevelengthspinewrist`),
