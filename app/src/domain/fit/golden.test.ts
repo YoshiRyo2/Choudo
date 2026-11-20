@@ -49,9 +49,19 @@ const PREFERENCES: Record<string, () => PreferenceSpec> = {
 
 const GOLDEN_GARMENTS = [...GARMENTS, UNKNOWN_CHEST_TEE];
 
-/** Compact JSON with ±Infinity kept (fit bands end in them). */
-const json = (v: unknown) =>
-  JSON.stringify(v, (_k, x) => (x === Infinity ? 'Infinity' : x === -Infinity ? '-Infinity' : x));
+/**
+ * A number as written to the golden files: ±Infinity kept as text (fit bands end in
+ * them), and non-integers rounded to 10 significant digits, so last-digit
+ * floating-point noise between machines and Node versions doesn't fail the test.
+ */
+const goldenValue = (x: unknown) => {
+  if (x === Infinity) return 'Infinity';
+  if (x === -Infinity) return '-Infinity';
+  if (typeof x === 'number' && !Number.isInteger(x) && Number.isFinite(x)) return Number(x.toPrecision(10));
+  return x;
+};
+/** Compact JSON with golden-rounded numbers. */
+const json = (v: unknown) => JSON.stringify(v, (_k, x) => goldenValue(x));
 /** One line per item, so a diff points at the garment that moved. */
 const lines = (items: unknown[]) => `${items.map(json).join('\n')}\n`;
 
