@@ -3,7 +3,7 @@
  * provenance and photo entries. Pure; no seed import.
  */
 
-import { categorySpec, GARMENT_TYPES, isGarmentType } from './categories';
+import { categorySpec, GARMENT_TYPES, isGarmentType, pantsLandmarks, topLandmarks } from './categories';
 import { chartDefinition } from './chart';
 import { GIRTH_KEYS, MEASUREMENT_KEYS } from './normalize';
 import {
@@ -18,8 +18,12 @@ import {
   type GarmentImage,
   type LengthDefinition,
   type MeasuredValue,
+  type PantsLandmarkName,
   type SeedGarment,
+  type TopLandmarkName,
 } from './types';
+
+type XY = { x: number; y: number };
 
 /**
  * Structural problems with one seed garment (empty = OK): missing or malformed
@@ -187,11 +191,11 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' |
   }
   const landmarks = categorySpec(g).landmarks;
   if (landmarks === null) {
-    problems.push('photo textures are only supported for tops');
+    problems.push('photo textures are only supported for tops and pants');
     return problems;
   }
 
-  const lm = image.landmarks as Partial<GarmentImage['landmarks']> | undefined;
+  const lm = image.landmarks as GarmentImage['landmarks'] | undefined;
   const missing = landmarks.filter((k) => {
     const p = lm?.[k];
     return !p || !Number.isFinite(p.x) || !Number.isFinite(p.y) || p.x < 0 || p.y < 0;
@@ -200,7 +204,16 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' |
     problems.push(`landmarks need non-negative pixel x/y for ${missing.join(', ')}`);
     return problems;
   }
-  const l = image.landmarks;
+  const pants = pantsLandmarks(image);
+  if (categorySpec(g).template === 'pants' && pants) problems.push(...pantsOrder(pants));
+  const top = topLandmarks(image);
+  if (categorySpec(g).category === 'top' && top) problems.push(...topOrder(top));
+  return problems;
+}
+
+/** A top's landmarks must sit the way a tee does: left of right, collar above armpit above hem… */
+function topOrder(l: Record<TopLandmarkName, XY>): string[] {
+  const problems: string[] = [];
   for (const part of ['collar', 'shoulder', 'armpit', 'hem', 'sleeveOuter', 'sleeveInner'] as const) {
     if (!(l[`${part}Left`].x < l[`${part}Right`].x)) problems.push(`${part}Left must be left of ${part}Right`);
   }
@@ -218,6 +231,29 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' |
     if (!(out.y > s.y && (out.x - inn.x) * outward > 0)) {
       problems.push(`${side.toLowerCase()} sleeve opening must sit below the shoulder, outer corner outside the inner`);
     }
+  }
+  return problems;
+}
+
+/** A pair of pants laid flat: waist above hips above crotch; each leg runs down from hip to knee to hem, outer edge outside. */
+function pantsOrder(l: Record<PantsLandmarkName, XY>): string[] {
+  const problems: string[] = [];
+  if (!(l.waistLeft.x < l.waistMid.x && l.waistMid.x < l.waistRight.x)) problems.push('waistMid must sit between waistLeft and waistRight');
+  if (!(l.hipLeft.x < l.hipRight.x)) problems.push('hipLeft must be left of hipRight');
+  const waistY = Math.max(l.waistLeft.y, l.waistMid.y, l.waistRight.y);
+  const hipY = Math.max(l.hipLeft.y, l.hipRight.y);
+  if (!(l.crotch.y > hipY && l.crotch.x > l.hipLeft.x && l.crotch.x < l.hipRight.x)) {
+    problems.push('crotch must sit between the hips and below them');
+  }
+  for (const side of ['Left', 'Right'] as const) {
+    const lower = side.toLowerCase();
+    const outward = side === 'Left' ? -1 : 1;
+    const [hip, kO, kI, hO, hI] = [l[`hip${side}`], l[`kneeOuter${side}`], l[`kneeInner${side}`], l[`hemOuter${side}`], l[`hemInner${side}`]];
+    if (!(hip.y > waistY && kO.y > hip.y && kI.y > l.crotch.y && hO.y > kO.y && hI.y > kI.y)) {
+      problems.push(`${lower} leg must run waist above hip above knee above hem`);
+    }
+    if (!((kO.x - kI.x) * outward > 0)) problems.push(`${lower} knee: the outer corner must be outside the inner`);
+    if (!((hO.x - hI.x) * outward > 0)) problems.push(`${lower} hem: the outer corner must be outside the inner`);
   }
   return problems;
 }

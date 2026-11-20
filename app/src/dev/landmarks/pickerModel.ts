@@ -3,7 +3,8 @@
  * is called, which comes next, and which sizes the live preview shows.
  */
 
-import type { Garment, GarmentSize, TopLandmarkName } from '../../domain/garments/types';
+import { templateOf } from '../../domain/garments/categories';
+import type { Garment, GarmentSize, LandmarkName, PantsLandmarkName, TopLandmarkName } from '../../domain/garments/types';
 import type { WarpPiece } from '../../ui/components/Mannequin/photoWarp';
 import type { XY } from './suggest';
 
@@ -78,17 +79,124 @@ export const DIAGRAM: Record<TopLandmarkName, XY> = {
   shoulderLeft: { x: 34, y: 18 },
 };
 
+// ---------- pants ----------
+
+/** Pants: round the outline clockwise as you look at it, from the band's left corner. */
+export const PANTS_PLACE_ORDER: readonly PantsLandmarkName[] = [
+  'waistLeft',
+  'waistMid',
+  'waistRight',
+  'hipRight',
+  'kneeOuterRight',
+  'hemOuterRight',
+  'hemInnerRight',
+  'kneeInnerRight',
+  'crotch',
+  'kneeInnerLeft',
+  'hemInnerLeft',
+  'hemOuterLeft',
+  'kneeOuterLeft',
+  'hipLeft',
+];
+
+export const PANTS_LABELS: Record<PantsLandmarkName, string> = {
+  waistLeft: 'Waistband, left: top corner',
+  waistMid: 'Waistband, middle: top of the band at the centre front',
+  waistRight: 'Waistband, right: top corner',
+  hipRight: 'Hip, right: the widest point of the side, above the crotch',
+  kneeOuterRight: 'Knee, right leg, outer edge: half way from the crotch to the hem',
+  hemOuterRight: 'Hem, right leg, outer corner',
+  hemInnerRight: 'Hem, right leg, inner corner',
+  kneeInnerRight: 'Knee, right leg, inner edge',
+  crotch: 'Crotch: where the two inner leg seams meet',
+  kneeInnerLeft: 'Knee, left leg, inner edge',
+  hemInnerLeft: 'Hem, left leg, inner corner',
+  hemOuterLeft: 'Hem, left leg, outer corner',
+  kneeOuterLeft: 'Knee, left leg, outer edge',
+  hipLeft: 'Hip, left',
+};
+
+export const PANTS_SHORT_LABELS: Record<PantsLandmarkName, string> = {
+  waistLeft: 'Waist, left',
+  waistMid: 'Waist, middle',
+  waistRight: 'Waist, right',
+  hipRight: 'Hip, right',
+  kneeOuterRight: 'Knee, right, outer',
+  hemOuterRight: 'Hem, right, outer',
+  hemInnerRight: 'Hem, right, inner',
+  kneeInnerRight: 'Knee, right, inner',
+  crotch: 'Crotch',
+  kneeInnerLeft: 'Knee, left, inner',
+  hemInnerLeft: 'Hem, left, inner',
+  hemOuterLeft: 'Hem, left, outer',
+  kneeOuterLeft: 'Knee, left, outer',
+  hipLeft: 'Hip, left',
+};
+
+/** Where each pants point sits on the guide diagram (viewBox 0 0 120 100). */
+export const PANTS_DIAGRAM: Record<PantsLandmarkName, XY> = {
+  waistLeft: { x: 38, y: 6 },
+  waistMid: { x: 60, y: 8 },
+  waistRight: { x: 82, y: 6 },
+  hipRight: { x: 86, y: 22 },
+  kneeOuterRight: { x: 84, y: 60 },
+  hemOuterRight: { x: 84, y: 96 },
+  hemInnerRight: { x: 66, y: 96 },
+  kneeInnerRight: { x: 66, y: 60 },
+  crotch: { x: 60, y: 32 },
+  kneeInnerLeft: { x: 54, y: 60 },
+  hemInnerLeft: { x: 54, y: 96 },
+  hemOuterLeft: { x: 36, y: 96 },
+  kneeOuterLeft: { x: 36, y: 60 },
+  hipLeft: { x: 34, y: 22 },
+};
+
+/** Everything the picker page needs for one template: what to place, in what order, and how to name it. */
+export interface PickerKit<N extends LandmarkName = LandmarkName> {
+  order: readonly N[];
+  labels: Record<N, string>;
+  short: Record<N, string>;
+  diagram: Record<N, XY>;
+  /** The guide diagram's garment outline (viewBox 0 0 120 100). */
+  diagramPath: string;
+}
+
+export const PICKER_KITS = {
+  top: {
+    order: PLACE_ORDER,
+    labels: LANDMARK_LABELS,
+    short: SHORT_LABELS,
+    diagram: DIAGRAM,
+    diagramPath: 'M50 12 Q60 24 70 12 L86 18 L110 40 L100 50 L86 40 L86 92 L34 92 L34 40 L20 50 L10 40 L34 18 Z',
+  } satisfies PickerKit<TopLandmarkName>,
+  pants: {
+    order: PANTS_PLACE_ORDER,
+    labels: PANTS_LABELS,
+    short: PANTS_SHORT_LABELS,
+    diagram: PANTS_DIAGRAM,
+    diagramPath: 'M38 6 L60 8 L82 6 L86 22 L84 96 L66 96 L60 32 L54 96 L36 96 L34 22 Z',
+  } satisfies PickerKit<PantsLandmarkName>,
+};
+
+/** The picker kit for a garment's template. */
+export const kitFor = (garment: Pick<Garment, 'type'>): PickerKit =>
+  (templateOf(garment) === 'pants' ? PICKER_KITS.pants : PICKER_KITS.top) as PickerKit;
+
 /**
  * The point to place after `current`: the next unplaced one going round, or
  * simply the next one when all are placed (so clicking round re-places them).
  */
-export function nextPoint(current: TopLandmarkName, placed: Partial<Record<TopLandmarkName, XY>>): TopLandmarkName {
-  const at = PLACE_ORDER.indexOf(current);
-  for (let k = 1; k <= PLACE_ORDER.length; k++) {
-    const name = PLACE_ORDER[(at + k) % PLACE_ORDER.length]!;
+export function nextPoint<N extends LandmarkName = TopLandmarkName>(
+  current: NoInfer<N>,
+  placed: Partial<Record<NoInfer<N>, XY>>,
+  order: readonly N[] = PLACE_ORDER as readonly LandmarkName[] as readonly N[],
+): N {
+  const at = order.indexOf(current);
+  for (let k = 1; k <= order.length; k++) {
+    const name = order[(at + k) % order.length]!;
     if (!placed[name]) return name;
   }
-  return PLACE_ORDER[(at + 1) % PLACE_ORDER.length]!;
+  return order[(at + 1) % order.length]!;
 }
 
 /** Room a made-up preview size adds over the only real one: about two sizes up. */
@@ -120,13 +228,12 @@ export function previewSizes(garment: Garment): { garment: Garment; labels: [str
 export function foldWarning(folded: WarpPiece[]): string | null {
   if (!folded.length) return null;
   const names = new Set<string>();
+  const short: Record<string, string> = { ...SHORT_LABELS, ...PANTS_SHORT_LABELS };
   for (const p of folded) {
     for (const c of p.corners) {
-      const landmark = (TOP_LANDMARK_SET as Set<string>).has(c) ? (c as TopLandmarkName) : null;
-      names.add(landmark ? SHORT_LABELS[landmark] : c.startsWith('sleeve') ? 'a sleeve edge' : 'the centre line');
+      names.add(short[c] ?? (c.startsWith('sleeve') ? 'a sleeve edge' : c.startsWith('leg') ? 'a leg edge' : 'the centre line'));
     }
   }
   return `The photo folds over (shows mirrored) between ${[...names].join(', ')}. Points there are out of order compared with the mannequin: for example a front neck below the shoulders, or a sleeve corner on the wrong side.`;
 }
 
-const TOP_LANDMARK_SET = new Set<string>(PLACE_ORDER);

@@ -6,7 +6,7 @@
  * Pure: text in, text out. Used by the dev server's save endpoint (vite.config.ts).
  */
 
-import { TOP_LANDMARKS, type GarmentImage } from '../../domain/garments/types';
+import { PANTS_LANDMARKS, TOP_LANDMARKS, type GarmentImage, type LandmarkName } from '../../domain/garments/types';
 
 /** Where a JSON value sits in the text: [start, end). Objects also list their members. */
 interface Span {
@@ -99,13 +99,15 @@ function indentAt(text: string, offset: number): string {
 
 /**
  * The image value in the seed's house style (as Gildan's row): one landmark per
- * line, each `{ "x": 1, "y": 2 }`, in TOP_LANDMARKS order, whole pixels.
+ * line, each `{ "x": 1, "y": 2 }`, in TOP_LANDMARKS (or PANTS_LANDMARKS) order, whole pixels.
  */
 export function formatImage(image: GarmentImage, indent: string, step = '  '): string {
   const a = indent + step;
   const b = a + step;
-  const points = TOP_LANDMARKS.map((name) => {
-    const p = image.landmarks[name];
+  // A pants photo's points in PANTS_LANDMARKS order, a top's in TOP_LANDMARKS order.
+  const names: readonly LandmarkName[] = 'crotch' in image.landmarks ? PANTS_LANDMARKS : TOP_LANDMARKS;
+  const points = names.map((name) => {
+    const p = image.landmarks[name]!;
     return `${b}${JSON.stringify(name)}: { "x": ${Math.round(p.x)}, "y": ${Math.round(p.y)} }`;
   });
   return [

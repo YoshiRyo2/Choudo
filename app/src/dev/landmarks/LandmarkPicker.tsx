@@ -1,25 +1,28 @@
 /**
- * Dev-only page (npm run dev, then /dev/landmarks): place a top's 13 photo
- * landmarks on its cut-out, see the warp live on the mannequin at two sizes,
- * and save them into seed.json. Not part of the production build.
+ * Dev-only page (npm run dev, then /dev/landmarks): place a garment's photo
+ * landmarks on its cut-out (a top's 13, a pair of pants' 14), see the warp live
+ * on the mannequin at two sizes, and save them into seed.json. Not part of the
+ * production build.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
 import { findGarment } from '../../domain/garments';
-import { TOP_LANDMARKS, type Garment, type GarmentImage, type TopLandmarkName } from '../../domain/garments/types';
+import type { Garment, GarmentImage, LandmarkName } from '../../domain/garments/types';
+import { pantsLandmarks, templateOf, topLandmarks } from '../../domain/garments/categories';
 import { validateImage } from '../../domain/garments/validate';
 import { bodyGeometry } from '../../ui/components/Mannequin/geometry';
 import { Mannequin } from '../../ui/components/Mannequin/Mannequin';
-import { foldedPieces, warpPieces } from '../../ui/components/Mannequin/photoWarp';
+import { foldedPieces, warpPantsPieces, warpPieces } from '../../ui/components/Mannequin/photoWarp';
+import { pantsShape } from '../../ui/components/Mannequin/templates/pants';
 import { topShape } from '../../ui/components/Mannequin/topShape';
 import { STORAGE_KEYS, isStoredBody } from '../../ui/state/stored';
-import { DIAGRAM, LANDMARK_LABELS, PLACE_ORDER, SHORT_LABELS, foldWarning, nextPoint, previewSizes } from './pickerModel';
+import { PICKER_KITS, foldWarning, kitFor, nextPoint, previewSizes, type PickerKit } from './pickerModel';
 import { formatImage } from './seedWrite';
-import { alphaMask, insetMask, suggestLandmarks, type XY } from './suggest';
+import { alphaMask, insetMask, suggestLandmarks, suggestPantsLandmarks, type XY } from './suggest';
 import './picker.css';
 
-type Points = Partial<Record<TopLandmarkName, XY>>;
+type Points = Partial<Record<LandmarkName, XY>>;
 
 interface PhotoEntry {
   id: string;
@@ -40,10 +43,10 @@ function storedBody(): BodyInput {
   }
 }
 
-const complete = (p: Points): p is Record<TopLandmarkName, XY> => TOP_LANDMARKS.every((n) => p[n]);
+const complete = (p: Points, kit: PickerKit) => kit.order.every((n) => p[n]);
 
-/** Read the PNG's alpha and suggest landmarks from its outline. */
-async function suggestFor(src: string, inset: number): Promise<{ size: XY; points: Points | null }> {
+/** Read the PNG's alpha and suggest landmarks from its outline (as a top, or as a pair of pants). */
+async function suggestFor(src: string, inset: number, pants: boolean): Promise<{ size: XY; points: Points | null }> {
   // A load event, not img.decode(): the browser may hold decode() back while the tab is hidden.
   const img = new Image();
   await new Promise<void>((resolve, reject) => {
@@ -58,7 +61,8 @@ async function suggestFor(src: string, inset: number): Promise<{ size: XY; point
   ctx.drawImage(img, 0, 0);
   const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const mask = insetMask(alphaMask(data, canvas.width, canvas.height), canvas.width, canvas.height, inset);
-  return { size: { x: canvas.width, y: canvas.height }, points: suggestLandmarks(mask, canvas.width, canvas.height) };
+  const suggest = pants ? suggestPantsLandmarks : suggestLandmarks;
+  return { size: { x: canvas.width, y: canvas.height }, points: suggest(mask, canvas.width, canvas.height) };
 }
 
 export function LandmarkPicker() {
@@ -67,7 +71,7 @@ export function LandmarkPicker() {
   const [points, setPoints] = useState<Points>({});
   const [suggested, setSuggested] = useState<Points | null>(null);
   const [size, setSize] = useState<XY | null>(null);
-  const [active, setActive] = useState<TopLandmarkName>(PLACE_ORDER[0]!);
+  const [active, setActive] = useState<LandmarkName>(PICKER_KITS.top.order[0]!);
   const [status, setStatus] = useState<string | null>(null);
   const body = useMemo(() => estimateBody(storedBody()).measurements, []);
 
@@ -80,19 +84,21 @@ export function LandmarkPicker() {
 
   const photo = photos?.find((p) => p.id === id);
   const garment = findGarment(id);
+  const kit = garment ? kitFor(garment) : (PICKER_KITS.top as PickerKit);
+  const isPants = garment ? templateOf(garment) === 'pants' : false;
 
   // Load the photo, suggest points, and start from the saved ones when they're for this file.
   useEffect(() => {
     if (!photo?.exists) return;
     let live = true;
     const saved = garment?.image?.file === photo.file ? garment.image.landmarks : null;
-    suggestFor(`/${photo.file}?t=${Date.now()}`, photo.inset)
+    suggestFor(`/${photo.file}?t=${Date.now()}`, photo.inset, isPants)
       .then(({ size, points: s }) => {
         if (!live) return;
         setSize(size);
         setSuggested(s);
         setPoints(saved ?? s ?? {});
-        setActive(PLACE_ORDER[0]!);
+        setActive(kit.order[0]!);
         setStatus(saved ? 'Loaded the saved landmarks.' : s ? 'Suggested from the outline: nudge as needed.' : null);
       })
       .catch((e: unknown) => live && setStatus(`Could not load ${photo.file}: ${String(e)}`));
@@ -100,7 +106,7 @@ export function LandmarkPicker() {
       live = false;
     };
     // Reload only when the photo changes, not on every seed edit.
-  }, [photo?.file, photo?.exists, photo?.inset]);
+  }, [photo?.file, photo?.exists, photo?.inset, isPants]);
 
   const choose = (next: string) => {
     setId(next);
@@ -112,7 +118,7 @@ export function LandmarkPicker() {
 
   // ----- placing and dragging -----
   const svgRef = useRef<SVGSVGElement>(null);
-  const dragging = useRef<TopLandmarkName | null>(null);
+  const dragging = useRef<LandmarkName | null>(null);
   const toImage = (e: { clientX: number; clientY: number }): XY | null => {
     const svg = svgRef.current;
     const ctm = svg?.getScreenCTM();
@@ -120,7 +126,7 @@ export function LandmarkPicker() {
     const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
     return { x: Math.round(p.x), y: Math.round(p.y) };
   };
-  const place = useCallback((name: TopLandmarkName, at: XY) => setPoints((p) => ({ ...p, [name]: at })), []);
+  const place = useCallback((name: LandmarkName, at: XY) => setPoints((p) => ({ ...p, [name]: at })), []);
 
   const onBackgroundDown = (e: ReactPointerEvent<SVGSVGElement>) => {
     if (dragging.current) return;
@@ -128,9 +134,9 @@ export function LandmarkPicker() {
     if (!at) return;
     const placed = { ...points, [active]: at };
     place(active, at);
-    setActive(nextPoint(active, placed));
+    setActive(nextPoint<LandmarkName>(active, placed, kit.order));
   };
-  const onPointDown = (name: TopLandmarkName) => (e: ReactPointerEvent<SVGCircleElement>) => {
+  const onPointDown = (name: LandmarkName) => (e: ReactPointerEvent<SVGCircleElement>) => {
     e.stopPropagation();
     dragging.current = name;
     setActive(name);
@@ -163,8 +169,13 @@ export function LandmarkPicker() {
 
   // ----- result -----
   const image: GarmentImage | null =
-    photo && complete(points)
-      ? { file: photo.file, photographedSize: garment?.image?.photographedSize ?? null, landmarks: points }
+    photo && complete(points, kit)
+      ? {
+          file: photo.file,
+          photographedSize: garment?.image?.photographedSize ?? null,
+          // Only this template's points (a stray point from another template would fail validation).
+          landmarks: Object.fromEntries(kit.order.map((n) => [n, points[n]!])),
+        }
       : null;
   const problems = image && garment ? validateImage(image, garment) : [];
   // Mirrored pieces at either preview size: allowed, but worth fixing.
@@ -174,11 +185,18 @@ export function LandmarkPicker() {
     const g = bodyGeometry(body);
     const folded = p.labels.flatMap((label) => {
       const size = p.garment.sizes.find((s) => s.label === label)!;
+      const pants = pantsLandmarks(image);
+      if (isPants && pants) {
+        const shape = pantsShape(g, body, p.garment, size.measurements);
+        return foldedPieces(warpPantsPieces(pants, shape.landmarks, shape.limbEdges));
+      }
+      const top = topLandmarks(image);
+      if (!top) return [];
       const shape = topShape(g, p.garment, size.measurements, body.chestCm);
-      return foldedPieces(warpPieces(image.landmarks, shape.landmarks, shape.sleeveEdges));
+      return foldedPieces(warpPieces(top, shape.landmarks, shape.sleeveEdges));
     });
     return foldWarning(folded);
-  }, [image, garment, body]);
+  }, [image, garment, body, isPants]);
 
   const save = async () => {
     if (!image) return;
@@ -198,7 +216,7 @@ export function LandmarkPicker() {
 
   // Points and lines are sized in screen px whatever the photo's size.
   const k = size ? size.x / 560 : 1;
-  const outline = PLACE_ORDER.filter((n) => points[n]).map((n) => `${points[n]!.x},${points[n]!.y}`).join(' ');
+  const outline = kit.order.filter((n) => points[n]).map((n) => `${points[n]!.x},${points[n]!.y}`).join(' ');
 
   return (
     <div className="picker">
@@ -218,11 +236,11 @@ export function LandmarkPicker() {
         </label>
         {garment && (
           <span className="picker__muted">
-            {garment.brand} {garment.name}, {garment.sleeve ?? 'short'} sleeve
+            {garment.brand} {garment.name}, {isPants ? 'pants' : `${garment.sleeve ?? 'short'} sleeve`}
           </span>
         )}
         {photos && id && !photo && <span className="picker__bad">{id} isn't in scripts/garment-photos.json.</span>}
-        {id && !garment && <span className="picker__bad">No top "{id}" in the catalogue.</span>}
+        {id && !garment && <span className="picker__bad">No garment "{id}" in the catalogue.</span>}
       </header>
 
       <main className="picker__body">
@@ -239,7 +257,7 @@ export function LandmarkPicker() {
               <rect width={size.x} height={size.y} className="picker__checker" />
               <image href={`/${photo.file}`} width={size.x} height={size.y} />
               <polygon points={outline} className="picker__outline" style={{ strokeWidth: 1.5 * k }} />
-              {PLACE_ORDER.map((n) =>
+              {kit.order.map((n) =>
                 points[n] ? (
                   <g key={n}>
                     <circle
@@ -250,7 +268,7 @@ export function LandmarkPicker() {
                       style={{ strokeWidth: 2 * k }}
                       onPointerDown={onPointDown(n)}
                     >
-                      <title>{LANDMARK_LABELS[n]}</title>
+                      <title>{kit.labels[n]}</title>
                     </circle>
                   </g>
                 ) : null,
@@ -264,22 +282,19 @@ export function LandmarkPicker() {
         <aside className="picker__side">
           <div className="picker__guide">
             <svg viewBox="0 0 120 100" aria-hidden="true">
-              <path
-                className="picker__tee"
-                d="M50 12 Q60 24 70 12 L86 18 L110 40 L100 50 L86 40 L86 92 L34 92 L34 40 L20 50 L10 40 L34 18 Z"
-              />
-              {PLACE_ORDER.map((n) => (
+              <path className="picker__tee" d={kit.diagramPath} />
+              {kit.order.map((n) => (
                 <circle
                   key={n}
-                  cx={DIAGRAM[n].x}
-                  cy={DIAGRAM[n].y}
+                  cx={kit.diagram[n].x}
+                  cy={kit.diagram[n].y}
                   r={n === active ? 4.5 : 2.8}
                   className={n === active ? 'picker__dot is-active' : points[n] ? 'picker__dot is-placed' : 'picker__dot'}
                 />
               ))}
             </svg>
             <p>
-              <strong>Next: {LANDMARK_LABELS[active]}</strong>
+              <strong>Next: {kit.labels[active] ?? kit.labels[kit.order[0]!]}</strong>
               <br />
               <span className="picker__muted">
                 Click the photo to place it, drag any point to adjust, arrow keys nudge (shift ×10). Left and right
@@ -289,10 +304,10 @@ export function LandmarkPicker() {
           </div>
 
           <ol className="picker__list">
-            {PLACE_ORDER.map((n) => (
+            {kit.order.map((n) => (
               <li key={n}>
                 <button type="button" className={n === active ? 'is-active' : undefined} onClick={() => setActive(n)}>
-                  <span>{SHORT_LABELS[n]}</span>
+                  <span>{kit.short[n]}</span>
                   <span className="picker__xy">{points[n] ? `${points[n]!.x}, ${points[n]!.y}` : '—'}</span>
                 </button>
               </li>
@@ -344,8 +359,12 @@ function Preview({
     <>
       {p.labels.map((label) => (
         <figure key={label}>
-          <div className="picker__frame">
-            <Mannequin body={body} top={{ garment: p.garment, sizeLabel: label }} showFit={false} />
+          <div className={templateOf(garment) === 'pants' ? 'picker__frame picker__frame--pants' : 'picker__frame'}>
+            {templateOf(garment) === 'pants' ? (
+              <Mannequin body={body} bottom={{ garment: p.garment, sizeLabel: label }} showFit={false} />
+            ) : (
+              <Mannequin body={body} top={{ garment: p.garment, sizeLabel: label }} showFit={false} />
+            )}
           </div>
           <figcaption>
             {label}

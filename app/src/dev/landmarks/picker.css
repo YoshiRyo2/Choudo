@@ -190,6 +190,14 @@
   height: auto;
   margin: -8% 0 0 -12%;
 }
+/* Pants: the frame shows the waist down, legs and all. */
+.picker__frame--pants {
+  aspect-ratio: 100 / 92;
+}
+.picker__frame--pants .mannequin {
+  width: 100%;
+  margin: -44% 0 0 0;
+}
 .picker__preview figure {
   margin: 0;
   background: var(--paper-raised);
