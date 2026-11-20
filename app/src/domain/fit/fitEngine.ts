@@ -5,22 +5,12 @@
  * suggest is decided from sampled odds — see sampleFit.ts.
  */
 
-import type { BodyModel, BodyType, MeasurementKey, MeasurementSource } from '../body';
-import type { Garment, GarmentSize, MeasurementOrigin, SizeMeasurements } from '../garments';
-import {
-  BOTTOM_HIPS,
-  BOTTOM_WAIST,
-  INSEAM,
-  LENGTH_FAR_MULTIPLIER,
-  SLEEVE,
-  STRETCH_ALLOWANCE,
-  TOP_GIRTH_RULES,
-  TOP_LENGTH,
-  type GirthRule,
-  type LengthRule,
-} from './rules';
+import type { BodyModel, BodyType, MeasurementSource } from '../body';
+import type { Garment, GarmentSize, MeasurementOrigin } from '../garments';
+import { LENGTH_FAR_MULTIPLIER, STRETCH_ALLOWANCE, type GirthRule, type LengthRule } from './rules';
+import { definitionOf, ruleFor, zoneSpecsFor, type Rule, type ZoneId, type ZoneSpec } from './zones';
 
-export type ZoneId = 'chest' | 'waist' | 'hips' | 'length' | 'sleeve' | 'inseam';
+export type { ZoneId } from './zones';
 export type GirthLabel = 'tight' | 'fitted' | 'relaxed' | 'loose';
 export type LengthLabel = 'short' | 'good' | 'long';
 export type FitLabel = GirthLabel | LengthLabel | 'unknown';
@@ -67,13 +57,6 @@ export interface GarmentFit {
   overall: FitTone;
 }
 
-interface ZoneSpec {
-  zone: ZoneId;
-  garmentKey: keyof SizeMeasurements;
-  bodyKey: MeasurementKey;
-  rule: GirthRule | LengthRule;
-}
-
 // ---------- labelling (exported so the thresholds can be tested directly) ----------
 
 export function labelGirth(easeCm: number, rule: GirthRule, tightAllowanceCm = 0): GirthLabel {
@@ -112,44 +95,16 @@ function toneFor(label: FitLabel, diffCm: number | null, rule: GirthRule | Lengt
 
 const TONE_RANK: Record<FitTone, number> = { unknown: 0, good: 1, warn: 2, bad: 3 };
 
-// ---------- which zones apply to which garment ----------
+// ---------- which zones apply to which garment: see zones.ts ----------
 
-function zonesFor(garment: Garment, size: SizeMeasurements): ZoneSpec[] {
-  if (garment.category === 'top') {
-    const girth = TOP_GIRTH_RULES[garment.sizing];
-    const specs: ZoneSpec[] = [
-      { zone: 'chest', garmentKey: 'chest', bodyKey: 'chestCm', rule: girth.chest },
-    ];
-    if (size.waist !== undefined) {
-      specs.push({ zone: 'waist', garmentKey: 'waist', bodyKey: 'waistCm', rule: girth.waist });
-    }
-    specs.push({ zone: 'length', garmentKey: 'length', bodyKey: 'torsoLengthCm', rule: TOP_LENGTH });
-    // Short sleeves are a style choice, not a fit issue, so we only score long sleeves.
-    if (garment.sleeve === 'long') {
-      specs.push({ zone: 'sleeve', garmentKey: 'sleeve', bodyKey: 'armLengthCm', rule: SLEEVE });
-    }
-    return specs;
-  }
-  return [
-    { zone: 'waist', garmentKey: 'waist', bodyKey: 'waistCm', rule: BOTTOM_WAIST },
-    { zone: 'hips', garmentKey: 'hips', bodyKey: 'hipsCm', rule: BOTTOM_HIPS },
-    { zone: 'inseam', garmentKey: 'inseam', bodyKey: 'inseamCm', rule: INSEAM },
-  ];
-}
-
-function unknownReason(spec: ZoneSpec, garment: Garment, garmentCm: number | undefined): string | null {
+function unknownReason(spec: ZoneSpec, rule: Rule, garment: Garment, garmentCm: number | undefined): string | null {
   if (garmentCm === undefined) return `${garment.brand} doesn't list this measurement.`;
-  if (spec.rule.kind === 'girth' && !garment.girthVerified) {
+  if (rule.kind === 'girth' && !garment.girthVerified) {
     return `${garment.brand}'s chart doesn't say whether this is measured flat or all the way round.`;
   }
-  // Body length targets run from the high point of the shoulder; any other start point can't be compared.
-  if (spec.zone === 'length' && garment.lengthDefinition !== 'hps') {
-    return garment.lengthDefinition === 'center_back'
-      ? `${garment.brand} measures length from the back of the neck, so we can't compare it to your body.`
-      : `${garment.brand}'s chart doesn't say where length is measured from.`;
-  }
-  if (spec.zone === 'sleeve' && garment.sleeveDefinition !== 'shoulder_to_cuff') {
-    return `${garment.brand} measures sleeves differently, so we can't compare it to your arm.`;
+  if (spec.needs) {
+    const value = definitionOf(garment, spec.needs.definition);
+    if (value === undefined || !spec.needs.accepts.includes(value)) return spec.needs.reason(garment.brand, value);
   }
   return null;
 }
@@ -176,6 +131,7 @@ function bandsFor(rule: GirthRule | LengthRule, tightAllowanceCm: number): FitBa
 
 function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, gs: GarmentSize): ZoneFit {
   const size = gs.measurements;
+  const rule = ruleFor(spec, garment);
   const bodyCm = body.measurements[spec.bodyKey];
   const bodySource = body.sources[spec.bodyKey];
   const garmentCm = size[spec.garmentKey];
@@ -183,14 +139,14 @@ function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, gs: GarmentS
   const tightAllowanceCm = STRETCH_ALLOWANCE[garment.stretch] * bodyCm;
   const base = {
     zone: spec.zone,
-    kind: spec.rule.kind,
+    kind: rule.kind,
     bodyCm,
     bodySource,
-    bands: bandsFor(spec.rule, tightAllowanceCm),
+    bands: bandsFor(rule, tightAllowanceCm),
     ...(garmentOrigin !== undefined ? { garmentOrigin } : {}),
   } as const;
 
-  const reason = unknownReason(spec, garment, garmentCm);
+  const reason = unknownReason(spec, rule, garment, garmentCm);
   if (reason !== null || garmentCm === undefined) {
     return {
       ...base,
@@ -203,11 +159,8 @@ function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, gs: GarmentS
   }
 
   const diffCm = garmentCm - bodyCm;
-  const label =
-    spec.rule.kind === 'girth'
-      ? labelGirth(diffCm, spec.rule, tightAllowanceCm)
-      : labelLength(diffCm, spec.rule);
-  return { ...base, label, tone: toneFor(label, diffCm, spec.rule), diffCm, garmentCm };
+  const label = rule.kind === 'girth' ? labelGirth(diffCm, rule, tightAllowanceCm) : labelLength(diffCm, rule);
+  return { ...base, label, tone: toneFor(label, diffCm, rule), diffCm, garmentCm };
 }
 
 // ---------- public API ----------
@@ -218,7 +171,7 @@ export function fitGarment(body: BodyModel, garment: Garment, sizeLabel: string)
   if (!size) {
     throw new Error(`${garment.id} has no size "${sizeLabel}"`);
   }
-  const zones = zonesFor(garment, size.measurements).map((spec) =>
+  const zones = zoneSpecsFor(garment, size.measurements).map((spec) =>
     fitZone(spec, body, garment, size),
   );
   return { garmentId: garment.id, sizeLabel, bodyType: body.measurements.bodyType, zones, overall: overallTone(zones) };

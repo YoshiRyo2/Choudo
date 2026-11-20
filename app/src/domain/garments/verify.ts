@@ -9,19 +9,17 @@
 
 import { inToCm } from '../units';
 import { GIRTH_KEYS, isGirthKey, MEASUREMENT_KEYS, normalizeMeasurements, normalizeSize, readValue } from './normalize';
+import { categorySpec } from './categories';
 import type { GarmentSize, MeasurementKey, SeedGarment } from './types';
-import { REQUIRED, validateGarment } from './validate';
+import { validateGarment } from './validate';
 import {
   AUDIT_TOLERANCE_CM,
-  BOTTOM_RANGES,
   BOTTOM_WAIST_EASE,
   CHEST_EASE_BY_INTENT,
   GIRTH_METHOD_LIMITS,
   GRADING_MIN_EXCESS_CM,
   GRADING_RATIO,
   referenceChestCm,
-  TOP_LENGTH_RANGES,
-  TOP_RANGES,
   type Range,
 } from './verifyRules';
 
@@ -212,28 +210,28 @@ export function checkGirthMethod(g: SeedGarment): { severity: 'error' | 'warning
 export function checkRanges(g: SeedGarment, sizes: GarmentSize[]): string[] {
   const out: string[] = [];
   const girthKnown = g.chart.girth !== 'unknown';
+  const { checks, lengthDefinition } = categorySpec(g);
   const outside = (what: string, v: number, r: Range) => {
     if (v < r.min || v > r.max) out.push(`${what} is ${cm(v)}, outside ${r.min}–${r.max} cm`);
   };
 
   for (const s of sizes) {
     const m = s.measurements;
-    const ranges = g.category === 'top' ? TOP_RANGES : BOTTOM_RANGES;
     for (const key of MEASUREMENT_KEYS) {
       const v = m[key];
-      const r = ranges[key];
+      const r = checks.ranges[key];
       if (v === undefined || r === undefined) continue;
       if (isGirthKey(key) && !girthKnown) continue;
       if (key === 'sleeve' && !(g.sleeve === 'long' && g.chart.sleeveDefinition === 'shoulder_to_cuff')) continue;
       outside(`${key} in ${s.label}`, v, r);
     }
-    if (g.category === 'top' && m.length !== undefined && g.chart.lengthDefinition === 'hps') {
-      const r = TOP_LENGTH_RANGES[g.type];
+    if (lengthDefinition === 'required' && m.length !== undefined && g.chart.lengthDefinition === 'hps') {
+      const r = checks.lengthRanges?.[g.type];
       if (r) outside(`length in ${s.label}`, m.length, r);
     }
 
     if (!girthKnown) continue;
-    if (g.category === 'top' && g.sizing !== 'womens' && m.chest !== undefined) {
+    if (checks.labelEase === 'chest' && g.sizing !== 'womens' && m.chest !== undefined) {
       const body = referenceChestCm(s.label);
       const r = CHEST_EASE_BY_INTENT[g.fitIntent];
       if (body !== null && (m.chest - body < r.min || m.chest - body > r.max)) {
@@ -243,7 +241,7 @@ export function checkRanges(g: SeedGarment, sizes: GarmentSize[]): string[] {
         );
       }
     }
-    if (g.category === 'bottom' && m.waist !== undefined) {
+    if (checks.labelEase === 'waist' && m.waist !== undefined) {
       const labelWaist = /^(\d{2})(?:\s*x\s*\d+)?$/i.exec(s.label);
       if (labelWaist) {
         const nominal = Number(labelWaist[1]) * 2.54;
@@ -261,14 +259,15 @@ export function checkRanges(g: SeedGarment, sizes: GarmentSize[]): string[] {
 /** Zones the fit engine will answer "unknown" for because a definition is missing. */
 export function unscorableZones(g: SeedGarment): UnscorableZone[] {
   const present = new Set(g.sizes.flatMap((s) => Object.keys(s.measurements) as MeasurementKey[]));
-  const required = new Set(REQUIRED[g.category]);
+  const spec = categorySpec(g);
+  const required = new Set(spec.checks.required);
   const out: UnscorableZone[] = [];
   if (g.chart.girth === 'unknown') {
     for (const key of GIRTH_KEYS) {
       if (present.has(key)) out.push({ key, reason: 'chart doesn’t say flat or full circumference', required: required.has(key) });
     }
   }
-  if (g.category === 'top' && present.has('length') && g.chart.lengthDefinition !== 'hps') {
+  if (spec.lengthDefinition === 'required' && present.has('length') && g.chart.lengthDefinition !== 'hps') {
     const reason =
       g.chart.lengthDefinition === 'center_back'
         ? 'length is measured from the back of the neck, not the shoulder'

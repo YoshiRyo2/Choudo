@@ -17,6 +17,10 @@ import type {
 
 export const GIRTH_KEYS = ['chest', 'waist', 'hips'] as const;
 export const LENGTH_KEYS = ['length', 'sleeve', 'shoulder', 'inseam', 'rise'] as const;
+/**
+ * Every garment measurement key, in a fixed order. The sampler draws a garment
+ * offset per key in this order, so add new keys at the end.
+ */
 export const MEASUREMENT_KEYS: readonly MeasurementKey[] = [...GIRTH_KEYS, ...LENGTH_KEYS];
 
 export const isGirthKey = (key: MeasurementKey): key is (typeof GIRTH_KEYS)[number] =>

@@ -3,25 +3,17 @@
  * provenance and photo entries. Pure; no seed import.
  */
 
+import { categorySpec, GARMENT_TYPES, isGarmentType } from './categories';
 import {
   GARMENT_SIZINGS,
   MEASUREMENT_ORIGINS,
   SOURCE_TIERS,
-  TOP_LANDMARKS,
   type FitIntent,
-  type GarmentCategory,
   type GarmentImage,
   type LengthDefinition,
   type MeasuredValue,
   type SeedGarment,
-  type SizeMeasurements,
 } from './types';
-
-/** Required measurements per category — without these we can't say anything useful. */
-export const REQUIRED: Record<GarmentCategory, (keyof SizeMeasurements)[]> = {
-  top: ['chest', 'length'],
-  bottom: ['waist', 'inseam'],
-};
 
 /**
  * Structural problems with one seed garment (empty = OK): missing or malformed
@@ -29,11 +21,15 @@ export const REQUIRED: Record<GarmentCategory, (keyof SizeMeasurements)[]> = {
  */
 export function validateGarment(g: SeedGarment): string[] {
   const problems: string[] = [];
+  // Everything below reads the type's template, so an unknown type stops here.
+  if (!isGarmentType(g.type)) return [`type must be one of ${GARMENT_TYPES.join(', ')}`];
+  const spec = categorySpec(g);
+  if (g.category !== spec.category) problems.push(`a ${g.type} is a ${spec.category}, not a ${g.category}`);
   if (!g.brand || !g.name) problems.push('missing brand or name');
   if (!/^#[0-9a-f]{6}$/i.test(g.color)) problems.push('color must be #rrggbb');
   if (!GARMENT_SIZINGS.includes(g.sizing)) problems.push('sizing must be "mens", "womens" or "unisex"');
-  if (g.category === 'top' && !g.sleeve) problems.push('tops need a sleeve type');
-  if (g.category === 'bottom' && g.sleeve) problems.push("bottoms can't have a sleeve");
+  if (spec.sleeve === 'required' && !g.sleeve) problems.push('tops need a sleeve type');
+  if (spec.sleeve === 'forbidden' && g.sleeve) problems.push("bottoms can't have a sleeve");
   problems.push(...validateProvenance(g));
   if (g.sizes.length === 0) problems.push('no sizes');
   if (g.image !== undefined) {
@@ -46,7 +42,7 @@ export function validateGarment(g: SeedGarment): string[] {
     if (labels.has(size.label)) problems.push(`${at}: duplicate size label`);
     labels.add(size.label);
 
-    for (const key of REQUIRED[g.category]) {
+    for (const key of spec.checks.required) {
       if (size.measurements[key] === undefined) problems.push(`${at}: missing ${key}`);
     }
     for (const [key, raw] of Object.entries(size.measurements)) {
@@ -84,7 +80,7 @@ export function validateProvenance(g: SeedGarment): string[] {
     problems.push(`snapshot must be a pdf/image/html file under chart-snapshots/, got "${source.snapshot}"`);
   }
 
-  if (g.category === 'top') {
+  if (categorySpec(g).lengthDefinition === 'required') {
     if (chart.lengthDefinition === undefined || !LENGTH_DEFINITIONS.includes(chart.lengthDefinition)) {
       problems.push(`tops need chart.lengthDefinition (${LENGTH_DEFINITIONS.join(', ')})`);
     }
@@ -124,7 +120,7 @@ export function validateValue(raw: unknown): string[] {
 }
 
 /** Problems with a garment's photo entry (empty = OK). */
-export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'category' | 'sizes'>): string[] {
+export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' | 'sizes'>): string[] {
   const problems: string[] = [];
   // Photos ship with the app; we never hot-link a retailer's image.
   if (!/^garments\/[\w.-]+\.(png|jpe?g|webp)$/i.test(image.file)) {
@@ -133,10 +129,14 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'categor
   if (image.photographedSize !== null && !g.sizes.some((s) => s.label === image.photographedSize)) {
     problems.push(`photographedSize "${image.photographedSize}" is not one of the garment's sizes`);
   }
-  if (g.category !== 'top') problems.push('photo textures are only supported for tops');
+  const landmarks = categorySpec(g).landmarks;
+  if (landmarks === null) {
+    problems.push('photo textures are only supported for tops');
+    return problems;
+  }
 
   const lm = image.landmarks as Partial<GarmentImage['landmarks']> | undefined;
-  const missing = TOP_LANDMARKS.filter((k) => {
+  const missing = landmarks.filter((k) => {
     const p = lm?.[k];
     return !p || !Number.isFinite(p.x) || !Number.isFinite(p.y) || p.x < 0 || p.y < 0;
   });
