@@ -22,7 +22,8 @@
  */
 
 import { inToCm } from '../units';
-import type { FitIntent, GarmentSizing, Stretch } from '../garments';
+import type { BodyMeasurements } from '../body';
+import type { FitIntent, Garment, GarmentSizing, SizeMeasurements, Stretch } from '../garments';
 
 export interface GirthRule {
   kind: 'girth';
@@ -51,6 +52,19 @@ export interface LengthRule {
 export interface LandingRule {
   kind: 'landing';
   marks: readonly { label: string; atCm: number }[];
+  /**
+   * A hard stop: where the edge lands makes the garment unwearable (a band below
+   * the hip line, a hem that can't pass the heel). Returns the label to report
+   * (tone bad) and why, or null. Only blocking makes a landing zone count.
+   */
+  blocks?: (ctx: LandingContext) => { label: 'tight' | 'short'; note: string } | null;
+}
+
+export interface LandingContext {
+  body: BodyMeasurements;
+  garment: Garment;
+  size: SizeMeasurements;
+  garmentCm: number;
 }
 
 /** A girth rule with its bounds in cm of ease, for one body measurement. cm rules come back unchanged. */

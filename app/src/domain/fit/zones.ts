@@ -6,7 +6,7 @@
  * in garments/categories.ts). See docs/clothing-categories-design.md §2.3.
  */
 
-import type { MeasurementKey as BodyKey } from '../body';
+import type { BodyMeasurements, MeasurementKey as BodyKey } from '../body';
 import {
   templateOf,
   type DefinitionName,
@@ -49,6 +49,16 @@ export interface ZoneSpec {
   garmentKey: keyof SizeMeasurements;
   bodyKey: BodyKey;
   rule: ZoneRule;
+  /**
+   * The body number to compare with, when it's worked out rather than read off
+   * (the waist at the height the band sits). `bodyKey` still gives its source.
+   */
+  bodyTarget?: (m: BodyMeasurements, garment: Garment, size: SizeMeasurements) => number;
+  /**
+   * The size's overall result doesn't need this zone: when it can't be scored the
+   * size isn't "unknown" because of it (a pants chart without a thigh).
+   */
+  optional?: true;
   /** When the zone is scored at all. Leave out for "always". */
   applies?: (garment: Garment, size: SizeMeasurements) => boolean;
   needs?: ZoneNeeds;
