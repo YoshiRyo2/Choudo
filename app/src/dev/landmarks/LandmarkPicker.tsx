@@ -363,9 +363,9 @@ function Preview({
         <figure key={label}>
           <div className={templateOf(garment) === 'pants' ? 'picker__frame picker__frame--pants' : 'picker__frame'}>
             {templateOf(garment) === 'pants' ? (
-              <Mannequin body={body} bottom={{ garment: p.garment, sizeLabel: label }} showFit={false} />
+              <Mannequin body={body} bottom={{ garment: p.garment, sizeLabel: label }} showFit={false} photos="all" />
             ) : (
-              <Mannequin body={body} top={{ garment: p.garment, sizeLabel: label }} showFit={false} />
+              <Mannequin body={body} top={{ garment: p.garment, sizeLabel: label }} showFit={false} photos="all" />
             )}
           </div>
           <figcaption>

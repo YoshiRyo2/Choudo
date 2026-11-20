@@ -1,7 +1,7 @@
 import { useId, useMemo } from 'react';
 import type { BodyMeasurements } from '../../../domain/body';
 import type { GarmentFit, ZoneFit } from '../../../domain/fit';
-import { pantsLandmarks, topLandmarks, type Garment } from '../../../domain/garments';
+import { canWarp, pantsLandmarks, topLandmarks, type Garment, type GarmentImage } from '../../../domain/garments';
 import { bodyGeometry, type Marker } from './geometry';
 import { affineToSvg, warpPantsPieces, warpPieces, type WarpPiece, type WarpRegion } from './photoWarp';
 import { pantsShape } from './templates/pants';
@@ -21,6 +21,11 @@ interface MannequinProps {
   bottom?: WornGarment;
   /** Show coloured fit pins on each zone. */
   showFit?: boolean;
+  /**
+   * Which photos to warp: only those whose licence allows it (the app), or any
+   * (the dev landmark picker's preview, which needs to see every photo it places).
+   */
+  photos?: 'licensed' | 'all';
   className?: string;
 }
 
@@ -31,7 +36,7 @@ const VIEW = { left: -62, right: 62, top: -6 };
  * A 2D dress-form mannequin scaled to the body, optionally wearing a top and a
  * bottom. Swap this component out to move to a 3D renderer later.
  */
-export function Mannequin({ body, top, bottom, showFit = true, className }: MannequinProps) {
+export function Mannequin({ body, top, bottom, showFit = true, photos = 'licensed', className }: MannequinProps) {
   const g = useMemo(() => bodyGeometry(body), [body]);
 
   const topSize = top?.garment.sizes.find((s) => s.label === top.sizeLabel);
@@ -39,14 +44,15 @@ export function Mannequin({ body, top, bottom, showFit = true, className }: Mann
   const topDraw = top && topSize ? topShape(g, top.garment, topSize.measurements, body.chestCm) : null;
   const bottomDraw = bottom && bottomSize ? pantsShape(g, body, bottom.garment, bottomSize.measurements) : null;
 
-  // A product photo, when the garment has one and the file is present, is warped
-  // onto this size's outline over the flat colour.
-  const photo = top?.garment.image;
+  // A product photo, when the garment has one, its licence allows warping and the
+  // file is present, is warped onto this size's outline over the flat colour.
+  const warpable = (image: GarmentImage | undefined) => (photos === 'all' || canWarp(image) ? image : undefined);
+  const photo = warpable(top?.garment.image);
   const photoSrc = photo ? `${import.meta.env.BASE_URL}${photo.file}` : null;
   const photoSize = usePhotoSize(photoSrc);
   const topPhoto = photo ? topLandmarks(photo) : null;
   const pieces = topDraw && topPhoto && photoSize ? warpPieces(topPhoto, topDraw.landmarks, topDraw.sleeveEdges) : null;
-  const bottomPhoto = bottom?.garment.image;
+  const bottomPhoto = warpable(bottom?.garment.image);
   const bottomSrc = bottomPhoto ? `${import.meta.env.BASE_URL}${bottomPhoto.file}` : null;
   const bottomPhotoSize = usePhotoSize(bottomSrc);
   const pantsPhoto = bottomPhoto ? pantsLandmarks(bottomPhoto) : null;
