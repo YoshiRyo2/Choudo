@@ -16,10 +16,18 @@
  *  - Below the sleeves the arm is drawn again on top of the shirt body, because a
  *    relaxed arm hangs in front of the shirt's side seam.
  *
+ * Knits (hoodies, sweatshirts) are the same shape with knit details on the
+ * surface: a rib hem band gathered to the chart's hem band, rib cuffs gathered
+ * at the wrist, and on a hoodie the hood lying behind the neck. Their length and
+ * centre-back sleeve are placed by the fit engine's own conversions
+ * (domain/fit/tops.ts), so the drawing and the readout agree.
+ *
  * Pure functions, no React. Right side (+x) is built and mirrored for the left.
  */
 
-import type { Garment, SizeMeasurements, TopLandmarkName } from '../../../domain/garments';
+import type { BodyMeasurements } from '../../../domain/body';
+import { hpsLengthCm, sleeveFromShoulderPointCm } from '../../../domain/fit/tops';
+import { girthKnown, templateOf, type Garment, type SizeMeasurements, type TopLandmarkName } from '../../../domain/garments';
 import { SLEEVE_STRIPS, type SleeveEdges } from './photoWarp';
 import {
   bodyHalfAt,
@@ -62,6 +70,15 @@ const SLEEVE_ROOM_MAX = 3;
 export const MAX_SIDE_FLARE_CM = 1.2;
 /** Short sleeves end at least this far above the elbow. */
 const ELBOW_GAP_CM = 1;
+/** Knit details, skin only: how tall the rib hem band and the rib cuffs are drawn. */
+export const RIB_HEM_CM = 6;
+export const RIB_CUFF_CM = 6;
+/** A rib cuff hugs the wrist: this much room around the arm. */
+const CUFF_PAD_CM = 0.5;
+/** A hood lying down shows this far above the high shoulder point, behind the neck (never up to the chin). */
+const HOOD_RISE_CM = 5;
+/** Rib lines are drawn this far apart. */
+const RIB_PITCH_CM = 1.4;
 
 export interface TopShape {
   body: string;
@@ -73,7 +90,13 @@ export interface TopShape {
   /** Pull lines across the chest when the size is smaller than the body. */
   strain: string[];
   /** Where to pin each zone's fit marker. */
-  markers: Partial<Record<'chest' | 'waist' | 'length' | 'sleeve', Marker>>;
+  markers: Partial<Record<'chest' | 'waist' | 'length' | 'sleeve' | 'hemBand', Marker>>;
+  /** Knits: the rib hem band (closed path, from `hemTopY` to the hem), rib cuffs on long sleeves, and rib lines. */
+  rib?: { hem: string; hemTopY: number; cuffs: string[]; lines: string[] };
+  /** Hoodies: the hood lying behind the neck (drawn behind the body), its front edge and drawcords (stroke only). */
+  hood?: { back: string; edges: string[]; cords: string[] };
+  /** Hoodies: the top of the hood, matching a photo's optional hoodTop landmark. */
+  hoodTop?: Pt;
   /**
    * Outline points matching a product photo's landmarks, for warping it onto this
    * size. "Right" is the +x side, as the viewer sees it. The armpits are the shirt
@@ -111,7 +134,10 @@ export function topShape(
   garment: Garment,
   size: SizeMeasurements,
   bodyChestCm: number,
+  /** Needed to place a centre-back sleeve (the engine's conversion); without it the sleeve is drawn to the wrist. */
+  bodyM?: Pick<BodyMeasurements, 'shoulderWidthCm' | 'bodyType'>,
 ): TopShape {
+  const knit = templateOf(garment) === 'knit';
   const approximate = !garment.girthVerified || size.chest === undefined;
   const chestCirc = approximate ? bodyChestCm * 1.08 : size.chest!;
   const ease = chestCirc - bodyChestCm;
@@ -178,13 +204,18 @@ export function topShape(
       ? size.sleeve
       : arm.len + 1 - drop
     : SHORT_SLEEVE_CM + room * 0.08;
+  // A centre-back sleeve is placed from the body's shoulder point, as the fit engine compares it.
+  const fromShoulderPoint = long && bodyM ? sleeveFromShoulderPointCm(garment, size, bodyM) : undefined;
   const sEnd = long
-    ? Math.max(sUnder + 3, Math.min(drop + sleeveCm, arm.len * 1.06))
+    ? Math.max(sUnder + 3, Math.min(fromShoulderPoint ?? drop + sleeveCm, arm.len * 1.06))
     : Math.min(Math.max(sUnder + 3, drop + sleeveCm), shortSleeveEnd);
 
   // Short sleeves open out a touch at the hem; long ones narrow to a cuff.
   const endPad = long ? 0.6 + Math.min(1, room * 0.02) : sleevePad + 0.3 + Math.min(1.2, room * 0.02);
-  const padAt = (t: number) => lerp(sleevePad, endPad, t);
+  // A knit's long sleeve keeps its room down to the rib cuff, which then hugs the wrist.
+  const cuffed = knit && long;
+  const cuffT = cuffed ? Math.max(0.7, 1 - RIB_CUFF_CM / Math.max(1e-6, sEnd - drop)) : 1;
+  const padAt = (t: number) => (cuffed ? (t < cuffT ? sleevePad : CUFF_PAD_CM) : lerp(sleevePad, endPad, t));
   const sAt = (t: number) => lerp(drop, sEnd, t);
   /** The sleeve's outer edge, `t` of the way from the seam to the opening. It runs down the arm. */
   const outerAt = (t: number): Pt => armEdge(sAt(t), 1, padAt(t));
@@ -192,8 +223,12 @@ export function topShape(
   const outerMid = outerAt(0.6);
   const innerEnd: Pt = { ...innerEdge(sEnd), corner: true };
   const armhole: Pt = { x: lerp(innerTop.x, seam.x, 0.35), y: lerp(innerTop.y, seam.y, 0.6) };
+  const cuffTopOuter: Pt = { ...armEdge(sAt(cuffT), 1, CUFF_PAD_CM), corner: true };
+  const cuffTopInner: Pt = { ...innerEdge(sAt(cuffT)), corner: true };
   const sleeve = smoothPath(
-    [{ ...seam, corner: false }, outerAt(0.25), outerMid, outerEnd, innerEnd, innerTop, armhole],
+    cuffed
+      ? [{ ...seam, corner: false }, outerAt(0.25), outerMid, outerAt(cuffT - 0.04), cuffTopOuter, outerEnd, innerEnd, innerTop, armhole]
+      : [{ ...seam, corner: false }, outerAt(0.25), outerMid, outerEnd, innerEnd, innerTop, armhole],
     true,
   );
   /** x of the sleeve's outer edge at height y (0 where there is no sleeve). */
@@ -204,9 +239,12 @@ export function topShape(
   };
 
   // ----- body outline (right side, top to bottom) -----
-  const lengthCm = size.length ?? g.y.hip - g.y.hps;
+  // A centre-back length is hung from the high shoulder point, as the fit engine compares it.
+  const lengthCm = hpsLengthCm(garment, size) ?? size.length ?? g.y.hip - g.y.hps;
   const hemY = g.y.hps + lengthCm * DRAPE;
-  const hemLift = 0.8 + room * 0.01; // the hem curves up a little at the side seams
+  // The hem curves up a little at the side seams; a rib band runs straight.
+  const hemLift = knit ? 0 : 0.8 + room * 0.01;
+  const bandTopY = hemY - RIB_HEM_CM;
   const sideAt = (y: number, extra: number) => Math.max(sideHalf + extra, bodyHalfAt(g, y) + 0.6);
   const waistHalf =
     !approximate && size.waist !== undefined
@@ -216,7 +254,16 @@ export function topShape(
   const collar: Pt = { x: g.half.neck + 0.8, y: g.y.hps, corner: true };
   // The side seam starts at the armpit and falls straight; the sleeve covers the join.
   const underarm: Pt = { x: sideHalf, y: underY };
-  const hem: Pt = { x: sideAt(hemY, flare) + 0.2, y: hemY - hemLift, corner: true };
+  // A rib band gathers to the chart's hem band, stretched onto the body where it's
+  // smaller than the body; it never stands out past the sweatshirt above it.
+  // Without a hem band on the chart it's drawn at the body's own width.
+  const hug = bodyHalfAt(g, hemY) + 0.3;
+  const chartBand =
+    size.hemBand !== undefined && girthKnown(garment, 'hemBand') ? halfWidth.hips(size.hemBand) : undefined;
+  const bandHalf = Math.min(Math.max(chartBand ?? sideHalf, hug), Math.max(sideHalf, hug));
+  const hem: Pt = knit
+    ? { x: bandHalf, y: hemY, corner: true }
+    : { x: sideAt(hemY, flare) + 0.2, y: hemY - hemLift, corner: true };
   const right: Pt[] = [
     collar,
     // Just outside the body's shoulder curve, so the shoulder line never dips into it.
@@ -229,8 +276,13 @@ export function topShape(
     { x: waistHalf, y: g.y.waist },
     { x: sideAt(g.y.hip, flare * 0.6), y: g.y.hip },
   ];
+  const lowest = knit ? bandTopY - 1.5 : hem.y - 2;
   for (const p of sides) {
-    if (p.y > right[right.length - 1]!.y + 1.5 && p.y < hem.y - 2) right.push(p);
+    if (p.y > right[right.length - 1]!.y + 1.5 && p.y < lowest) right.push(p);
+  }
+  if (knit) {
+    // The body blouses a little over the band, then steps in to it.
+    right.push({ x: Math.max(sideAt(bandTopY, flare * 0.8), bandHalf), y: bandTopY - 0.6 }, { x: bandHalf, y: bandTopY, corner: true });
   }
   right.push(hem, { x: hem.x * 0.55, y: hemY - hemLift * 0.15 });
 
@@ -256,7 +308,7 @@ export function topShape(
         [
           { x: x0, y: top },
           { x: lerp(x0, x1, 0.5) + (i % 2 ? 0.4 : -0.4), y: lerp(top, hemY, 0.55) },
-          { x: x1, y: hemY - hemLift * reach - 0.4 },
+          { x: x1, y: (knit ? bandTopY : hemY) - hemLift * reach - 0.4 },
         ],
         false,
       ),
@@ -288,8 +340,73 @@ export function topShape(
   const sleeveEndT = sEnd / arm.len;
   const forearm = limbPath(g.arm, Math.min(sleeveEndT - 0.04, 1.02), 1.1, 0, 0);
 
-  // ----- markers -----
+  // ----- knit details: rib hem band and cuffs, hood -----
   const mirrorPt = (p: Pt): Pt => ({ x: -p.x, y: p.y });
+  const ribLines = (from: Pt, to: Pt, across: Pt, halfCount: number): string[] =>
+    Array.from({ length: halfCount * 2 + 1 }, (_, k) => {
+      const o = (k - halfCount) * RIB_PITCH_CM;
+      return smoothPath(
+        [
+          { x: from.x + across.x * o, y: from.y + across.y * o },
+          { x: to.x + across.x * o, y: to.y + across.y * o },
+        ],
+        false,
+      );
+    });
+  let rib: TopShape['rib'];
+  if (knit) {
+    const cuffs: string[] = [];
+    const lines = ribLines({ x: 0, y: bandTopY + 0.4 }, { x: 0, y: hemY - 0.4 }, { x: 1, y: 0 }, Math.floor((bandHalf - 0.5) / RIB_PITCH_CM));
+    if (cuffed) {
+      const cuff = smoothPath([cuffTopOuter, outerEnd, innerEnd, cuffTopInner], true);
+      cuffs.push(cuff, mirrorPath(cuff));
+      const mid = (a: Pt, b: Pt): Pt => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+      const top = mid(cuffTopOuter, cuffTopInner);
+      const bottom = mid(outerEnd, innerEnd);
+      const n = Math.max(1, Math.floor(Math.hypot(cuffTopOuter.x - cuffTopInner.x, cuffTopOuter.y - cuffTopInner.y) / 2 / RIB_PITCH_CM));
+      const cuffLines = ribLines(top, bottom, arm.normal, n);
+      lines.push(...cuffLines, ...cuffLines.map(mirrorPath));
+    }
+    const hemBand = smoothPath(
+      [
+        { x: bandHalf, y: bandTopY, corner: true },
+        { x: bandHalf, y: hemY, corner: true },
+        { x: -bandHalf, y: hemY, corner: true },
+        { x: -bandHalf, y: bandTopY, corner: true },
+      ],
+      true,
+    );
+    rib = { hem: hemBand, hemTopY: bandTopY, cuffs, lines };
+  }
+
+  // A hood lying down: drawn behind the body, so the neck hides its middle and it
+  // shows either side of the neck, above the shoulders. Its front edge runs into the
+  // neckline, with two drawcords. Shape only; the body sets where it sits.
+  let hood: TopShape['hood'];
+  let hoodTop: Pt | undefined;
+  if (garment.type === 'hoodie') {
+    hoodTop = { x: 0, y: Math.max(g.y.hps - HOOD_RISE_CM, g.y.chin + 1.5) };
+    const outer = collar.x + 3.5;
+    const backRight: Pt[] = [
+      { x: outer, y: g.y.hps + 2 },
+      { x: outer + 0.4, y: lerp(hoodTop.y, g.y.hps, 0.45) },
+      { x: collar.x + 1.2, y: hoodTop.y + 0.8 },
+    ];
+    const back = smoothPath([...backRight, hoodTop, ...[...backRight].reverse().map(mirrorPt)], true);
+    const neckFrontY = g.y.neckBase + necklineDip;
+    const edge = smoothPath([collar, { x: collar.x * 0.55, y: lerp(collar.y, neckFrontY, 0.7) }, { x: 0.6, y: neckFrontY + 0.4 }], false);
+    const cord = smoothPath(
+      [
+        { x: 1.6, y: neckFrontY - 0.5 },
+        { x: 1.9, y: neckFrontY + 8 },
+        { x: 2.3, y: neckFrontY + 16 },
+      ],
+      false,
+    );
+    hood = { back, edges: [edge, mirrorPath(edge)], cords: [cord, mirrorPath(cord)] };
+  }
+
+  // ----- markers -----
   // Sleeve edges at even steps from root to opening, matching the drawn outline's ends.
   const steps = Array.from({ length: SLEEVE_STRIPS + 1 }, (_, k) => k / SLEEVE_STRIPS);
   const rightEdges: SleeveEdges = {
@@ -309,7 +426,11 @@ export function topShape(
       waist: { x: waistHalf, y: g.y.waist },
       length: { x: hem.x, y: hemY },
       sleeve: { x: outerEnd.x + 1, y: outerEnd.y },
+      ...(knit ? { hemBand: { x: hem.x, y: bandTopY + RIB_HEM_CM / 2 } } : {}),
     },
+    ...(rib ? { rib } : {}),
+    ...(hood ? { hood } : {}),
+    ...(hoodTop ? { hoodTop } : {}),
     landmarks: {
       collarRight: collar,
       collarLeft: mirrorPt(collar),
