@@ -54,6 +54,7 @@ app/src/
     components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts + skirt.ts, photoWarp.ts + SVG),
                  SwipeCard/ (pure swipe.ts),
                  FitStrip (size row + verdict line under the stage), sizeRow.ts (pure),
+                 GarmentIcon (card picture: photo or flat drawing; garmentThumb.ts picks, pure),
                  GarmentCarousel, GarmentBadge, SizePicker, FitReadout, FitSheet, Sheet (<dialog>), TabBar, NameForm,
                  AboutSheet (from the body screen and the Closet header),
                  ConfirmButton, TapeScale, SegmentedControl, NumberInput
@@ -61,6 +62,7 @@ app/src/
                  feed.ts (likes/passes, feed order), closet.ts (folders, saved outfits), useCloset.ts,
                  odds.ts (cached sampleFit), fitTests.ts (Test mode records + CSV)
     fitText.ts   all user-facing fit wording
+    focus.ts     refocus after a remount without a tap-drawn ring (`[data-pointer-focus]`)
     styles.css   design tokens (colours, type scale)
   dev/landmarks/ dev-only landmark picker (/dev/landmarks), tops and pants: suggest.ts (landmarks
                  from the outline), seedWrite.ts (writes one "image" into seed.json), pickerModel.ts
@@ -224,6 +226,8 @@ inputs/outputs and unit tests. UI only calls their public functions.
   opening from the chart; a missing one falls back to a typical width and draws dashed. Skirts
   (`skirtShape`) draw band, hip point and hem at `skirt.ts`'s heights, widths from waist / hips /
   sweep (A-line or pencil follows); without a sweep, straight from the hips, dashed.
+  Framing is camera only: the Fitting room uses `frame="body"` (view ends under the feet, the
+  figure fills the stage); elsewhere a fixed 214 cm canvas, so a taller body is drawn taller.
 - Knits draw with `topShape` plus surface details: a rib hem band gathered to the chart's hem band
   (stretched onto the body where smaller, never wider than the body above; body width without one),
   rib cuffs, and for hoodies a hood behind the neck with drawcords. Length and a centre-back
@@ -235,7 +239,9 @@ inputs/outputs and unit tests. UI only calls their public functions.
   in strips along the drawn leg's edges (hip/crotch → knee → hem), as long sleeves are.
 - Images: every image has a `licence` (`PHOTO_LICENCES`: own / brand-permission /
   affiliate-unaltered / local-only), or `npm run data:check` fails. Only own and brand-permission
-  photos are warped onto the mannequin (`canWarp`); the rest draw in flat colour. `local-only`
+  photos are warped onto the mannequin (`canWarp`); the rest draw in flat colour. Card thumbnails
+  (`GarmentIcon`, `thumbPhotoSrc`) show own, brand-permission and affiliate-unaltered photos as they
+  are (contained, never cropped), local-only never; the flat drawing otherwise or on a load error. `local-only`
   files never ship in the production build (`localOnlyFiles`). Today Gildan 5000 (Gildan's
   product image) and ryo-navy-graphic-tee (trademark logo) are local-only, and the other
   ryo- photos are own. Any other image must be committed under `app/public/`, not git-ignored,
