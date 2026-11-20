@@ -102,6 +102,22 @@ Never guess. An unknown definition means that zone can't be scored, and the fit 
 | `sleeveDefinition` | `shoulder_to_cuff`, `center_back_to_cuff`, `top_of_sleeve` | Leave it out if there's no sleeve row. |
 | `fitIntent` | `slim`, `regular`, `relaxed`, `oversized` | How the brand describes the cut. |
 | `sizing` | `mens`, `womens`, `unisex` | Who the size chart is cut for. Decides who sees it by default and, for tops, which chest thresholds apply (women's cuts sit closer). Anything else is an error. |
+| `stretch` | `none`, `some`, `high`, `compression` | How much the fabric gives. Elastic waistbands are `high`; `compression` is for leggings. |
+
+When a chart mixes methods, or a garment stretches in one place only, give the field per
+measurement with a `default` for the rest. Definitions can also go in one
+`definitions` object (not both spellings for the same one):
+
+```json
+"stretch": { "default": "none", "waist": "high" },
+"chart": { "unit": "cm", "girth": { "default": "circumference", "hips": "flat" }, "definitions": { "rise": "front" } }
+```
+
+| `definitions.` | Values | How to tell |
+| --- | --- | --- |
+| `length`, `sleeve` | as `lengthDefinition`, `sleeveDefinition` above | Either spelling works. |
+| `rise` | `front`, `back`, `total`, `unknown` | Pants. "Front rise" means waistband top to crotch seam, at the front. |
+| `thigh` | `at_crotch`, `below_crotch_2_5cm`, `unknown` | Pants. Many charts measure 1 in (2.5 cm) below the crotch. |
 
 ## 5. Copy the numbers exactly as printed
 
