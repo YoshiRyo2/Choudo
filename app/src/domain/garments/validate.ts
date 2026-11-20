@@ -11,6 +11,7 @@ import {
   GARMENT_SIZINGS,
   GIRTH_METHODS,
   MEASUREMENT_ORIGINS,
+  PHOTO_LICENCES,
   SOURCE_TIERS,
   STRETCHES,
   type DefinitionName,
@@ -185,6 +186,9 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' |
   // Photos ship with the app; we never hot-link a retailer's image.
   if (!/^garments\/[\w.-]+\.(png|jpe?g|webp)$/i.test(image.file)) {
     problems.push(`file must be a png/jpg/webp under garments/, got "${image.file}"`);
+  }
+  if (!(PHOTO_LICENCES as readonly unknown[]).includes(image.licence)) {
+    problems.push(`licence must be one of ${PHOTO_LICENCES.join(', ')}`);
   }
   if (image.photographedSize !== null && !g.sizes.some((s) => s.label === image.photographedSize)) {
     problems.push(`photographedSize "${image.photographedSize}" is not one of the garment's sizes`);

@@ -6,9 +6,10 @@ carry EXIF). This folder is git-ignored.
 
 The cut-outs that `npm run photos` makes in `public/garments/` **are committed**, so a
 fresh clone shows them. `npm run data:check` fails if a garment's image is missing or
-under 800 px wide. The exception is a cut-out from a photo we don't hold the rights to,
-like `gildan-5000-front.png` (a retailer's model shot): it's listed in `app/.gitignore`,
-the check skips it, and without it the app draws the garment in its flat colour.
+under 800 px wide. The exception is a `"licence": "local-only"` photo, which never ships
+in the production build and isn't checked. A cut-out from a photo we don't hold the
+rights to, like `gildan-5000-front.png` (a retailer's model shot), is local-only and also
+listed in `app/.gitignore`. Without its photo, the app draws the garment in its flat colour.
 
 ## Taking the photo
 

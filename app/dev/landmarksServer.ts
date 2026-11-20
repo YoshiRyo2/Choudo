@@ -67,7 +67,7 @@ export function landmarksDevServer(): Plugin {
         if (req.method === 'POST' && url === '/__dev/landmarks') {
           readBody(req)
             .then(async (body) => {
-              const { writeGarmentImage } = (await server.ssrLoadModule('/src/dev/landmarks/seedWrite.ts')) as SeedWrite;
+              const { licenceForSave, writeGarmentImage } = (await server.ssrLoadModule('/src/dev/landmarks/seedWrite.ts')) as SeedWrite;
               const { validateImage } = (await server.ssrLoadModule('/src/domain/garments/validate.ts')) as Validate;
               const { id, file, landmarks } = body as { id: string; file: string; landmarks: GarmentImage['landmarks'] };
               const path = join(root, SEED);
@@ -76,6 +76,7 @@ export function landmarksDevServer(): Plugin {
               if (!garment) return send(res, 404, { error: `No garment "${id}" in seed.json` });
               const image: GarmentImage = {
                 file,
+                licence: licenceForSave(garment.image, file),
                 photographedSize: garment.image?.photographedSize ?? null,
                 landmarks,
               };

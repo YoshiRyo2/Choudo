@@ -32,12 +32,24 @@ without one the top is drawn in its `color`. Full details are in
    - Watch the two mannequins. The photo should sit straight at both sizes, with no
      mirrored patches; the page warns if it finds any.
    - Press **Save to seed.json**. This writes the garment's `"image"` entry.
-4. **Commit the cut-out** (`app/public/garments/<garment-id>-front.png`) with the seed
+4. **Set the photo's licence** in its `"image"` entry. A newly saved photo starts as
+   `"licence": "local-only"`, so it can't ship by accident. Change it to one of:
+   - `own`: we took the photo. It's warped onto the mannequin.
+   - `brand-permission`: the brand said in writing that we may use it. It's warped.
+   - `affiliate-unaltered`: an affiliate image we may only show unaltered. It's never
+     warped, so the garment draws in its flat colour.
+   - `local-only`: no rights to publish it (a brand's product image without permission,
+     or a trademark logo on the garment). It's never warped, and the production build
+     leaves the file out.
+
+   `npm run data:check` fails when the licence is missing or not one of these.
+5. **Commit the cut-out** (`app/public/garments/<garment-id>-front.png`) with the seed
    change, so a fresh clone shows it. `npm run data:check` fails if it's missing or under
-   800 px wide. The exception is a photo we don't hold the rights to (a retailer's model
-   shot): list its PNG in `app/.gitignore` instead, and the check skips it. The source
-   photo in `photo-sources/` is never committed.
-5. **Then the measurements**, below. If the garment isn't in `seed.json` yet, add its
+   800 px wide. The exception is a `local-only` photo, which isn't checked. If we don't
+   hold the rights to the source photo either (a retailer's model shot), list its PNG in
+   `app/.gitignore` too. A git-ignored PNG must be `local-only`, or the check fails. The
+   source photo in `photo-sources/` is never committed.
+6. **Then the measurements**, below. If the garment isn't in `seed.json` yet, add its
    row first (steps 1–5) and come back to step 3.
 
 ## The numbers

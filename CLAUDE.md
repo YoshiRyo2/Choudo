@@ -187,10 +187,14 @@ inputs/outputs and unit tests. UI only calls their public functions.
   corners + centre, hips, crotch, knee and hem corners per leg). Read them with `topLandmarks()` /
   `pantsLandmarks()`. Pants warp (`warpPantsPieces`) = the top half as two mirrored fans, each leg
   in strips along the drawn leg's edges (hip/crotch → knee → hem), as long sleeves are.
-- Images: every `image.file` must be in `app/public/` (committed) and at least
-  `MIN_IMAGE_WIDTH_PX` (800) wide, or `npm run data:check` fails. A cut-out from a photo we don't
-  hold the rights to (Gildan 5000's) is listed in `app/.gitignore` and skipped; without it the
-  garment draws in its flat colour. Source photos in `photo-sources/` are never committed.
+- Images: every image has a `licence` (`PHOTO_LICENCES`: own / brand-permission /
+  affiliate-unaltered / local-only), or `npm run data:check` fails. Only own and brand-permission
+  photos are warped onto the mannequin (`canWarp`); the rest draw in flat colour. `local-only`
+  files never ship in the production build (`localOnlyFiles`). Today Gildan 5000 (Gildan's
+  product image) and ryo-navy-graphic-tee (trademark logo) are local-only, and the other
+  ryo- photos are own. Any other image must be committed under `app/public/`, not git-ignored,
+  and at least `MIN_IMAGE_WIDTH_PX` (800) wide. The landmark picker keeps a photo's licence and
+  starts a new photo local-only. Source photos in `photo-sources/` are never committed.
 - Confidence grade (`gradeGarment`), checked in order: **unscored** (girth method or top
   length definition unknown) → **estimated** (any estimated value, a placeholder, or tier
   E–G) → **verified** (tier A–C, no warnings, audited) → **charted**.

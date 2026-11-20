@@ -243,6 +243,17 @@ export type PantsLandmarkName = (typeof PANTS_LANDMARKS)[number];
 export type LandmarkName = TopLandmarkName | PantsLandmarkName;
 
 /**
+ * What we may do with a garment photo.
+ * - own: we took it. Warped onto the mannequin.
+ * - brand-permission: the brand said we may. Warped onto the mannequin.
+ * - affiliate-unaltered: an affiliate image we may only show as it is, so never warped.
+ * - local-only: no rights to publish it (a brand's product image without permission,
+ *   or a trademark logo). Never warped and left out of the production build.
+ */
+export const PHOTO_LICENCES = ['own', 'brand-permission', 'affiliate-unaltered', 'local-only'] as const;
+export type PhotoLicence = (typeof PHOTO_LICENCES)[number];
+
+/**
  * A front product photo, and where the garment's landmarks are in it.
  * Used to warp the photo onto the drawn outline of whichever size is worn.
  */
@@ -250,10 +261,12 @@ export interface GarmentImage {
   /**
    * Path under app/public, e.g. "garments/ryo-black-henley-front.png". Committed, except
    * cut-outs from photos we don't hold the rights to (listed in app/.gitignore, see
-   * app/photo-sources/README.md): those may be missing, and the garment then draws in
-   * its flat colour. `npm run data:check` fails on any other missing or narrow image.
+   * app/photo-sources/README.md; those must be `local-only`). `npm run data:check`
+   * fails on any other missing or narrow image.
    */
   file: string;
+  /** What we may do with the photo; see PhotoLicence. Required. */
+  licence: PhotoLicence;
   /**
    * The size the photographed garment was, or null when unknown (one photo used
    * for every size). The warp fits the photo to each size's outline either way.

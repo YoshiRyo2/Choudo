@@ -5,7 +5,7 @@
  */
 
 import { gradeGarment } from './grade';
-import type { ConfidenceGrade, SeedGarment, SourceTier } from './types';
+import type { ConfidenceGrade, GarmentImage, SeedGarment, SourceTier } from './types';
 import { checkGarment, type GarmentCheck } from './verify';
 import { MIN_IMAGE_WIDTH_PX } from './verifyRules';
 
@@ -15,21 +15,20 @@ export type SnapshotStatus = 'none' | 'present' | 'missing';
 export interface ImageFileInfo {
   /** Pixel width, or null when the file isn't on this machine. */
   width: number | null;
-  /**
-   * Git-ignored on purpose (a photo we don't hold the rights to, see
-   * photo-sources/README.md). It's never committed, so it isn't checked.
-   */
-  localOnly: boolean;
+  /** Left out by .gitignore, so a fresh clone (and the CI build) won't have it. */
+  gitIgnored: boolean;
 }
 
 /**
- * A garment image's check. Committed images must exist and be at least
- * MIN_IMAGE_WIDTH_PX wide, so a fresh clone shows the same photos as this machine.
+ * A garment image's check. A `local-only` photo never ships, so it isn't checked.
+ * Any other must be committed (not git-ignored), exist and be at least
+ * MIN_IMAGE_WIDTH_PX wide, so a fresh clone and the public build show the same photos.
  */
 export type ImageStatus =
   | { state: 'none' }
   | { state: 'ok'; file: string; width: number }
   | { state: 'local-only'; file: string; width: number | null }
+  | { state: 'ignored'; file: string }
   | { state: 'missing'; file: string }
   | { state: 'too-small'; file: string; width: number };
 
@@ -53,15 +52,18 @@ export const TIER_DESCRIPTION: Record<SourceTier, string> = {
   G: 'photo only',
 };
 
-function checkImage(file: string, info: ImageFileInfo): ImageStatus {
-  if (info.localOnly) return { state: 'local-only', file, width: info.width };
+function checkImage({ file, licence }: GarmentImage, info: ImageFileInfo): ImageStatus {
+  if (licence === 'local-only') return { state: 'local-only', file, width: info.width };
+  if (info.gitIgnored) return { state: 'ignored', file };
   if (info.width === null) return { state: 'missing', file };
   if (info.width < MIN_IMAGE_WIDTH_PX) return { state: 'too-small', file, width: info.width };
   return { state: 'ok', file, width: info.width };
 }
 
 const imageError = (image: ImageStatus): string | null =>
-  image.state === 'missing'
+  image.state === 'ignored'
+    ? `${image.file} is git-ignored, so a fresh clone and the public build won't have it: mark it "licence": "local-only" or commit it`
+    : image.state === 'missing'
     ? `${image.file} is missing (it must be committed under app/public/)`
     : image.state === 'too-small'
       ? `${image.file} is ${image.width} px wide; it must be at least ${MIN_IMAGE_WIDTH_PX}`
@@ -88,7 +90,7 @@ export function buildReport(
       check,
       grade: gradeGarment(garment, check),
       snapshot: path === undefined ? 'none' : hasFile(path) ? 'present' : 'missing',
-      image: garment.image ? checkImage(garment.image.file, imageFile(garment.image.file)) : { state: 'none' },
+      image: garment.image ? checkImage(garment.image, imageFile(garment.image.file)) : { state: 'none' },
     };
   });
 }
@@ -103,7 +105,8 @@ function imageLine(image: ImageStatus): string | null {
     case 'ok':
       return `  Image:    ${image.file} (${image.width} px wide)`;
     case 'local-only':
-      return `  Image:    ${image.file} (git-ignored on purpose, ${image.width === null ? 'not on this machine' : `${image.width} px wide`}; not checked)`;
+      return `  Image:    ${image.file} (local-only, ${image.width === null ? 'not on this machine' : `${image.width} px wide`}; not checked)`;
+    case 'ignored':
     case 'missing':
     case 'too-small':
       return `  Error   [image] ${imageError(image)}`;
