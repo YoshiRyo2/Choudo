@@ -9,10 +9,18 @@ import { isFitTestList, isStoredBody, STORAGE_KEYS, type FitTestRecord } from '.
 /** Only the bits of Storage we use, so tests can pass a plain object. */
 export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
+/** Keys from before v2. They only ever existed under the old app name. */
 export const LEGACY_KEYS = {
   bodyV1: 'nimbus.body.v1',
   fitTestsV1: 'nimbus.fitTests.v1',
 } as const;
+
+/** The app was called Nimbus; its keys started with this prefix before the rename to Choudo. */
+export const OLD_PREFIX = 'nimbus.';
+export const PREFIX = 'choudo.';
+
+/** The pre-rename name of a current key: "choudo.body.v2" -> "nimbus.body.v2". */
+export const oldNameOf = (key: string): string => OLD_PREFIX + key.slice(PREFIX.length);
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 
@@ -63,11 +71,27 @@ function move(storage: StorageLike, from: string, to: string, convert: (v: unkno
   storage.removeItem(from);
 }
 
+/**
+ * The Nimbus -> Choudo rename: copy each `nimbus.*` key to its `choudo.*` key when that one
+ * is still empty, then delete the old key. When both exist, the new one wins.
+ */
+export function migrateAppRename(storage: StorageLike): void {
+  for (const key of Object.values(STORAGE_KEYS)) {
+    const from = oldNameOf(key);
+    const old = storage.getItem(from);
+    if (old === null) continue;
+    if (storage.getItem(key) === null) storage.setItem(key, old);
+    storage.removeItem(from);
+  }
+}
+
 /** Run every migration. Storage can be blocked (private mode): then there's nothing to move. */
 export function migrateStorage(given?: StorageLike): void {
   try {
     const storage = given ?? globalThis.localStorage;
     if (!storage) return;
+    // Rename first, so a current-version key beats a v1 one, as it did before the rename.
+    migrateAppRename(storage);
     move(storage, LEGACY_KEYS.bodyV1, STORAGE_KEYS.body, migrateBodyV1);
     move(storage, LEGACY_KEYS.fitTestsV1, STORAGE_KEYS.fitTests, migrateFitTestsV1);
   } catch {

@@ -1,6 +1,6 @@
-# Nimbus — CLAUDE.md
+# Choudo — CLAUDE.md
 
-Nimbus is a virtual clothing try-on app. Users browse shirts and pants and see how each
+Choudo is a virtual clothing try-on app. Users browse shirts and pants and see how each
 **size** would actually fit a mannequin scaled to their height and weight. The core
 promise is **true-to-size fit**: compare a garment's real measurements (from the brand's
 size chart) to the user's body, zone by zone, and report the difference in cm.
@@ -38,7 +38,7 @@ app/src/
                  preference.ts (anchor tee / fit style -> personal verdict), sampleFit.ts
                  (seeded odds, recommendSize, measurementHint), uncertainty.ts (every spread),
                  random.ts, fitTestCsv.ts + fitTestReport.ts (npm run fit:report)
-  ui/            React
+  ui/            React (app icons and favicon: app/public/, made by npm run icons)
     screens/     BodyScreen (input), AnchorScreen (fit reference), FittingRoom (browse + size + fit),
                  FitTestPanel (Test mode), Discover (swipe feed), Closet + closet/ (Liked, Folders, Outfits tabs)
     components/  Mannequin/ (pure geometry.ts, topShape.ts, photoWarp.ts + SVG), SwipeCard/ (pure swipe.ts),
@@ -151,15 +151,18 @@ npm run data:check # garment data report: grade, warnings, errors, audit per gar
 npm run fit:report # fit-test report from ../data/fit_tests.csv (or a path after --)
 npm run photos     # cut garment photos out into public/garments/ (local only)
                    # then place landmarks at http://localhost:5173/dev/landmarks?id=<garment>
+npm run icons      # favicon, Apple touch and manifest icons from public/choudo-app-icon-1024.png
 npm run build      # typecheck + production build
 ```
 Logic that can be pure (geometry, form parsing, wording) lives in its own `.ts` file with
-tests; components stay thin. localStorage keys are versioned (`nimbus.body.v2`): bump the
+tests; components stay thin. localStorage keys are versioned (`choudo.body.v2`): bump the
 version when a stored shape changes, and move old data in `ui/state/migrate.ts` (runs once at
 start-up). Keys today: `body` (v2: `bodyType`, optional `braSize`), `units`, `outfit` (fitting
 room), `swipes` (one `{garmentId, sizeShown, liked, at}` per garment), `folders`, `outfits`
 (saved), `anchor` (tee the user likes), `fitStyle`, `catalogue` (`matching` | `all`),
-`testMode`, `fitTests` (v2, Test mode results; the CSV column stays `sizing`).
+`testMode`, `fitTests` (v2, Test mode results; the CSV column stays `sizing`). Keys from
+before the Choudo rename used the app's old prefix; `migrateAppRename` moves them over
+(when both exist, the `choudo.*` key wins).
 
 ## Discover + Closet
 - Navigation is a bottom `TabBar` (Fitting room / Discover / Closet) with plain state in

@@ -1,6 +1,6 @@
 # Adding a garment by hand
 
-Nimbus only trusts numbers it can trace. Every garment row in
+Choudo only trusts numbers it can trace. Every garment row in
 `app/src/domain/garments/seed.json` says where it came from, how the chart measures,
 and which numbers (if any) are ours rather than the brand's. Follow this checklist
 for each new garment. It takes about 15 minutes, plus two for a top's photo.

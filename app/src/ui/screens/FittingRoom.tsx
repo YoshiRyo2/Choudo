@@ -128,7 +128,7 @@ export function FittingRoom({
   return (
     <div className="fitting">
       <header className="fitting__bar">
-        <p className="wordmark">Nimbus</p>
+        <p className="wordmark">Choudo</p>
         <SegmentedControl
           label="Units"
           hideLabel

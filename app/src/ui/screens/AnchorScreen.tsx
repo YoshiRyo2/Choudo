@@ -34,7 +34,7 @@ export function AnchorScreen({ units, anchor, style, onDone, onSkip, skipLabel }
   return (
     <main className="anchor-screen">
       <header className="anchor-screen__intro">
-        <p className="wordmark">Nimbus</p>
+        <p className="wordmark">Choudo</p>
         {step === 'choose' && (
           <>
             <h1>Got a tee that fits the way you like?</h1>

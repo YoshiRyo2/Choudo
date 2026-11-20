@@ -74,6 +74,6 @@ describe('small helpers', () => {
   it('names the anchor and the file', () => {
     expect(anchorText({ kind: 'catalogue', garmentId: 'gildan-5000', size: 'M' })).toBe('gildan-5000 M');
     expect(anchorText(null)).toBe('');
-    expect(csvFileName(new Date(2026, 10, 8))).toBe('nimbus-fit-tests-2026-11-08.csv');
+    expect(csvFileName(new Date(2026, 10, 8))).toBe('choudo-fit-tests-2026-11-08.csv');
   });
 });
