@@ -359,7 +359,7 @@ function Preview({
     <>
       {p.labels.map((label) => (
         <figure key={label}>
-          <div className="picker__frame">
+          <div className={templateOf(garment) === 'pants' ? 'picker__frame picker__frame--pants' : 'picker__frame'}>
             {templateOf(garment) === 'pants' ? (
               <Mannequin body={body} bottom={{ garment: p.garment, sizeLabel: label }} showFit={false} />
             ) : (
