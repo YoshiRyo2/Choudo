@@ -10,6 +10,7 @@
 import { inToCm } from '../units';
 import { GIRTH_KEYS, isGirthKey, MEASUREMENT_KEYS, normalizeMeasurements, normalizeSize, readValue } from './normalize';
 import { categorySpec } from './categories';
+import { chartDefinition, girthMethodOf } from './chart';
 import type { GarmentSize, MeasurementKey, SeedGarment } from './types';
 import { validateGarment } from './validate';
 import {
@@ -177,8 +178,9 @@ export function checkGrading(key: MeasurementKey, run: Point[]): string[] {
  */
 export function checkGirthMethod(g: SeedGarment): { severity: 'error' | 'warning'; message: string }[] {
   const out: { severity: 'error' | 'warning'; message: string }[] = [];
-  const { girth, unit } = g.chart;
+  const { unit } = g.chart;
   for (const key of GIRTH_KEYS) {
+    const girth = girthMethodOf(g.chart, key);
     const printed = g.sizes
       .map((s) => s.measurements[key])
       .filter((v) => v !== undefined)
@@ -209,8 +211,10 @@ export function checkGirthMethod(g: SeedGarment): { severity: 'error' | 'warning
 /** Numbers outside what a real garment of this type measures, and implausible ease for the fit intent. */
 export function checkRanges(g: SeedGarment, sizes: GarmentSize[]): string[] {
   const out: string[] = [];
-  const girthKnown = g.chart.girth !== 'unknown';
+  const girthKnown = (key: (typeof GIRTH_KEYS)[number]) => girthMethodOf(g.chart, key) !== 'unknown';
   const { checks, lengthDefinition } = categorySpec(g);
+  const sleeveDefinition = chartDefinition(g.chart, 'sleeve');
+  const hpsLength = chartDefinition(g.chart, 'length') === 'hps';
   const outside = (what: string, v: number, r: Range) => {
     if (v < r.min || v > r.max) out.push(`${what} is ${cm(v)}, outside ${r.min}–${r.max} cm`);
   };
@@ -221,17 +225,16 @@ export function checkRanges(g: SeedGarment, sizes: GarmentSize[]): string[] {
       const v = m[key];
       const r = checks.ranges[key];
       if (v === undefined || r === undefined) continue;
-      if (isGirthKey(key) && !girthKnown) continue;
-      if (key === 'sleeve' && !(g.sleeve === 'long' && g.chart.sleeveDefinition === 'shoulder_to_cuff')) continue;
+      if (isGirthKey(key) && !girthKnown(key)) continue;
+      if (key === 'sleeve' && !(g.sleeve === 'long' && sleeveDefinition === 'shoulder_to_cuff')) continue;
       outside(`${key} in ${s.label}`, v, r);
     }
-    if (lengthDefinition === 'required' && m.length !== undefined && g.chart.lengthDefinition === 'hps') {
+    if (lengthDefinition === 'required' && m.length !== undefined && hpsLength) {
       const r = checks.lengthRanges?.[g.type];
       if (r) outside(`length in ${s.label}`, m.length, r);
     }
 
-    if (!girthKnown) continue;
-    if (checks.labelEase === 'chest' && g.sizing !== 'womens' && m.chest !== undefined) {
+    if (checks.labelEase === 'chest' && girthKnown('chest') && g.sizing !== 'womens' && m.chest !== undefined) {
       const body = referenceChestCm(s.label);
       const r = CHEST_EASE_BY_INTENT[g.fitIntent];
       if (body !== null && (m.chest - body < r.min || m.chest - body > r.max)) {
@@ -241,7 +244,7 @@ export function checkRanges(g: SeedGarment, sizes: GarmentSize[]): string[] {
         );
       }
     }
-    if (checks.labelEase === 'waist' && m.waist !== undefined) {
+    if (checks.labelEase === 'waist' && girthKnown('waist') && m.waist !== undefined) {
       const labelWaist = /^(\d{2})(?:\s*x\s*\d+)?$/i.exec(s.label);
       if (labelWaist) {
         const nominal = Number(labelWaist[1]) * 2.54;
@@ -262,20 +265,21 @@ export function unscorableZones(g: SeedGarment): UnscorableZone[] {
   const spec = categorySpec(g);
   const required = new Set(spec.checks.required);
   const out: UnscorableZone[] = [];
-  if (g.chart.girth === 'unknown') {
-    for (const key of GIRTH_KEYS) {
-      if (present.has(key)) out.push({ key, reason: 'chart doesn’t say flat or full circumference', required: required.has(key) });
+  for (const key of GIRTH_KEYS) {
+    if (present.has(key) && girthMethodOf(g.chart, key) === 'unknown') {
+      out.push({ key, reason: 'chart doesn’t say flat or full circumference', required: required.has(key) });
     }
   }
-  if (spec.lengthDefinition === 'required' && present.has('length') && g.chart.lengthDefinition !== 'hps') {
+  const length = chartDefinition(g.chart, 'length');
+  if (spec.lengthDefinition === 'required' && present.has('length') && length !== 'hps') {
     const reason =
-      g.chart.lengthDefinition === 'center_back'
+      length === 'center_back'
         ? 'length is measured from the back of the neck, not the shoulder'
         : 'chart doesn’t say where length is measured from';
     out.push({ key: 'length', reason, required: true });
   }
   // Only long sleeves are scored; short sleeves are a style choice.
-  if (g.sleeve === 'long' && present.has('sleeve') && g.chart.sleeveDefinition !== 'shoulder_to_cuff') {
+  if (g.sleeve === 'long' && present.has('sleeve') && chartDefinition(g.chart, 'sleeve') !== 'shoulder_to_cuff') {
     out.push({ key: 'sleeve', reason: 'sleeve isn’t measured shoulder to cuff', required: false });
   }
   return out;
@@ -295,7 +299,7 @@ export function compareAudit(g: SeedGarment, sizes: GarmentSize[]): AuditResult 
     const chartCm = chart[key];
     if (chartCm === undefined) {
       diffs.push({ key, chartCm: null, auditCm, diffCm: null, note: 'not on the chart' });
-    } else if (isGirthKey(key) && g.chart.girth === 'unknown') {
+    } else if (isGirthKey(key) && girthMethodOf(g.chart, key) === 'unknown') {
       // Can't compare, but the audit is evidence for which method the chart uses.
       const printed = size?.provenance[key];
       diffs.push({

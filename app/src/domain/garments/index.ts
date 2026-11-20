@@ -7,6 +7,7 @@ export {
   validateSeed,
 } from './garments';
 export { GIRTH_KEYS, isGirthKey, MEASUREMENT_KEYS, normalizeMeasurements } from './normalize';
+export { chartDefinition, defaultStretch, definitionOf, girthKnown, girthMethodOf, stretchOf } from './chart';
 export { checkGarment } from './verify';
 export type { AuditDiff, AuditResult, CheckIssue, GarmentCheck, UnscorableZone } from './verify';
 export { gradeGarment } from './grade';

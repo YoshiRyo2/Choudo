@@ -32,6 +32,16 @@ export const GARMENT_SIZINGS: readonly GarmentSizing[] = ['mens', 'womens', 'uni
  *  - unknown: the chart doesn't say. We never guess; girth fit comes back "unknown".
  */
 export type GirthMethod = 'flat' | 'circumference' | 'unknown';
+export const GIRTH_METHODS: readonly GirthMethod[] = ['flat', 'circumference', 'unknown'];
+
+/** The measurements that are girths (doubled when printed flat). */
+export type GirthKey = 'chest' | 'waist' | 'hips';
+
+/**
+ * A girth method per measurement, for charts that mix them (pants often print the
+ * waist all the way round but the thigh flat). `default` covers every girth not listed.
+ */
+export type GirthByKey = { default: GirthMethod } & Partial<Record<GirthKey, GirthMethod>>;
 
 /**
  * Where the sleeve is measured from. Only `shoulder_to_cuff` on a long sleeve is
@@ -46,6 +56,32 @@ export type SleeveDefinition = 'shoulder_to_cuff' | 'center_back_to_cuff' | 'top
  *  - unknown: the chart doesn't say. Length then can't be scored.
  */
 export type LengthDefinition = 'hps' | 'center_back' | 'unknown';
+
+/** Where a pants rise is measured: front = top of the waistband to the crotch seam, at the front. */
+export type RiseDefinition = 'front' | 'back' | 'total' | 'unknown';
+
+/** Where a pants thigh is measured: at the crotch, or a little (2.5 cm, 1 in) below it. */
+export type ThighDefinition = 'at_crotch' | 'below_crotch_2_5cm' | 'unknown';
+
+/**
+ * Where each measurement is taken, as the chart defines it. A zone that needs a
+ * definition is "unknown" without the one it accepts (see domain/fit/zones.ts).
+ */
+export interface Definitions {
+  length?: LengthDefinition;
+  sleeve?: SleeveDefinition;
+  rise?: RiseDefinition;
+  thigh?: ThighDefinition;
+}
+export type DefinitionName = keyof Definitions;
+
+/** The values each definition may take. */
+export const DEFINITION_VALUES: { [K in DefinitionName]-?: readonly NonNullable<Definitions[K]>[] } = {
+  length: ['hps', 'center_back', 'unknown'],
+  sleeve: ['shoulder_to_cuff', 'center_back_to_cuff', 'top_of_sleeve'],
+  rise: ['front', 'back', 'total', 'unknown'],
+  thigh: ['at_crotch', 'below_crotch_2_5cm', 'unknown'],
+};
 
 /** How the brand means the garment to sit. Used to judge whether its ease is plausible. */
 export type FitIntent = 'slim' | 'regular' | 'relaxed' | 'oversized';
@@ -77,8 +113,18 @@ export const MEASUREMENT_ORIGINS: readonly MeasurementOrigin[] = ['chart', 'esti
  */
 export type ConfidenceGrade = 'verified' | 'charted' | 'estimated' | 'unscored';
 
-/** How much the fabric gives. Lets a stretchy garment measure under the body without being "tight". */
-export type Stretch = 'none' | 'some' | 'high';
+/**
+ * How much the fabric gives. Lets a stretchy garment measure under the body without being "tight".
+ * compression: leggings and shapewear, meant to sit well under the body.
+ */
+export type Stretch = 'none' | 'some' | 'high' | 'compression';
+export const STRETCHES: readonly Stretch[] = ['none', 'some', 'high', 'compression'];
+
+/**
+ * Stretch per measurement, for garments that give in one place only (a jogger's
+ * elastic waist). `default` covers every measurement not listed.
+ */
+export type StretchByKey = { default: Stretch } & Partial<Record<MeasurementKey, Stretch>>;
 
 /** Measurements for one size. Include only what the chart lists. */
 export interface SizeMeasurements {
@@ -225,23 +271,41 @@ interface GarmentBase {
 }
 
 /** A garment as written in seed.json. */
-export interface SeedGarment extends GarmentBase {
+export interface SeedGarment extends Omit<GarmentBase, 'stretch'> {
+  /** One stretch for the whole garment, or per measurement. */
+  stretch: Stretch | StretchByKey;
   chart: {
     unit: 'cm' | 'in';
-    girth: GirthMethod;
-    /** Tops: required. Bottoms have no top length, so leave it out. */
+    /** One method for every girth, or per girth. */
+    girth: GirthMethod | GirthByKey;
+    /**
+     * Tops: required (here or as definitions.length). Bottoms have no top length,
+     * so leave it out. The older spelling of definitions.length.
+     */
     lengthDefinition?: LengthDefinition;
+    /** The older spelling of definitions.sleeve. */
     sleeveDefinition?: SleeveDefinition;
+    /** Where measurements are taken. length and sleeve may be given here or as the fields above, not both. */
+    definitions?: Definitions;
   };
   sizes: SeedSize[];
 }
 
 /** A garment ready for the fit engine: cm, full circumferences. */
 export interface Garment extends GarmentBase {
-  /** False when the chart didn't say flat vs. full — girth zones can't be scored. */
+  /**
+   * False when the chart didn't say flat vs. full for a girth it lists — those girth
+   * zones can't be scored. With a per-girth method, see `girthUnknown` for which.
+   */
   girthVerified: boolean;
+  /** Set only for a per-girth chart method: the girths whose method is unknown. Read with girthKnown(). */
+  girthUnknown?: GirthKey[];
+  /** Set only for per-measurement stretch: the overrides on top of `stretch` (the default). Read with stretchOf(). */
+  stretchByKey?: Partial<Record<MeasurementKey, Stretch>>;
   lengthDefinition?: LengthDefinition;
   sleeveDefinition?: SleeveDefinition;
+  /** Every other definition the chart gives (rise, thigh). Read any definition with definitionOf(). */
+  definitions?: Omit<Definitions, 'length' | 'sleeve'>;
   sizes: GarmentSize[];
   grade: ConfidenceGrade;
 }

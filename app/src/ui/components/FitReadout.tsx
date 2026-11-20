@@ -83,7 +83,9 @@ export function FitReadout({ garment, fit, units, odds, preference, hint, showOd
               <span className={`zone__label tone-${z.tone}`}>{LABEL_TEXT[z.label]}</span>
               {z.diffCm !== null && <span className="zone__diff num">{formatDiff(z.diffCm, units)}</span>}
             </div>
-            {z.diffCm !== null && <TapeScale diffCm={z.diffCm} bands={z.bands} units={units} kind={z.kind} />}
+            {z.diffCm !== null && z.kind !== 'landing' && (
+              <TapeScale diffCm={z.diffCm} bands={z.bands} units={units} kind={z.kind} />
+            )}
             <p className="zone__text">{describeZone(z, units, fit.bodyType)}</p>
             {showOdds && <ZoneOddsLines odds={sizeOdds?.zones.find((o) => o.zone === z.zone)} garment={garment} hasLengthPreference={hasLengthPreference} />}
             <p className="zone__numbers">

@@ -5,6 +5,7 @@
  */
 
 import { inToCm } from '../units';
+import { girthMethodOf } from './chart';
 import type {
   GarmentSize,
   MeasuredValue,
@@ -44,10 +45,11 @@ export function convertValue(
   if (isGirthKey(key)) {
     // Flat measurements are half the circumference (same rule as src/fit.py).
     // For "unknown" we keep the printed value but the garment is marked unverified.
-    if (chart.girth === 'flat') {
+    const method = girthMethodOf(chart, key);
+    if (method === 'flat') {
       v *= 2;
       conversions.push('flat width doubled to a full circumference');
-    } else if (chart.girth === 'unknown') {
+    } else if (method === 'unknown') {
       conversions.push('chart doesn’t say flat or full circumference: used as printed, not scored');
     }
   }

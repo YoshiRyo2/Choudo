@@ -6,21 +6,41 @@
  */
 
 import type { BodyModel, BodyType, MeasurementSource } from '../body';
-import type { Garment, GarmentSize, MeasurementOrigin } from '../garments';
-import { LENGTH_FAR_MULTIPLIER, STRETCH_ALLOWANCE, type GirthRule, type LengthRule } from './rules';
-import { definitionOf, ruleFor, zoneSpecsFor, type Rule, type ZoneId, type ZoneSpec } from './zones';
+import {
+  definitionOf,
+  girthKnown,
+  isGirthKey,
+  stretchOf,
+  type Garment,
+  type GarmentSize,
+  type MeasurementOrigin,
+} from '../garments';
+import {
+  girthRuleInCm,
+  LENGTH_FAR_MULTIPLIER,
+  stretchAllowance,
+  type GirthRule,
+  type LandingRule,
+  type LengthRule,
+} from './rules';
+import { ruleFor, zoneSpecsFor, type Rule, type ZoneId, type ZoneSpec } from './zones';
 
 export type { ZoneId } from './zones';
 export type GirthLabel = 'tight' | 'fitted' | 'relaxed' | 'loose';
 export type LengthLabel = 'short' | 'good' | 'long';
-export type FitLabel = GirthLabel | LengthLabel | 'unknown';
+/** A landing zone's only label: it says where something ends (see `landing`), never good or bad. */
+export type LandingLabel = 'noted';
+export type FitLabel = GirthLabel | LengthLabel | LandingLabel | 'unknown';
+
+/** girth: garment − body · length: garment − target length · landing: where an edge ends, descriptive only. */
+export type ZoneKind = 'girth' | 'length' | 'landing';
 
 /** How the UI should colour a result. */
 export type FitTone = 'good' | 'warn' | 'bad' | 'unknown';
 
 export interface ZoneFit {
   zone: ZoneId;
-  kind: 'girth' | 'length';
+  kind: ZoneKind;
   label: FitLabel;
   tone: FitTone;
   /** garment − body (girth) or garment − target length. null when unknown. */
@@ -33,6 +53,8 @@ export interface ZoneFit {
   garmentOrigin?: MeasurementOrigin;
   /** Plain-language reason, set when label is "unknown". */
   note?: string;
+  /** Landing zones only: the mark the edge lands at (a LandingRule mark label). */
+  landing?: string;
   /**
    * The label ranges for this zone, in cm of difference, lowest first. Lets the UI
    * draw a scale without knowing the rules. Ends are ±Infinity.
@@ -72,8 +94,16 @@ export function labelLength(diffCm: number, rule: LengthRule): LengthLabel {
   return 'good';
 }
 
-function toneFor(label: FitLabel, diffCm: number | null, rule: GirthRule | LengthRule): FitTone {
+/** The mark an edge lands at: the last one at or below the difference, or the first when it's below them all. */
+export function landingMark(diffCm: number, rule: LandingRule): string {
+  let mark = rule.marks[0]?.label ?? '';
+  for (const m of rule.marks) if (diffCm >= m.atCm) mark = m.label;
+  return mark;
+}
+
+function toneFor(label: FitLabel, diffCm: number | null, rule: Rule): FitTone {
   switch (label) {
+    case 'noted':
     case 'fitted':
     case 'relaxed':
     case 'good':
@@ -99,7 +129,8 @@ const TONE_RANK: Record<FitTone, number> = { unknown: 0, good: 1, warn: 2, bad: 
 
 function unknownReason(spec: ZoneSpec, rule: Rule, garment: Garment, garmentCm: number | undefined): string | null {
   if (garmentCm === undefined) return `${garment.brand} doesn't list this measurement.`;
-  if (rule.kind === 'girth' && !garment.girthVerified) {
+  const key = spec.garmentKey;
+  if (rule.kind === 'girth' && !(isGirthKey(key) ? girthKnown(garment, key) : garment.girthVerified)) {
     return `${garment.brand}'s chart doesn't say whether this is measured flat or all the way round.`;
   }
   if (spec.needs) {
@@ -109,7 +140,9 @@ function unknownReason(spec: ZoneSpec, rule: Rule, garment: Garment, garmentCm: 
   return null;
 }
 
-function bandsFor(rule: GirthRule | LengthRule, tightAllowanceCm: number): FitBand[] {
+function bandsFor(rule: Rule, tightAllowanceCm: number): FitBand[] {
+  // A landing zone has no scale of good and bad, so no bands.
+  if (rule.kind === 'landing') return [];
   if (rule.kind === 'girth') {
     const tight = rule.tightBelow - tightAllowanceCm;
     return [
@@ -131,12 +164,14 @@ function bandsFor(rule: GirthRule | LengthRule, tightAllowanceCm: number): FitBa
 
 function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, gs: GarmentSize): ZoneFit {
   const size = gs.measurements;
-  const rule = ruleFor(spec, garment);
   const bodyCm = body.measurements[spec.bodyKey];
+  const zoneRule = ruleFor(spec, garment);
+  // Fraction-scale girth bounds become cm for this body, so labels, bands and ease all read in cm.
+  const rule = zoneRule.kind === 'girth' ? girthRuleInCm(zoneRule, bodyCm) : zoneRule;
   const bodySource = body.sources[spec.bodyKey];
   const garmentCm = size[spec.garmentKey];
   const garmentOrigin = gs.provenance[spec.garmentKey]?.origin;
-  const tightAllowanceCm = STRETCH_ALLOWANCE[garment.stretch] * bodyCm;
+  const tightAllowanceCm = stretchAllowance(rule, stretchOf(garment, spec.garmentKey)) * bodyCm;
   const base = {
     zone: spec.zone,
     kind: rule.kind,
@@ -159,6 +194,9 @@ function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, gs: GarmentS
   }
 
   const diffCm = garmentCm - bodyCm;
+  if (rule.kind === 'landing') {
+    return { ...base, label: 'noted', tone: toneFor('noted', diffCm, rule), diffCm, garmentCm, landing: landingMark(diffCm, rule) };
+  }
   const label = rule.kind === 'girth' ? labelGirth(diffCm, rule, tightAllowanceCm) : labelLength(diffCm, rule);
   return { ...base, label, tone: toneFor(label, diffCm, rule), diffCm, garmentCm };
 }
@@ -182,7 +220,9 @@ export function fitGarment(body: BodyModel, garment: Garment, sizeLabel: string)
  * "warn" when a girth couldn't be checked, since girth is what decides whether a
  * size fits at all. A definite "bad" (say, far too short) is still reported.
  */
-export function overallTone(zones: ZoneFit[]): FitTone {
+export function overallTone(allZones: ZoneFit[]): FitTone {
+  // Landing zones describe; they never decide.
+  const zones = allZones.filter((z) => z.kind !== 'landing');
   const worst = zones.reduce<FitTone>(
     (acc, z) => (TONE_RANK[z.tone] > TONE_RANK[acc] ? z.tone : acc),
     'unknown',

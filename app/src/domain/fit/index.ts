@@ -8,7 +8,7 @@ export {
   zoneRule,
   zoneSpecsFor,
 } from './zones';
-export type { Definitions, Rule, TemplateZones, ZoneNeeds, ZoneRule, ZoneSpec } from './zones';
+export type { Rule, TemplateZones, ZoneNeeds, ZoneRule, ZoneSpec } from './zones';
 export * from './preference';
 export * from './sampleFit';
 export * from './fitTestCsv';

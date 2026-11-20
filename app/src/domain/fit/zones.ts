@@ -9,11 +9,10 @@
 import type { MeasurementKey as BodyKey } from '../body';
 import {
   templateOf,
+  type DefinitionName,
   type Garment,
   type GarmentSizing,
-  type LengthDefinition,
   type SizeMeasurements,
-  type SleeveDefinition,
   type TemplateId,
 } from '../garments';
 import {
@@ -24,22 +23,16 @@ import {
   TOP_GIRTH_RULES,
   TOP_LENGTH,
   type GirthRule,
+  type LandingRule,
   type LengthRule,
 } from './rules';
 
 export type ZoneId = 'chest' | 'waist' | 'hips' | 'length' | 'sleeve' | 'inseam';
 
-export type Rule = GirthRule | LengthRule;
+export type Rule = GirthRule | LengthRule | LandingRule;
 
 /** One rule for everyone, or one per garment sizing (tops' chest and waist). */
 export type ZoneRule = Rule | { bySizing: Record<GarmentSizing, Rule> };
-
-/** Garment measurement definitions a zone can depend on, and what each one reads. */
-export interface Definitions {
-  length?: LengthDefinition;
-  sleeve?: SleeveDefinition;
-}
-export type DefinitionName = keyof Definitions;
 
 /**
  * A definition the zone can't be scored without. Any other value (or none)
@@ -154,11 +147,6 @@ export function ruleFor(spec: ZoneSpec, garment: Pick<Garment, 'sizing'>): Rule 
 export function zoneRule(garment: Garment, zone: ZoneId): Rule | null {
   const spec = templateZones(garment).zones.find((z) => z.zone === zone);
   return spec ? ruleFor(spec, garment) : null;
-}
-
-/** A garment's definition, e.g. where its length is measured from. */
-export function definitionOf(garment: Garment, name: DefinitionName): string | undefined {
-  return name === 'length' ? garment.lengthDefinition : garment.sleeveDefinition;
 }
 
 /**

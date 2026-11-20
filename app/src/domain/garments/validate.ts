@@ -4,10 +4,16 @@
  */
 
 import { categorySpec, GARMENT_TYPES, isGarmentType } from './categories';
+import { chartDefinition } from './chart';
+import { GIRTH_KEYS, MEASUREMENT_KEYS } from './normalize';
 import {
+  DEFINITION_VALUES,
   GARMENT_SIZINGS,
+  GIRTH_METHODS,
   MEASUREMENT_ORIGINS,
   SOURCE_TIERS,
+  STRETCHES,
+  type DefinitionName,
   type FitIntent,
   type GarmentImage,
   type LengthDefinition,
@@ -30,6 +36,7 @@ export function validateGarment(g: SeedGarment): string[] {
   if (!GARMENT_SIZINGS.includes(g.sizing)) problems.push('sizing must be "mens", "womens" or "unisex"');
   if (spec.sleeve === 'required' && !g.sleeve) problems.push('tops need a sleeve type');
   if (spec.sleeve === 'forbidden' && g.sleeve) problems.push("bottoms can't have a sleeve");
+  problems.push(...validateStretch(g.stretch));
   problems.push(...validateProvenance(g));
   if (g.sizes.length === 0) problems.push('no sizes');
   if (g.image !== undefined) {
@@ -80,11 +87,13 @@ export function validateProvenance(g: SeedGarment): string[] {
     problems.push(`snapshot must be a pdf/image/html file under chart-snapshots/, got "${source.snapshot}"`);
   }
 
+  problems.push(...validateChart(chart));
+  const length = chartDefinition(chart, 'length');
   if (categorySpec(g).lengthDefinition === 'required') {
-    if (chart.lengthDefinition === undefined || !LENGTH_DEFINITIONS.includes(chart.lengthDefinition)) {
+    if (length === undefined || !LENGTH_DEFINITIONS.includes(length)) {
       problems.push(`tops need chart.lengthDefinition (${LENGTH_DEFINITIONS.join(', ')})`);
     }
-  } else if (chart.lengthDefinition !== undefined) {
+  } else if (length !== undefined) {
     problems.push('bottoms have no top length: leave out chart.lengthDefinition');
   }
 
@@ -100,6 +109,52 @@ export function validateProvenance(g: SeedGarment): string[] {
     for (const [key, v] of entries) {
       if (typeof v !== 'number' || !(v > 0)) problems.push(`audit ${key} must be a positive number`);
     }
+  }
+  return problems;
+}
+
+/** Problems with a garment's stretch: one level, or `{ default, <measurement>: level }`. */
+export function validateStretch(stretch: unknown): string[] {
+  const levels = STRETCHES.join(', ');
+  if (typeof stretch === 'string') return STRETCHES.includes(stretch as never) ? [] : [`stretch must be one of ${levels}`];
+  if (typeof stretch !== 'object' || stretch === null) return [`stretch must be one of ${levels}`];
+  const problems: string[] = [];
+  for (const [key, level] of Object.entries(stretch)) {
+    if (key !== 'default' && !MEASUREMENT_KEYS.includes(key as never)) problems.push(`stretch: "${key}" isn't a measurement`);
+    else if (!STRETCHES.includes(level as never)) problems.push(`stretch ${key} must be one of ${levels}`);
+  }
+  if (!('default' in stretch)) problems.push('a per-measurement stretch needs a "default"');
+  return problems;
+}
+
+/** Problems with a chart's girth method and definitions. */
+export function validateChart(chart: SeedGarment['chart']): string[] {
+  const problems: string[] = [];
+  const methods = GIRTH_METHODS.join(', ');
+  const girth: unknown = chart.girth;
+  if (typeof girth === 'string') {
+    if (!GIRTH_METHODS.includes(girth as never)) problems.push(`chart.girth must be one of ${methods}`);
+  } else if (typeof girth === 'object' && girth !== null) {
+    for (const [key, method] of Object.entries(girth)) {
+      if (key !== 'default' && !GIRTH_KEYS.includes(key as never)) problems.push(`chart.girth: "${key}" isn't a girth`);
+      else if (!GIRTH_METHODS.includes(method as never)) problems.push(`chart.girth ${key} must be one of ${methods}`);
+    }
+    if (!('default' in girth)) problems.push('a per-girth chart.girth needs a "default"');
+  } else {
+    problems.push(`chart.girth must be one of ${methods}`);
+  }
+
+  for (const [name, value] of Object.entries(chart.definitions ?? {})) {
+    const allowed = DEFINITION_VALUES[name as DefinitionName] as readonly string[] | undefined;
+    if (!allowed) problems.push(`chart.definitions: "${name}" isn't a definition`);
+    else if (!allowed.includes(value as string)) problems.push(`chart.definitions.${name} must be one of ${allowed.join(', ')}`);
+  }
+  // One place per definition, so the two can't disagree.
+  if (chart.definitions?.length !== undefined && chart.lengthDefinition !== undefined) {
+    problems.push('give length in chart.definitions or chart.lengthDefinition, not both');
+  }
+  if (chart.definitions?.sleeve !== undefined && chart.sleeveDefinition !== undefined) {
+    problems.push('give sleeve in chart.definitions or chart.sleeveDefinition, not both');
   }
   return problems;
 }

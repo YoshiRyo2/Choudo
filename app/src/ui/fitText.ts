@@ -41,6 +41,8 @@ export const LABEL_TEXT: Record<FitLabel, string> = {
   short: 'Short',
   good: 'Good length',
   long: 'Long',
+  // Landing zones (none in the catalogue yet) say where an edge ends; the mark carries the detail.
+  noted: 'Where it ends',
   unknown: 'Can’t tell',
 };
 

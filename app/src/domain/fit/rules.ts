@@ -6,11 +6,17 @@
  *   ease ≤ fittedMax             -> fitted
  *   ease ≤ relaxedMax            -> relaxed
  *   otherwise                    -> loose
+ * A rule's bounds are cm, or (scale "fraction") a share of the body measurement,
+ * which may sit below zero for garments meant to be smaller than the body
+ * (leggings: about −8 %). Stretch lowers "tight" further; see STRETCH_ALLOWANCE.
  *
  * Length zones compare garment − target length from the body:
  *   diff < shortBelow            -> short
  *   diff > longAbove             -> long
  *   otherwise                    -> good
+ *
+ * Landing zones only say where something ends (a hem above the knee, a waistband
+ * below the navel). They never make a size good or bad.
  *
  * `ideal` is the difference we'd most like to see; recommendSize uses it.
  */
@@ -20,10 +26,14 @@ import type { FitIntent, GarmentSizing, Stretch } from '../garments';
 
 export interface GirthRule {
   kind: 'girth';
+  /** What the bounds are in: cm of ease (the default), or a fraction of the body measurement (−0.08 = 8 % under it). */
+  scale?: 'cm' | 'fraction';
   tightBelow: number;
   fittedMax: number;
   relaxedMax: number;
   ideal: number;
+  /** This zone's own stretch allowances, where they differ from STRETCH_ALLOWANCE (a fraction of the body, per level). */
+  stretch?: Partial<Record<Stretch, number>>;
 }
 
 export interface LengthRule {
@@ -31,6 +41,34 @@ export interface LengthRule {
   shortBelow: number;
   longAbove: number;
   ideal: number;
+}
+
+/**
+ * Where a garment edge lands, relative to the zone's body target (cm, garment −
+ * target). Marks are lowest first; the result is the last mark at or below the
+ * difference (the first mark when it's below them all).
+ */
+export interface LandingRule {
+  kind: 'landing';
+  marks: readonly { label: string; atCm: number }[];
+}
+
+/** A girth rule with its bounds in cm of ease, for one body measurement. cm rules come back unchanged. */
+export function girthRuleInCm(rule: GirthRule, bodyCm: number): GirthRule {
+  if ((rule.scale ?? 'cm') === 'cm') return rule;
+  return {
+    ...rule,
+    scale: 'cm',
+    tightBelow: rule.tightBelow * bodyCm,
+    fittedMax: rule.fittedMax * bodyCm,
+    relaxedMax: rule.relaxedMax * bodyCm,
+    ideal: rule.ideal * bodyCm,
+  };
+}
+
+/** How far stretch moves this zone's "tight" boundary down, as a fraction of the body measurement. */
+export function stretchAllowance(rule: GirthRule | LengthRule | LandingRule, stretch: Stretch): number {
+  return (rule.kind === 'girth' ? rule.stretch?.[stretch] : undefined) ?? STRETCH_ALLOWANCE[stretch];
 }
 
 /**
@@ -107,12 +145,16 @@ export const INSEAM: LengthRule = { kind: 'length', shortBelow: -2.5, longAbove:
 /**
  * Stretch fabric can measure smaller than the body without feeling tight. We move
  * the "tight" boundary down by this fraction of the body measurement.
- * (Elastic waistbands are "high".)
+ * (Elastic waistbands are "high".) A garment can set stretch per measurement,
+ * and a rule per zone (GirthRule.stretch).
+ * compression is ASSUMED, not sourced (no leggings data yet): four-way stretch
+ * meant to sit well under the body. Tune it from fit tests.
  */
 export const STRETCH_ALLOWANCE: Record<Stretch, number> = {
   none: 0,
   some: 0.04,
   high: 0.2,
+  compression: 0.35,
 };
 
 /** A length off by more than this many times its threshold is flagged as a problem, not just a note. */

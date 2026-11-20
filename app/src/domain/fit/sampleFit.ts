@@ -35,6 +35,7 @@ import {
   type Verdict,
 } from './preference';
 import { normal, seededRng } from './random';
+import { girthRuleInCm } from './rules';
 import { measurableKeys, templateZones, zoneRule, type MeasurableKey } from './zones';
 import {
   ENTERED_BODY_SD_CM,
@@ -135,9 +136,10 @@ export function bodySdCm(body: BodyModel, key: BodyKey): number {
   return sd;
 }
 
-/** The ideal ease the engine aims for on girth zones without a personal target: the zone's own rule. */
-function idealEaseCm(garment: Garment, zone: ZoneId): number {
-  return zoneRule(garment, zone)?.ideal ?? 0;
+/** The ideal ease (cm) the engine aims for on a girth zone without a personal target: the zone's own rule. */
+function idealEaseCm(garment: Garment, zone: ZoneFit): number {
+  const rule = zoneRule(garment, zone.zone);
+  return rule?.kind === 'girth' ? girthRuleInCm(rule, zone.bodyCm).ideal : 0;
 }
 
 const emptyPersonal = (): Record<PersonalResult, number> => ({ under: 0, right: 0, over: 0, unknown: 0 });
@@ -220,7 +222,7 @@ export function sampleFit(
           miss +=
             zf.zone === personalGirth && personal.chestMissCm !== null
               ? Math.abs(personal.chestMissCm)
-              : Math.abs(zf.diffCm - idealEaseCm(garment, zf.zone));
+              : Math.abs(zf.diffCm - idealEaseCm(garment, zf));
         }
       }
       if (scored) {
