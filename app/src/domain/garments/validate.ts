@@ -97,6 +97,12 @@ export function validateProvenance(g: SeedGarment): string[] {
   }
 
   problems.push(...validateChart(chart));
+  if (chart.hipsBelowWaist !== undefined) {
+    if (categorySpec(g).template !== 'skirt') problems.push('only skirts give chart.hipsBelowWaist');
+    else if (typeof chart.hipsBelowWaist !== 'number' || !(chart.hipsBelowWaist > 0)) {
+      problems.push('chart.hipsBelowWaist must be a positive number');
+    }
+  }
   const length = chartDefinition(chart, 'length');
   const spec = categorySpec(g);
   if (spec.lengthDefinition === 'required') {

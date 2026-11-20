@@ -21,6 +21,7 @@ import {
   GRADING_MIN_EXCESS_CM,
   GRADING_RATIO,
   referenceChestCm,
+  SKIRT_HIP_DROP_RANGE,
   type Range,
 } from './verifyRules';
 
@@ -89,6 +90,7 @@ export function checkGarment(g: SeedGarment): GarmentCheck {
     }
   }
   for (const m of checkRanges(g, sizes)) warn('range', m);
+  for (const m of checkHipPoint(g, sizes)) warn('range', m);
   for (const m of checkRelations(g, sizes)) warn('relation', m);
   result.unscorable = unscorableZones(g);
   if (g.audit) {
@@ -261,6 +263,23 @@ export function checkRanges(g: SeedGarment, sizes: GarmentSize[]): string[] {
   return out;
 }
 
+/** A skirt chart's hip point (cm below the band): a plausible distance, and above every size's hem. */
+export function checkHipPoint(g: SeedGarment, sizes: GarmentSize[]): string[] {
+  const drop = g.chart.hipsBelowWaist;
+  if (drop === undefined) return [];
+  const dropCm = g.chart.unit === 'in' ? inToCm(drop) : drop;
+  const out: string[] = [];
+  const r = SKIRT_HIP_DROP_RANGE;
+  if (dropCm < r.min || dropCm > r.max) out.push(`hipsBelowWaist is ${cm(dropCm)}, outside ${r.min}–${r.max} cm`);
+  for (const s of sizes) {
+    const length = s.measurements.length;
+    if (length !== undefined && dropCm >= length) {
+      out.push(`hipsBelowWaist (${cm(dropCm)}) is below the hem of ${s.label} (${cm(length)} long)`);
+    }
+  }
+  return out;
+}
+
 /** Measurements of one size that disagree with each other (CategoryChecks.relations). Girths of unknown method are skipped. */
 export function checkRelations(g: SeedGarment, sizes: GarmentSize[]): string[] {
   const out: string[] = [];
@@ -304,7 +323,7 @@ export function unscorableZones(g: SeedGarment): UnscorableZone[] {
       out.push({ key: 'thigh', reason: 'chart doesn’t say where the thigh is measured', required: false });
     }
   }
-  if (spec.template === 'pants' && present.has('rise') && chartDefinition(g.chart, 'rise') !== 'front') {
+  if ((spec.template === 'pants' || spec.template === 'shorts') && present.has('rise') && chartDefinition(g.chart, 'rise') !== 'front') {
     out.push({ key: 'rise', reason: 'rise isn’t the front rise', required: false });
   }
   // Only long sleeves are scored; short sleeves are a style choice.
