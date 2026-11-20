@@ -8,8 +8,9 @@
  *   npm run photos -- --overlay        # also draw each garment's landmarks from seed.json
  *                                      # onto a copy (…-overlay.png) for checking by eye
  *
- * Photos are not committed (we don't hold the rights, or they're personal), so
- * sources live in photo-sources/ and outputs in public/garments/, both git-ignored.
+ * Source photos live in photo-sources/ and aren't committed (we don't hold the
+ * rights, or they're personal). The PNGs in public/garments/ are committed, except
+ * ones from a photo we don't hold the rights to, which app/.gitignore lists.
  * Without the PNG the app simply draws the garment in its flat colour.
  *
  * Two ways to cut out, per photo in garment-photos.json:
@@ -141,7 +142,7 @@ async function colourCutOut(photo) {
     keep: lm && { x0: lm.collarLeft.x - 6, x1: lm.collarRight.x + 6, y1: lm.neckFront.y + 4 },
   });
   const file = join(APP, outPath(photo));
-  // public/garments/ is git-ignored, so a fresh clone doesn't have it yet.
+  // A fresh clone may not have public/garments/ if no cut-out is committed yet.
   await mkdir(dirname(file), { recursive: true });
   await sharp(out, { raw: { width: ow, height: oh, channels: 4 } }).png().toFile(file);
   const hex = `#${median.map((c) => c.toString(16).padStart(2, '0')).join('')}`;

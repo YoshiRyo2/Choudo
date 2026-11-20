@@ -32,7 +32,12 @@ without one the top is drawn in its `color`. Full details are in
    - Watch the two mannequins. The photo should sit straight at both sizes, with no
      mirrored patches; the page warns if it finds any.
    - Press **Save to seed.json**. This writes the garment's `"image"` entry.
-4. **Then the measurements**, below. If the garment isn't in `seed.json` yet, add its
+4. **Commit the cut-out** (`app/public/garments/<garment-id>-front.png`) with the seed
+   change, so a fresh clone shows it. `npm run data:check` fails if it's missing or under
+   800 px wide. The exception is a photo we don't hold the rights to (a retailer's model
+   shot): list its PNG in `app/.gitignore` instead, and the check skips it. The source
+   photo in `photo-sources/` is never committed.
+5. **Then the measurements**, below. If the garment isn't in `seed.json` yet, add its
    row first (steps 1–5) and come back to step 3.
 
 ## The numbers

@@ -2,10 +2,17 @@ node_modules
 dist
 *.tsbuildinfo
 
-# Product photos: not ours to redistribute. See photo-sources/README.md.
+# Source photos: product photos aren't ours to redistribute and phone photos are
+# personal (full size, with EXIF). See photo-sources/README.md.
 /photo-sources/*
 !/photo-sources/README.md
-/public/garments/
+
+# Cut-outs in public/garments/ are committed, so a fresh clone shows them, except
+# ones made from a photo we don't hold the rights to. List each one here;
+# npm run data:check skips what's listed and fails on any other missing image.
+/public/garments/gildan-5000-front.png
+# Landmark overlays from npm run photos -- --overlay: for checking by eye only.
+/public/garments/*-overlay.png
 
 # Size-chart snapshots: also not ours to redistribute. See chart-snapshots/README.md.
 /chart-snapshots/*

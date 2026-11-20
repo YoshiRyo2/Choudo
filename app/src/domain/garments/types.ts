@@ -170,9 +170,10 @@ export type TopLandmarkName = (typeof TOP_LANDMARKS)[number];
  */
 export interface GarmentImage {
   /**
-   * Path under app/public, e.g. "garments/gildan-5000-front.png". Local files only;
-   * product photos are not committed (see app/photo-sources/README.md), so the
-   * file may be missing and the garment then draws in its flat colour.
+   * Path under app/public, e.g. "garments/ryo-black-henley-front.png". Committed, except
+   * cut-outs from photos we don't hold the rights to (listed in app/.gitignore, see
+   * app/photo-sources/README.md): those may be missing, and the garment then draws in
+   * its flat colour. `npm run data:check` fails on any other missing or narrow image.
    */
   file: string;
   /**
