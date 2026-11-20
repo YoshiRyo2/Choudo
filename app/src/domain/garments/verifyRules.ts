@@ -5,7 +5,7 @@
  */
 
 import { inToCm } from '../units';
-import type { FitIntent, GarmentType, MeasurementKey } from './types';
+import type { FitIntent, GarmentType, GirthKey, MeasurementKey } from './types';
 
 export interface Range {
   min: number;
@@ -17,10 +17,14 @@ export interface Range {
  * one printed as "circumference" below `circumferenceMin` looks like a flat width.
  * Values are the printed number in cm, before doubling. Adult sizes only.
  */
-export const GIRTH_METHOD_LIMITS: Record<'chest' | 'waist' | 'hips', { flatMax: number; circumferenceMin: number }> = {
+export const GIRTH_METHOD_LIMITS: Record<GirthKey, { flatMax: number; circumferenceMin: number }> = {
   chest: { flatMax: 85, circumferenceMin: 65 },
   waist: { flatMax: 75, circumferenceMin: 55 },
   hips: { flatMax: 85, circumferenceMin: 65 },
+  // Pants legs, ASSUMED from typical charts (thigh 25–40 flat, opening 12–30 flat).
+  thigh: { flatMax: 50, circumferenceMin: 40 },
+  knee: { flatMax: 40, circumferenceMin: 28 },
+  legOpening: { flatMax: 35, circumferenceMin: 22 },
 };
 
 /** Plausible garment measurements (cm, full circumferences) for tops. */

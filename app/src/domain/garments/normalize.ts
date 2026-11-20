@@ -16,13 +16,25 @@ import type {
   SizeMeasurements,
 } from './types';
 
-export const GIRTH_KEYS = ['chest', 'waist', 'hips'] as const;
+export const GIRTH_KEYS = ['chest', 'waist', 'hips', 'thigh', 'knee', 'legOpening'] as const;
 export const LENGTH_KEYS = ['length', 'sleeve', 'shoulder', 'inseam', 'rise'] as const;
 /**
- * Every garment measurement key, in a fixed order. The sampler draws a garment
- * offset per key in this order, so add new keys at the end.
+ * Every garment measurement key, in a fixed order: new keys go at the end. (The
+ * sampler's main stream draws the first eight; later keys draw from their own.)
  */
-export const MEASUREMENT_KEYS: readonly MeasurementKey[] = [...GIRTH_KEYS, ...LENGTH_KEYS];
+export const MEASUREMENT_KEYS: readonly MeasurementKey[] = [
+  'chest',
+  'waist',
+  'hips',
+  'length',
+  'sleeve',
+  'shoulder',
+  'inseam',
+  'rise',
+  'thigh',
+  'knee',
+  'legOpening',
+];
 
 export const isGirthKey = (key: MeasurementKey): key is (typeof GIRTH_KEYS)[number] =>
   (GIRTH_KEYS as readonly string[]).includes(key);

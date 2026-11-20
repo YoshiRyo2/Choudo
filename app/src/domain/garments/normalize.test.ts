@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { convertValue, normalizeMeasurements, normalizeSize, readValue } from './normalize';
+import { convertValue, GIRTH_KEYS, MEASUREMENT_KEYS, normalizeMeasurements, normalizeSize, readValue } from './normalize';
 
 describe('readValue', () => {
   it('treats a plain number as copied from the chart', () => {
@@ -75,3 +75,21 @@ describe('normalizeMeasurements', () => {
 function chart() {
   return { unit: 'in' as const, girth: 'flat' as const };
 }
+
+describe('pants measurements', () => {
+  it('doubles a flat thigh and leg opening only', () => {
+    const chart = { unit: 'in' as const, girth: { default: 'circumference' as const, thigh: 'flat' as const, legOpening: 'flat' as const } };
+    const size = normalizeSize({ label: '32', measurements: { waist: 32, thigh: 12, legOpening: 8, knee: 18 } }, chart);
+    expect(size.measurements.thigh).toBeCloseTo(60.96);
+    expect(size.measurements.legOpening).toBeCloseTo(40.64);
+    expect(size.measurements.waist).toBeCloseTo(81.28);
+    expect(size.measurements.knee).toBeCloseTo(45.72);
+    expect(size.provenance.thigh?.conversions).toEqual(['flat width doubled to a full circumference', 'inches to cm']);
+    expect(size.provenance.waist?.conversions).toEqual(['inches to cm']);
+  });
+
+  it('MEASUREMENT_KEYS keeps its first eight in order and ends with the pants keys', () => {
+    expect(MEASUREMENT_KEYS).toEqual(['chest', 'waist', 'hips', 'length', 'sleeve', 'shoulder', 'inseam', 'rise', 'thigh', 'knee', 'legOpening']);
+    expect(GIRTH_KEYS).toEqual(['chest', 'waist', 'hips', 'thigh', 'knee', 'legOpening']);
+  });
+});
