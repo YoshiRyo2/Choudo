@@ -16,6 +16,8 @@ well-named modules over clever ones.
   overrides and, for a women's body, an optional bra size.
 - **No AR, body scanning, or photo avatars yet.** Keep the mannequin behind one component
   so a 3D/SMPL renderer can replace it later — but don't build it.
+- **Body proportions come only from the fit engine; drawing is a skin on top.** Any mannequin
+  style changes the surface, never the body. Full wording in `docs/parked-ideas.md`.
 
 ## Stack
 - React + TypeScript + Vite (web app, mobile-first), in `app/`.
@@ -31,10 +33,14 @@ app/src/
     body/        estimateBody(input) -> BodyModel (men's power law; women's ANSUR II regressions),
                  braSize.ts (parse "34DD", US/UK cups, bust estimate)
     garments/    types.ts (schema), seed.json, normalize.ts (printed -> cm + provenance),
+                 categories.ts (type -> template: tee | shirt | pants; CategorySpec data rules),
+                 chart.ts (per-measurement girth method, stretch, definitions),
                  validate.ts (structure), verify.ts + verifyRules.ts (stage-5 checks),
                  grade.ts (confidence grade), report.ts (npm run data:check text),
                  catalogue.ts (garments for a body type: its sizing + unisex, or all)
-    fit/         fitGarment(body, garment, size) -> per-zone fit results (rules.ts thresholds)
+    fit/         fitGarment(body, garment, size) -> per-zone fit results (rules.ts thresholds),
+                 zones.ts (TemplateZones: each template's zones, rules, needed definitions),
+                 golden.test.ts + __golden__/ (byte-for-byte snapshot of every garment's fit and odds)
                  preference.ts (anchor tee / fit style -> personal verdict), sampleFit.ts
                  (seeded odds, recommendSize, measurementHint), uncertainty.ts (every spread),
                  random.ts, fitTestCsv.ts + fitTestReport.ts (npm run fit:report)
@@ -58,7 +64,9 @@ app/scripts/   data-check.mjs (npm run data:check), fit-report.mjs (npm run fit:
                MIT; mask clean-up in photo-mask.mjs). Model weights download to app/.models/
 app/chart-snapshots/, app/photo-sources/   local copies of charts and source photos, git-ignored
 app/public/garments/   committed cut-outs the app shows (not ones from retailer photos, listed in app/.gitignore)
-docs/          adding-garments.md (checklist for adding a garment by hand)
+docs/          adding-garments.md (checklist for adding a garment by hand),
+               clothing-categories-design.md (design + PR plan for categories beyond tees),
+               parked-ideas.md (ideas on hold, and the rules that still hold for them)
 data/fit_tests.csv    (repo root) fit-test results, pasted from Test mode's CSV export.
 src/, tests/, data/   (repo root) original Python chest-fit engine + real tee CSV.
                       Kept as the reference spec; the app's engine is the TS port.
@@ -67,6 +75,9 @@ Rule: **body estimation, the fit engine, and garment data stay in `domain/`** wi
 inputs/outputs and unit tests. UI only calls their public functions.
 
 ## Fit rules (summary — source of truth is `domain/fit/`)
+- Zones come from the garment's **template** (`TYPE_TEMPLATE` → `TEMPLATE_ZONES` in `zones.ts`),
+  never from `category === 'top'` checks. A new category is a template: zones + rules + data
+  checks (`CATEGORY_SPECS`) + a drawing. See `docs/clothing-categories-design.md`.
 - Girth zones (chest, waist, hips): ease = garment − body (cm).
   Labels: tight / fitted / relaxed / loose (ported from `src/fit.py`, converted to cm).
 - Length zones (top length, sleeve, inseam): garment − target length derived from body.
@@ -78,7 +89,12 @@ inputs/outputs and unit tests. UI only calls their public functions.
   shoulder (`lengthDefinition: "hps"`); a sleeve only when it's `shoulder_to_cuff` on a long sleeve.
 - A size's overall result is never "good" when a girth couldn't be checked; it's "unknown"
   (unless something is definitely bad). `recommendSize` never picks a size on length alone.
-- Stretch fabric moves the "tight" boundary (`STRETCH_ALLOWANCE` in `rules.ts`).
+- Stretch fabric moves the "tight" boundary (`STRETCH_ALLOWANCE` in `rules.ts`; `compression`
+  is assumed). Stretch can be per measurement (`{ default, waist: "high" }`) and a rule can set
+  its own allowance.
+- A girth rule's bounds are cm, or (`scale: "fraction"`) a share of the body, which may be
+  negative (leggings). Landing zones (`kind: "landing"`) only say where an edge ends; they never
+  change the overall result or the suggested size. New thresholds ship labelled "assumed".
 - Woven shirts currently use the tee chest thresholds — likely too strict; tune in `rules.ts`.
 - Top chest/waist thresholds go by the **garment's** sizing (`TOP_GIRTH_RULES`): women's cuts use
   `WOMENS_TOP_CHEST` (fitted to +1 in, relaxed to +3 in — assumed, not sourced yet); men's and
@@ -111,6 +127,11 @@ inputs/outputs and unit tests. UI only calls their public functions.
   label, personal and verdict odds. Every spread is in `uncertainty.ts`, each with its source;
   estimated body spreads are per body type (women's from the ANSUR II residuals).
   One body draw is shared by all sizes and the anchor, so an anchor cancels chest-estimate error.
+  It draws every schema key in a fixed order (`MEASUREMENT_KEYS`, `BODY_MEASUREMENT_KEYS`): add
+  new keys at the **end** of those lists, or every seeded result moves.
+- The golden test (`fit/golden.test.ts`) must stay byte-equal through refactors. When a change
+  is meant to move results, regenerate it with `npx vitest run src/domain/fit/golden.test.ts -u`
+  and review the diff.
 - `recommendSize` = highest chance of "fits how you like"; ties go roomier; still null for
   unscored garments or with no girth to score. `measurementHint` names the estimated
   measurement that, measured, could change the size.
@@ -122,6 +143,9 @@ inputs/outputs and unit tests. UI only calls their public functions.
   `docs/adding-garments.md`.
 - Every real row has a source tier (A brand spec … G photo only), `url`, `capturedOn`, and
   optionally a `snapshot` of the chart. Placeholders have `placeholder: true` and no tier.
+- `chart.girth` is one method or per girth (`{ default, hips: "flat" }`); only a girth whose
+  method is unknown goes unscored. Definitions (length, sleeve, rise, thigh) go in
+  `chart.definitions` or the older `lengthDefinition` / `sleeveDefinition`, not both.
 - Seed values are copied as printed. A value is a plain number (from the chart) or
   `{ value, origin: chart | estimated | audited, how }`. `normalizeGarment` converts to cm
   and keeps each value's origin, printed number and conversions (`GarmentSize.provenance`).
