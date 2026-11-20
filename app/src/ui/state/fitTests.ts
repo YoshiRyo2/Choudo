@@ -133,8 +133,8 @@ export function fitTestsCsv(records: readonly FitTestRecord[]): string {
   return `${lines.join('\n')}\n`;
 }
 
-/** "nimbus-fit-tests-2026-11-18.csv" */
+/** "choudo-fit-tests-2026-11-18.csv" */
 export function csvFileName(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `nimbus-fit-tests-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}.csv`;
+  return `choudo-fit-tests-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}.csv`;
 }

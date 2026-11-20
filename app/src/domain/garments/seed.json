@@ -1,5 +1,5 @@
 {
-  "_readme": "Hand-made garment seed for Nimbus v1. Numbers are copied exactly as each size chart prints them (see chart.unit and chart.girth); normalizeGarment converts to cm / full circumference. Rows with source.placeholder = true are INVENTED for development, under made-up brands (Fieldline, Corvo Denim) — replace them with real, cited charts before trusting any fit result. The Knightweave and Lands' End tees are real rows copied from data/tees.csv. A value may be a plain number (copied from the chart) or { value, origin: chart | estimated | audited, how }. See docs/adding-garments.md for how to add a garment.",
+  "_readme": "Hand-made garment seed for Choudo v1. Numbers are copied exactly as each size chart prints them (see chart.unit and chart.girth); normalizeGarment converts to cm / full circumference. Rows with source.placeholder = true are INVENTED for development, under made-up brands (Fieldline, Corvo Denim) — replace them with real, cited charts before trusting any fit result. The Knightweave and Lands' End tees are real rows copied from data/tees.csv. A value may be a plain number (copied from the chart) or { value, origin: chart | estimated | audited, how }. See docs/adding-garments.md for how to add a garment.",
   "garments": [
     {
       "id": "gildan-5000",

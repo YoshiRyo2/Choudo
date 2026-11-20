@@ -36,7 +36,7 @@ async function readBody(req: IncomingMessage): Promise<unknown> {
 export function landmarksDevServer(): Plugin {
   let root = '';
   return {
-    name: 'nimbus-landmarks-dev',
+    name: 'choudo-landmarks-dev',
     apply: 'serve',
     configResolved(config) {
       root = config.root;

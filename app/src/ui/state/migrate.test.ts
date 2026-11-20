@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { LEGACY_KEYS, migrateBodyV1, migrateFitTestsV1, migrateStorage, type StorageLike } from './migrate';
+import {
+  LEGACY_KEYS,
+  migrateAppRename,
+  migrateBodyV1,
+  migrateFitTestsV1,
+  migrateStorage,
+  oldNameOf,
+  type StorageLike,
+} from './migrate';
 import { STORAGE_KEYS } from './stored';
 
 /** A Storage stand-in backed by a Map. */
@@ -105,5 +113,57 @@ describe('migrateStorage', () => {
       removeItem: () => {},
     };
     expect(() => migrateStorage(blocked)).not.toThrow();
+  });
+});
+
+describe('migrateAppRename (Nimbus -> Choudo)', () => {
+  const body = { heightCm: 170, weightKg: 65, bodyType: 'womens' };
+  const newer = { heightCm: 182, weightKg: 80, bodyType: 'mens' };
+
+  it('names each old key after the new one', () => {
+    expect(oldNameOf(STORAGE_KEYS.body)).toBe('nimbus.body.v2');
+    expect(Object.values(STORAGE_KEYS).every((k) => k.startsWith('choudo.'))).toBe(true);
+  });
+
+  it('old data only: copies every key over, exactly as stored, and deletes the old keys', () => {
+    const s = memoryStorage({
+      'nimbus.body.v2': body,
+      'nimbus.units.v1': 'imperial',
+      'nimbus.swipes.v1': [{ garmentId: 'gildan-5000', sizeShown: 'M', liked: true, at: '2026-11-18T10:00:00.000Z' }],
+    });
+    const rawSwipes = s.data.get('nimbus.swipes.v1');
+    migrateAppRename(s);
+    expect(JSON.parse(s.data.get(STORAGE_KEYS.body)!)).toEqual(body);
+    expect(JSON.parse(s.data.get(STORAGE_KEYS.units)!)).toBe('imperial');
+    expect(s.data.get(STORAGE_KEYS.swipes)).toBe(rawSwipes);
+    expect([...s.data.keys()].some((k) => k.startsWith('nimbus.'))).toBe(false);
+  });
+
+  it('new data only: leaves it alone', () => {
+    const s = memoryStorage({ [STORAGE_KEYS.body]: newer, [STORAGE_KEYS.testMode]: true });
+    const before = new Map(s.data);
+    migrateAppRename(s);
+    expect(s.data).toEqual(before);
+  });
+
+  it('both present: keeps the new data and deletes the old key', () => {
+    const s = memoryStorage({ 'nimbus.body.v2': body, [STORAGE_KEYS.body]: newer });
+    migrateAppRename(s);
+    expect(JSON.parse(s.data.get(STORAGE_KEYS.body)!)).toEqual(newer);
+    expect(s.data.has('nimbus.body.v2')).toBe(false);
+  });
+
+  it('runs inside migrateStorage, before v1 -> v2, so a renamed v2 body still beats a v1 one', () => {
+    const s = memoryStorage({ 'nimbus.body.v2': body, [LEGACY_KEYS.bodyV1]: v1Body });
+    migrateStorage(s);
+    migrateStorage(s);
+    expect(JSON.parse(s.data.get(STORAGE_KEYS.body)!)).toEqual(body);
+    expect([...s.data.keys()]).toEqual([STORAGE_KEYS.body]);
+  });
+
+  it('leaves unrelated keys alone', () => {
+    const s = memoryStorage({ 'nimbus.unknown.v1': 1, 'other.app': 2 });
+    migrateAppRename(s);
+    expect([...s.data.keys()].sort()).toEqual(['nimbus.unknown.v1', 'other.app']);
   });
 });

@@ -1,5 +1,5 @@
 /**
- * Everything Nimbus keeps on the device, with the guards used when reading it
+ * Everything Choudo keeps on the device, with the guards used when reading it
  * back. Bump a key's version when its shape changes.
  */
 
@@ -9,22 +9,22 @@ import { CATALOGUE_SCOPES, type CatalogueScope } from '../../domain/garments';
 
 export const STORAGE_KEYS = {
   /** v2: `sizing` became `bodyType`, plus an optional bra size (migrate.ts moves v1 over). */
-  body: 'nimbus.body.v2',
-  units: 'nimbus.units.v1',
-  outfit: 'nimbus.outfit.v1',
-  swipes: 'nimbus.swipes.v1',
-  folders: 'nimbus.folders.v1',
-  outfits: 'nimbus.outfits.v1',
+  body: 'choudo.body.v2',
+  units: 'choudo.units.v1',
+  outfit: 'choudo.outfit.v1',
+  swipes: 'choudo.swipes.v1',
+  folders: 'choudo.folders.v1',
+  outfits: 'choudo.outfits.v1',
   /** A tee the user owns and likes the fit of (or null). */
-  anchor: 'nimbus.anchor.v1',
+  anchor: 'choudo.anchor.v1',
   /** The answer to "How do you like tees to fit?" (or null). */
-  fitStyle: 'nimbus.fitStyle.v1',
+  fitStyle: 'choudo.fitStyle.v1',
   /** Whether the hidden Test mode is on. */
-  testMode: 'nimbus.testMode.v1',
+  testMode: 'choudo.testMode.v1',
   /** Garments to show: "matching" (the body type's sizing plus unisex) or "all". */
-  catalogue: 'nimbus.catalogue.v1',
+  catalogue: 'choudo.catalogue.v1',
   /** Results recorded in Test mode. v2: each prediction's body uses `bodyType`. */
-  fitTests: 'nimbus.fitTests.v2',
+  fitTests: 'choudo.fitTests.v2',
 } as const;
 
 /** Display units. Metric = cm + kg, imperial = in + lb. Storage is always metric. */
