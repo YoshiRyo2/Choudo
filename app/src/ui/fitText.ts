@@ -34,6 +34,7 @@ export const ZONE_NAME: Record<ZoneId, string> = {
   thigh: 'Thigh',
   rise: 'Rise',
   legOpening: 'Leg opening',
+  hemBand: 'Hem band',
 };
 
 export const LABEL_TEXT: Record<FitLabel, string> = {
@@ -60,6 +61,7 @@ const ZONE_PLACE: Record<ZoneId, string> = {
   thigh: 'at the thigh',
   rise: 'in the rise',
   legOpening: 'at the hem',
+  hemBand: 'at the hem band',
 };
 
 /**
@@ -141,12 +143,24 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
         return `${LANDING_TEXT[z.landing ?? ''] ?? 'Narrow'}: ${d} narrower than your heel, so it relies on stretch or a zip to get on.`;
       }
       return `${LANDING_TEXT[z.landing ?? ''] ?? 'This leg'}: ${d} wider than your heel.`;
+    case 'hemBand':
+      // A rib band is measured relaxed and meant to gather onto the body.
+      if (over) return z.label === 'loose' ? `${d} wider than your hips, so it hangs open rather than gathering.` : `${d} wider than your hips, relaxed.`;
+      if (!under) return 'Matches your hips, relaxed.';
+      return z.label === 'tight'
+        ? `${d} smaller than your hips: more than the rib can stretch.`
+        : `${d} smaller than your hips, relaxed; the rib stretches to gather there.`;
   }
 }
 
-/** Where a worked-out body number was taken, after "You 84.1 cm": the waist of a jean is where its band sits. */
+/**
+ * Where a worked-out body number was taken, after "You 84.1 cm": the waist of a
+ * jean is where its band sits; a knit's centre-back length and sleeve start at the back neck.
+ */
 export function bodyPlaceText(z: ZoneFit): string {
-  return z.bodyAt === 'band' ? ' where the waistband sits' : '';
+  if (z.bodyAt === 'band') return ' where the waistband sits';
+  if (z.bodyAt === 'centre_back') return z.zone === 'sleeve' ? ' from the centre of your back to the wrist' : ' from the back of your neck';
+  return '';
 }
 
 /** How a landing zone's mark reads on its own: "Mid rise", "Straight leg". */

@@ -352,3 +352,31 @@ describe('a body number worked out at the band', () => {
     expect(bodyPlaceText(zone({ zone: 'waist' }))).toBe('');
   });
 });
+
+describe('knit wording', () => {
+  it('names the hem band', () => {
+    expect(zoneName('hemBand')).toBe('Hem band');
+  });
+
+  it('describes a hem band against the hips', () => {
+    const band = (patch: Partial<ZoneFit>) => zone({ zone: 'hemBand', ...patch });
+    expect(describeZone(band({ diffCm: 6, label: 'relaxed' }), 'metric')).toBe('6.0 cm wider than your hips, relaxed.');
+    expect(describeZone(band({ diffCm: 14, label: 'loose' }), 'metric')).toBe(
+      '14.0 cm wider than your hips, so it hangs open rather than gathering.',
+    );
+    expect(describeZone(band({ diffCm: -8, label: 'fitted' }), 'metric')).toBe(
+      '8.0 cm smaller than your hips, relaxed; the rib stretches to gather there.',
+    );
+    expect(describeZone(band({ diffCm: -30, label: 'tight' }), 'metric')).toBe(
+      '30.0 cm smaller than your hips: more than the rib can stretch.',
+    );
+    expect(describeZone(band({ diffCm: 0.1 }), 'metric')).toBe('Matches your hips, relaxed.');
+  });
+
+  it('says where a centre-back length or sleeve is measured from', () => {
+    expect(bodyPlaceText(zone({ zone: 'length', kind: 'length', bodyAt: 'centre_back' }))).toBe(' from the back of your neck');
+    expect(bodyPlaceText(zone({ zone: 'sleeve', kind: 'length', bodyAt: 'centre_back' }))).toBe(
+      ' from the centre of your back to the wrist',
+    );
+  });
+});

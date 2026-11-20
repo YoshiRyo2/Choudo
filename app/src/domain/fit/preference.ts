@@ -81,9 +81,12 @@ export interface PreferenceNoise {
 
 /** Catalogue garments that can serve as an anchor: real tops whose chest (and grade) we can trust. */
 export function canAnchor(g: Garment): boolean {
+  const personal = templateZones(g).personal;
   return (
     // A garment whose template carries a personal fit (a top): its chest is what we learn from.
-    templateZones(g).personal !== null &&
+    // Only tee-cut tops: the question is "a tee you like", and a knit's chest carries the knit offset.
+    personal !== null &&
+    (personal.easeOffsetCm ?? 0) === 0 &&
     !g.source.placeholder &&
     g.girthVerified &&
     g.grade !== 'unscored' &&
@@ -189,12 +192,18 @@ export interface ChestTarget {
  * the design ("Oversized, as designed") rather than sizing down to undo it.
  * Slim and regular cuts are sized to the user's preference.
  */
-export function chestTarget(pref: ResolvedPreference, intent: FitIntent): ChestTarget {
+export function chestTarget(pref: ResolvedPreference, intent: FitIntent, offsetCm = 0): ChestTarget {
   const design = INTENT_EASE[intent];
+  // A template cut roomier than a tee (knits) moves both targets out by the same offset.
   if (LOOSE_INTENTS.includes(intent) && design.easeCm > pref.chestEaseCm) {
-    return { easeCm: design.easeCm, bandCm: design.bandCm, asDesigned: true };
+    return { easeCm: design.easeCm + offsetCm, bandCm: design.bandCm, asDesigned: true };
   }
-  return { easeCm: pref.chestEaseCm, bandCm: pref.chestBandCm, asDesigned: false };
+  return { easeCm: pref.chestEaseCm + offsetCm, bandCm: pref.chestBandCm, asDesigned: false };
+}
+
+/** chestTarget for a garment: its own cut, and its template's offset from a tee. */
+export function garmentChestTarget(pref: ResolvedPreference, garment: Pick<Garment, 'type' | 'fitIntent'>): ChestTarget {
+  return chestTarget(pref, garment.fitIntent, templateZones(garment).personal?.easeOffsetCm ?? 0);
 }
 
 /** One zone against the preference: under (snug / short), right, or over (roomy / long). */
@@ -263,7 +272,7 @@ function within(missCm: number, bandCm: number): PersonalResult {
  */
 export function personalFit(fit: GarmentFit, garment: Garment, pref: ResolvedPreference): PersonalFit {
   const personal = templateZones(garment).personal;
-  const target = personal ? chestTarget(pref, garment.fitIntent) : null;
+  const target = personal ? garmentChestTarget(pref, garment) : null;
   const zones: PersonalFit['zones'] = {};
   let chestMissCm: number | null = null;
 

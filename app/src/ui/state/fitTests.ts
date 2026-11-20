@@ -6,7 +6,7 @@
 
 import type { BodyInput, BodyModel } from '../../domain/body';
 import {
-  chestTarget,
+  garmentChestTarget,
   FIT_TEST_COLUMNS,
   fitGarment,
   resolvePreference,
@@ -63,7 +63,7 @@ export function predictionFor(args: {
     preferenceSource: preference.source,
     style: preference.style,
     anchor: preference.source === 'anchor' ? anchorText(anchor) : '',
-    preferredChestEaseCm: top ? chestTarget(pref, garment.fitIntent).easeCm : null,
+    preferredChestEaseCm: top ? garmentChestTarget(pref, garment).easeCm : null,
     preferredLengthDiffCm: pref.lengthDiffCm,
     recommendedSize: odds.recommended,
     verdict,

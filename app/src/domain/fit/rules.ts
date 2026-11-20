@@ -129,6 +129,46 @@ export const TOP_GIRTH_RULES: Record<GarmentSizing, { chest: GirthRule; waist: G
   womens: { chest: WOMENS_TOP_CHEST, waist: WOMENS_TOP_WAIST },
 };
 
+/**
+ * How much roomier a knit (hoodie, sweatshirt) is cut than a tee, chest ease in
+ * cm. ASSUMED from one brand's grading, not from fit tests: Gildan's 18500
+ * hoodie is 2 in wider laid flat than its 5000 tee in every size (S 20 vs 18 in),
+ * so 4 in (10.2 cm) round the chest. A knit is worn over more and hangs heavier,
+ * so the same "fits how you like" sits further from the body.
+ * Tune with Test mode.
+ */
+export const KNIT_EASE_OFFSET_CM = 10;
+
+/** A tee chest rule moved out by the knit offset. Tight is about the body, not the cut, so it stays. */
+const knitChest = (tee: GirthRule): GirthRule => ({
+  ...tee,
+  fittedMax: tee.fittedMax + KNIT_EASE_OFFSET_CM,
+  relaxedMax: tee.relaxedMax + KNIT_EASE_OFFSET_CM,
+  ideal: tee.ideal + KNIT_EASE_OFFSET_CM,
+});
+
+/** Knit chest by the garment's sizing: the top chest rules shifted by KNIT_EASE_OFFSET_CM (ASSUMED). */
+export const KNIT_GIRTH_RULES: Record<GarmentSizing, GirthRule> = {
+  mens: knitChest(TOP_GIRTH_RULES.mens.chest),
+  unisex: knitChest(TOP_GIRTH_RULES.unisex.chest),
+  womens: knitChest(TOP_GIRTH_RULES.womens.chest),
+};
+
+/**
+ * A knit's rib hem band (relaxed) against the hips, where a top's length is
+ * scored to end. ASSUMED, not sourced (no hem band charts or fit tests yet): a
+ * rib is meant to gather onto the body, so "fitted" runs from snug to +4 cm and
+ * "loose" (+12 cm and up) means it hangs open instead of gathering. The rib's
+ * stretch (a row's `stretch.hemBand`, usually high) moves "tight" well down.
+ */
+export const HEM_BAND: GirthRule = {
+  kind: 'girth',
+  tightBelow: -2,
+  fittedMax: 4,
+  relaxedMax: 12,
+  ideal: 0,
+};
+
 /** Pants waistband: much less room to play with than a shirt. */
 export const BOTTOM_WAIST: GirthRule = {
   kind: 'girth',
@@ -191,6 +231,14 @@ export const LEG_OPENING: LandingRule = {
     { label: 'wide', atCm: 14 },
   ],
 };
+
+/**
+ * How far the centre of the back neck sits below the high point of the shoulder,
+ * measured down a top (cm): a chart's centre-back length reads this much shorter
+ * than its HPS length. ASSUMED: a typical back-neck drop (about ¾ in) on knit and
+ * tee patterns; it varies a little by garment.
+ */
+export const BACK_NECK_DROP_CM = 2;
 
 /** Top length vs. body torso length (high shoulder point -> hip line). */
 export const TOP_LENGTH: LengthRule = { kind: 'length', shortBelow: -4, longAbove: 5, ideal: 1 };
