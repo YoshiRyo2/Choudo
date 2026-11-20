@@ -27,6 +27,14 @@ interface MannequinProps {
    * (the dev landmark picker's preview, which needs to see every photo it places).
    */
   photos?: 'licensed' | 'all';
+  /**
+   * How the view is framed; the body is drawn the same either way.
+   * - canvas (default): a fixed canvas, so a taller body is drawn taller (the body
+   *   screen, where the height is being entered).
+   * - body: the view ends just under the feet, so the figure fills its box with no
+   *   empty floor below it (the fitting room's stage).
+   */
+  frame?: 'canvas' | 'body';
   className?: string;
 }
 
@@ -37,7 +45,7 @@ const VIEW = { left: -62, right: 62, top: -6 };
  * A 2D dress-form mannequin scaled to the body, optionally wearing a top and a
  * bottom. Swap this component out to move to a 3D renderer later.
  */
-export function Mannequin({ body, top, bottom, showFit = true, photos = 'licensed', className }: MannequinProps) {
+export function Mannequin({ body, top, bottom, showFit = true, photos = 'licensed', frame = 'canvas', className }: MannequinProps) {
   const g = useMemo(() => bodyGeometry(body), [body]);
 
   const topSize = top?.garment.sizes.find((s) => s.label === top.sizeLabel);
@@ -84,7 +92,8 @@ export function Mannequin({ body, top, bottom, showFit = true, photos = 'license
       />
     ) : null;
 
-  const viewHeight = Math.max(214, body.heightCm + 10);
+  // From VIEW.top to 4 cm under the floor; the canvas is tall enough for a 204 cm body.
+  const viewHeight = frame === 'body' ? body.heightCm + 10 : Math.max(214, body.heightCm + 10);
   // Top pins go on the figure's right edge, bottom pins on the left, so a pants
   // waist pin never looks like it belongs to the shirt covering it.
   const pins: { key: string; at: Marker; side: 1 | -1; zone: ZoneFit }[] = [];
