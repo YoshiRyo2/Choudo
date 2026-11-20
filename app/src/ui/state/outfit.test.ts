@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../../domain/body';
 import { preferenceSpec, recommendSize } from '../../domain/fit';
-import { findGarment, garmentsByCategory } from '../../domain/garments';
+import { canWarp, findGarment, garmentsByCategory } from '../../domain/garments';
 import { defaultSize, resolveOutfit, suggestedFit, wearGarment } from './outfit';
 import { EMPTY_OUTFIT } from './stored';
 import { UNKNOWN_CHEST_TEE } from '../../domain/garments/testFixtures';
@@ -10,9 +10,9 @@ const body = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
 const pref = preferenceSpec(null, null);
 
 describe('resolveOutfit', () => {
-  it('fills an empty outfit with the first garments in their suggested sizes', () => {
+  it('fills an empty outfit with the first garments (photo ones first) in their suggested sizes', () => {
     const o = resolveOutfit(EMPTY_OUTFIT, body, pref);
-    const top = garmentsByCategory('top')[0]!;
+    const top = garmentsByCategory('top').find((g) => canWarp(g.image))!;
     expect(o.topId).toBe(top.id);
     expect(o.topSize).toBe(recommendSize(body, top, pref));
     expect(o.bottomId).toBe(garmentsByCategory('bottom')[0]!.id);
@@ -48,6 +48,35 @@ describe('resolveOutfit with a filtered catalogue', () => {
     expect(o.bottomId).toBeNull();
     const worn = resolveOutfit({ ...EMPTY_OUTFIT, bottomId: 'corvo-slim-jean', bottomSize: '32x32' }, body, pref, unisexTops);
     expect(worn.bottomId).toBe('corvo-slim-jean');
+  });
+});
+
+describe('resolveOutfit prefers a garment with a photo the mannequin can show', () => {
+  const tops = garmentsByCategory('top');
+  const firstPhotoTop = tops.find((g) => canWarp(g.image))!;
+
+  it('picks the first shown top with an own or brand-permission photo over the first top', () => {
+    expect(canWarp(tops[0]!.image)).toBe(false); // the plain rule would pick this one
+    const o = resolveOutfit(EMPTY_OUTFIT, body, pref, tops);
+    expect(o.topId).toBe(firstPhotoTop.id);
+    expect(o.topSize).toBe(defaultSize(body, firstPhotoTop, pref));
+  });
+
+  it('skips photos the app may not warp (local-only, affiliate-unaltered)', () => {
+    const localOnly = tops.find((g) => g.image?.licence === 'local-only')!;
+    const plain = tops.find((g) => !g.image)!;
+    const o = resolveOutfit(EMPTY_OUTFIT, body, pref, [localOnly, plain]);
+    expect(o.topId).toBe(localOnly.id); // no warpable photo: first shown, as before
+  });
+
+  it('falls back to the first shown garment when none has a photo', () => {
+    const plain = tops.filter((g) => !g.image);
+    expect(resolveOutfit(EMPTY_OUTFIT, body, pref, plain).topId).toBe(plain[0]!.id);
+  });
+
+  it('never swaps out a valid saved garment for a photo one', () => {
+    const saved = { topId: 'knightweave-tee', topSize: 'M', bottomId: null, bottomSize: null };
+    expect(resolveOutfit(saved, body, pref, tops).topId).toBe('knightweave-tee');
   });
 });
 
