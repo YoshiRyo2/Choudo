@@ -1,7 +1,35 @@
+import { useState } from 'react';
 import type { Garment } from '../../domain/garments';
+import { thumbPhotoSrc } from './garmentThumb';
+import './GarmentIcon.css';
 
-/** Little flat drawing of the garment in its colour, used on browse cards. */
+/**
+ * The garment's picture on browse cards: its front photo, shown as it is, when the
+ * licence allows (see thumbPhotoSrc); otherwise, or if the photo fails to load, a
+ * little flat drawing in its colour. Decorative: the card already names the garment.
+ */
 export function GarmentIcon({ garment }: { garment: Garment }) {
+  const src = thumbPhotoSrc(garment, import.meta.env.BASE_URL);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  if (src && src !== failedSrc) {
+    return (
+      <img
+        className="garment-icon garment-icon--photo"
+        src={src}
+        alt=""
+        width={56}
+        height={60}
+        loading="lazy"
+        decoding="async"
+        onError={() => setFailedSrc(src)}
+      />
+    );
+  }
+  return <GarmentDrawing garment={garment} />;
+}
+
+/** Little flat drawing of the garment in its colour. */
+function GarmentDrawing({ garment }: { garment: Garment }) {
   const fill = garment.color;
   const stroke = 'color-mix(in srgb, var(--ink) 55%, transparent)';
   let d: string;
