@@ -221,8 +221,16 @@ select {
   color: var(--ink);
   box-shadow: inset 0 0 0 1.5px var(--line);
 }
+/*
+ * Looks 36 px tall but takes taps over 44 px: a transparent 4 px border above
+ * and below (background and ring stay inside it), cancelled by negative margins
+ * so the layout doesn't move.
+ */
 .button--small {
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 14px;
+  border-block: 4px solid transparent;
+  margin-block: -4px;
+  background-clip: padding-box;
   font-size: var(--step--1);
 }

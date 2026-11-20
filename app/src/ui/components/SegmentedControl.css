@@ -23,6 +23,8 @@
 
 .segmented__option {
   position: relative;
+  min-width: 44px;
+  text-align: center;
   padding: 6px 14px;
   border-radius: 999px;
   font-size: var(--step--1);
@@ -31,6 +33,17 @@
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
+}
+
+/* The pill stays slim; this takes taps over a full 44 px. */
+.segmented__option::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 44px;
+  transform: translateY(-50%);
 }
 
 .segmented__option input {
