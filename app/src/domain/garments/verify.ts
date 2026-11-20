@@ -24,7 +24,7 @@ import {
   type Range,
 } from './verifyRules';
 
-export type CheckName = 'structure' | 'monotonic' | 'grading' | 'range' | 'girth-method' | 'audit';
+export type CheckName = 'structure' | 'monotonic' | 'grading' | 'range' | 'relation' | 'girth-method' | 'audit';
 
 export interface CheckIssue {
   check: CheckName;
@@ -89,6 +89,7 @@ export function checkGarment(g: SeedGarment): GarmentCheck {
     }
   }
   for (const m of checkRanges(g, sizes)) warn('range', m);
+  for (const m of checkRelations(g, sizes)) warn('relation', m);
   result.unscorable = unscorableZones(g);
   if (g.audit) {
     result.audit = compareAudit(g, sizes);
@@ -259,6 +260,22 @@ export function checkRanges(g: SeedGarment, sizes: GarmentSize[]): string[] {
   return out;
 }
 
+/** Measurements of one size that disagree with each other (CategoryChecks.relations). Girths of unknown method are skipped. */
+export function checkRelations(g: SeedGarment, sizes: GarmentSize[]): string[] {
+  const out: string[] = [];
+  const known = (key: MeasurementKey) => !isGirthKey(key) || girthMethodOf(g.chart, key) !== 'unknown';
+  for (const rel of categorySpec(g).checks.relations ?? []) {
+    const [a, b] = rel.keys;
+    if (!known(a) || !known(b)) continue;
+    for (const s of sizes) {
+      const m = s.measurements;
+      if (m[a] === undefined || m[b] === undefined) continue;
+      if (!rel.holds(m as never)) out.push(rel.message(s.label, cm(m[a]!), cm(m[b]!)));
+    }
+  }
+  return out;
+}
+
 /** Zones the fit engine will answer "unknown" for because a definition is missing. */
 export function unscorableZones(g: SeedGarment): UnscorableZone[] {
   const present = new Set(g.sizes.flatMap((s) => Object.keys(s.measurements) as MeasurementKey[]));
@@ -277,6 +294,16 @@ export function unscorableZones(g: SeedGarment): UnscorableZone[] {
         ? 'length is measured from the back of the neck, not the shoulder'
         : 'chart doesn’t say where length is measured from';
     out.push({ key: 'length', reason, required: true });
+  }
+  // Pants legs: optional zones, so never required.
+  if (present.has('thigh')) {
+    const thigh = chartDefinition(g.chart, 'thigh');
+    if (thigh !== 'at_crotch' && thigh !== 'below_crotch_2_5cm') {
+      out.push({ key: 'thigh', reason: 'chart doesn’t say where the thigh is measured', required: false });
+    }
+  }
+  if (spec.template === 'pants' && present.has('rise') && chartDefinition(g.chart, 'rise') !== 'front') {
+    out.push({ key: 'rise', reason: 'rise isn’t the front rise', required: false });
   }
   // Only long sleeves are scored; short sleeves are a style choice.
   if (g.sleeve === 'long' && present.has('sleeve') && chartDefinition(g.chart, 'sleeve') !== 'shoulder_to_cuff') {

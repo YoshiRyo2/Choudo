@@ -205,7 +205,8 @@ describe('recommendSize', () => {
 
   it('skips tight pants and picks the matching inseam', () => {
     const jean = findGarment('corvo-slim-jean')!;
-    const b = bodyWith({ waistCm: 83, hipsCm: 99, inseamCm: 81 });
+    // The thigh to go with those hips (men's thigh is 0.61 × hips).
+    const b = bodyWith({ waistCm: 83, hipsCm: 99, inseamCm: 81, thighCm: 0.61 * 99 });
     expect(recommendSize(b, jean, regular)).toBe('32x32');
   });
 

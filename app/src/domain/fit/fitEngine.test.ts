@@ -156,16 +156,22 @@ describe('fitGarment', () => {
     expect(fit.zones.every((z) => z.diffCm !== null)).toBe(true);
   });
 
-  it('scores waist, hips and inseam for bottoms, and the leg zones the chart allows', () => {
+  it('scores waist, hips, thigh, rise, inseam and leg opening for jeans', () => {
     const fit = fitGarment(body, findGarment('corvo-slim-jean')!, '32x30');
-    expect(fit.zones.map((z) => [z.zone, z.label])).toEqual([
-      ['waist', 'fitted'], // 84 vs 84
-      ['hips', 'fitted'], // 100 vs 100
-      ['thigh', 'unknown'], // no thigh on the chart
-      ['rise', 'unknown'], // a rise, but not said to be the front rise
-      ['inseam', 'short'], // 76 vs 80
-      ['legOpening', 'unknown'],
+    expect(fit.zones.map((z) => [z.zone, z.label, z.landing])).toEqual([
+      ['waist', 'fitted', undefined], // 84 vs about 84.6 where the band sits
+      ['hips', 'fitted', undefined], // 100 vs 100
+      ['thigh', 'fitted', undefined], // 59.5 vs 62.8, inside the stretch allowance
+      ['rise', 'noted', 'high'], // 25.5 vs a 26.75 front rise
+      ['inseam', 'short', undefined], // 76 vs 80
+      ['legOpening', 'noted', 'slim'], // 36 vs a 34.5 heel
     ]);
+  });
+
+  it('leaves the leg zones unknown on a chart without them', () => {
+    const fit = fitGarment(body, findGarment('fieldline-slim-chino')!, '32');
+    expect(fit.zones.filter((z) => z.label === 'unknown').map((z) => z.zone)).toEqual(['thigh', 'rise', 'legOpening']);
+    expect(fit.overall).not.toBe('unknown');
   });
 
   it('flags a much-too-short length as bad, a little short as warn', () => {
@@ -192,7 +198,8 @@ describe('fitGarment', () => {
       const g = findGarment(id)!;
       for (const fit of fitAllSizes(body, g)) {
         for (const z of fit.zones) {
-          if (z.diffCm === null) continue;
+          // Landing zones say where an edge ends; they have no scale of bands.
+          if (z.diffCm === null || z.kind === 'landing') continue;
           const band = z.bands.find((b) => z.diffCm! >= b.from && z.diffCm! <= b.to);
           expect(band?.label, `${id} ${fit.sizeLabel} ${z.zone}`).toBe(z.label);
           expect(band?.tone).toBe(z.tone);

@@ -50,7 +50,18 @@ export const BOTTOM_RANGES: Partial<Record<MeasurementKey, Range>> = {
   hips: { min: 75, max: 170 },
   inseam: { min: 60, max: 95 },
   rise: { min: 18, max: 40 },
+  // Legs, ASSUMED from typical charts: skinny to wide, small to big sizes.
+  thigh: { min: 40, max: 100 },
+  knee: { min: 28, max: 70 },
+  legOpening: { min: 22, max: 80 },
 };
+
+/**
+ * A pants thigh over this share of its seat is probably a typo or a mixed-up
+ * method. Real cuts run about 0.55–0.68 (§2.5's "hips / 2 + 8" flags ordinary
+ * relaxed jeans once both are full circumferences). ASSUMED.
+ */
+export const MAX_THIGH_TO_HIPS = 0.7;
 
 /**
  * A typical men's / unisex body chest for each letter size, in inches: the

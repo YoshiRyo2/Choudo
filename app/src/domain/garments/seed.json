@@ -271,15 +271,15 @@
       "color": "#2b3f66",
       "stretch": "some",
       "fitIntent": "slim",
-      "chart": { "unit": "cm", "girth": "circumference" },
+      "chart": { "unit": "cm", "girth": "circumference", "definitions": { "rise": "front", "thigh": "below_crotch_2_5cm" } },
       "source": { "placeholder": true },
       "sizes": [
-        { "label": "30x30", "measurements": { "waist": 79, "hips": 95, "inseam": 76, "rise": 25 } },
-        { "label": "30x32", "measurements": { "waist": 79, "hips": 95, "inseam": 81, "rise": 25 } },
-        { "label": "32x30", "measurements": { "waist": 84, "hips": 100, "inseam": 76, "rise": 25.5 } },
-        { "label": "32x32", "measurements": { "waist": 84, "hips": 100, "inseam": 81, "rise": 25.5 } },
-        { "label": "34x32", "measurements": { "waist": 89, "hips": 105, "inseam": 81, "rise": 26 } },
-        { "label": "36x32", "measurements": { "waist": 94, "hips": 110, "inseam": 81, "rise": 26.5 } }
+        { "label": "30x30", "measurements": { "waist": 79, "hips": 95, "inseam": 76, "rise": 25, "thigh": 57, "knee": 38, "legOpening": 35 } },
+        { "label": "30x32", "measurements": { "waist": 79, "hips": 95, "inseam": 81, "rise": 25, "thigh": 57, "knee": 38, "legOpening": 35 } },
+        { "label": "32x30", "measurements": { "waist": 84, "hips": 100, "inseam": 76, "rise": 25.5, "thigh": 59.5, "knee": 39.5, "legOpening": 36 } },
+        { "label": "32x32", "measurements": { "waist": 84, "hips": 100, "inseam": 81, "rise": 25.5, "thigh": 59.5, "knee": 39.5, "legOpening": 36 } },
+        { "label": "34x32", "measurements": { "waist": 89, "hips": 105, "inseam": 81, "rise": 26, "thigh": 62, "knee": 41, "legOpening": 37 } },
+        { "label": "36x32", "measurements": { "waist": 94, "hips": 110, "inseam": 81, "rise": 26.5, "thigh": 64.5, "knee": 42.5, "legOpening": 38 } }
       ]
     },
     {
@@ -292,14 +292,14 @@
       "color": "#5b7fa8",
       "stretch": "none",
       "fitIntent": "relaxed",
-      "chart": { "unit": "in", "girth": "flat" },
+      "chart": { "unit": "in", "girth": "flat", "definitions": { "rise": "front", "thigh": "below_crotch_2_5cm" } },
       "source": { "placeholder": true },
       "sizes": [
-        { "label": "30x32", "measurements": { "waist": 15.75, "hips": 20.5, "inseam": 32, "rise": 11 } },
-        { "label": "32x32", "measurements": { "waist": 16.75, "hips": 21.5, "inseam": 32, "rise": 11.25 } },
-        { "label": "34x32", "measurements": { "waist": 17.75, "hips": 22.5, "inseam": 32, "rise": 11.5 } },
-        { "label": "34x34", "measurements": { "waist": 17.75, "hips": 22.5, "inseam": 34, "rise": 11.5 } },
-        { "label": "36x32", "measurements": { "waist": 18.75, "hips": 23.5, "inseam": 32, "rise": 11.75 } }
+        { "label": "30x32", "measurements": { "waist": 15.75, "hips": 20.5, "inseam": 32, "rise": 11, "thigh": 13, "knee": 9.5, "legOpening": 8.5 } },
+        { "label": "32x32", "measurements": { "waist": 16.75, "hips": 21.5, "inseam": 32, "rise": 11.25, "thigh": 13.5, "knee": 9.75, "legOpening": 8.75 } },
+        { "label": "34x32", "measurements": { "waist": 17.75, "hips": 22.5, "inseam": 32, "rise": 11.5, "thigh": 14, "knee": 10, "legOpening": 9 } },
+        { "label": "34x34", "measurements": { "waist": 17.75, "hips": 22.5, "inseam": 34, "rise": 11.5, "thigh": 14, "knee": 10, "legOpening": 9 } },
+        { "label": "36x32", "measurements": { "waist": 18.75, "hips": 23.5, "inseam": 32, "rise": 11.75, "thigh": 14.5, "knee": 10.25, "legOpening": 9.25 } }
       ]
     },
     {

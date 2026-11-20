@@ -209,3 +209,49 @@ describe('compareAudit', () => {
     ]);
   });
 });
+
+describe('pants checks', () => {
+  const pants = (m: Record<string, number>, over: Partial<SeedGarment> = {}): SeedGarment => ({
+    ...jean([['32', 84, 81]]),
+    sizes: [{ label: '32', measurements: { waist: 84, hips: 100, inseam: 81, ...m } }],
+    ...over,
+  });
+
+  it('flags a thigh marked flat that looks like a full circumference', () => {
+    const r = checkGarment(pants({ thigh: 60 }, { chart: { unit: 'cm', girth: { default: 'circumference', thigh: 'flat' } } }));
+    expect(r.errors.map((e) => [e.check, e.message])).toEqual([
+      ['girth-method', 'thigh is marked flat, but 60.0 cm–60.0 cm as printed looks like a full circumference'],
+    ]);
+  });
+
+  it('warns when the leg opening is wider than the knee, or the knee than the thigh', () => {
+    const r = checkGarment(pants({ thigh: 60, knee: 38, legOpening: 42 }));
+    expect(r.warnings).toContainEqual({ check: 'relation', message: 'legOpening in 32 (42.0 cm) is wider than its knee (38.0 cm)' });
+    const k = checkGarment(pants({ thigh: 40, knee: 44 }));
+    expect(k.warnings).toContainEqual({ check: 'relation', message: 'knee in 32 (44.0 cm) is wider than its thigh (40.0 cm)' });
+  });
+
+  it('warns when the thigh is more than 0.7 of the hips', () => {
+    const r = checkGarment(pants({ thigh: 75 }));
+    expect(r.warnings).toContainEqual({ check: 'relation', message: 'thigh in 32 (75.0 cm) is more than 0.7 × its hips (100.0 cm)' });
+  });
+
+  it('warns on a leg measurement outside its range', () => {
+    const r = checkGarment(pants({ legOpening: 90 }));
+    expect(r.warnings.map((w) => w.message)).toContain('legOpening in 32 is 90.0 cm, outside 22–80 cm');
+  });
+
+  it('lists thigh and rise as unscorable, not required, without their definitions', () => {
+    expect(unscorableZones(pants({ thigh: 60, rise: 26 }))).toEqual([
+      { key: 'thigh', reason: 'chart doesn’t say where the thigh is measured', required: false },
+      { key: 'rise', reason: 'rise isn’t the front rise', required: false },
+    ]);
+    const defined = pants({ thigh: 60, rise: 26 }, { chart: { unit: 'cm', girth: 'circumference', definitions: { rise: 'front', thigh: 'at_crotch' } } });
+    expect(unscorableZones(defined)).toEqual([]);
+  });
+
+  it('lists a leg opening whose method is unknown as unscorable, not required', () => {
+    const g = pants({ legOpening: 40 }, { chart: { unit: 'cm', girth: { default: 'circumference', legOpening: 'unknown' } } });
+    expect(unscorableZones(g)).toEqual([{ key: 'legOpening', reason: 'chart doesn’t say flat or full circumference', required: false }]);
+  });
+});
