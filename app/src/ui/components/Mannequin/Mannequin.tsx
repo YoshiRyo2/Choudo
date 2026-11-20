@@ -1,10 +1,11 @@
 import { useId, useMemo } from 'react';
 import type { BodyMeasurements } from '../../../domain/body';
 import type { GarmentFit, ZoneFit } from '../../../domain/fit';
-import { canWarp, pantsLandmarks, topLandmarks, type Garment, type GarmentImage } from '../../../domain/garments';
+import { canWarp, pantsLandmarks, templateOf, topLandmarks, type Garment, type GarmentImage } from '../../../domain/garments';
 import { bodyGeometry, type Marker } from './geometry';
 import { affineToSvg, warpPantsPieces, warpPieces, type WarpPiece, type WarpRegion } from './photoWarp';
 import { pantsShape } from './templates/pants';
+import { skirtShape } from './templates/skirt';
 import { topShape } from './topShape';
 import { usePhotoSize, type PhotoSize } from './usePhotoSize';
 import './Mannequin.css';
@@ -42,7 +43,10 @@ export function Mannequin({ body, top, bottom, showFit = true, photos = 'license
   const topSize = top?.garment.sizes.find((s) => s.label === top.sizeLabel);
   const bottomSize = bottom?.garment.sizes.find((s) => s.label === bottom.sizeLabel);
   const topDraw = top && topSize ? topShape(g, top.garment, topSize.measurements, body.chestCm, body) : null;
-  const bottomDraw = bottom && bottomSize ? pantsShape(g, body, bottom.garment, bottomSize.measurements) : null;
+  // Skirts have their own template; pants and shorts share the pants one.
+  const isSkirt = bottom ? templateOf(bottom.garment) === 'skirt' : false;
+  const skirtDraw = bottom && bottomSize && isSkirt ? skirtShape(g, body, bottom.garment, bottomSize.measurements) : null;
+  const bottomDraw = bottom && bottomSize && !isSkirt ? pantsShape(g, body, bottom.garment, bottomSize.measurements) : null;
 
   // A product photo, when the garment has one, its licence allows warping and the
   // file is present, is warped onto this size's outline over the flat colour.
@@ -90,7 +94,9 @@ export function Mannequin({ body, top, bottom, showFit = true, photos = 'license
       if (at) pins.push({ key: `top-${z.zone}`, at, side: 1, zone: z });
     }
     for (const z of bottom?.fit?.zones ?? []) {
-      const at = bottomDraw?.markers[z.zone as keyof typeof bottomDraw.markers];
+      const at = skirtDraw
+        ? skirtDraw.markers[z.zone as keyof typeof skirtDraw.markers]
+        : bottomDraw?.markers[z.zone as keyof typeof bottomDraw.markers];
       if (at) pins.push({ key: `bottom-${z.zone}`, at, side: -1, zone: z });
     }
   }
@@ -146,6 +152,9 @@ export function Mannequin({ body, top, bottom, showFit = true, photos = 'license
           {bottomTexture('legRight', bottomDraw.legs.right)}
           {bottomTexture('legLeft', bottomDraw.legs.left)}
         </g>
+      )}
+      {skirtDraw && bottom && (
+        <path className={garmentClass(skirtDraw.approximate, bottom.garment)} d={skirtDraw.body} style={{ fill: bottom.garment.color }} />
       )}
       {topDraw && top && (
         <g>
