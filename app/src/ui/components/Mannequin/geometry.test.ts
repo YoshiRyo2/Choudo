@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../../../domain/body';
 import { findGarment } from '../../../domain/garments';
-import { bodyGeometry, bodyHalfAt, bottomShape, limbFrame, mirrorPath, smoothPath } from './geometry';
+import { bodyGeometry, bodyHalfAt, bottomShape, halfWidth, limbFrame, mirrorPath, smoothPath } from './geometry';
 import { MAX_SIDE_FLARE_CM, topShape } from './topShape';
 import { UNKNOWN_CHEST_TEE } from '../../../domain/garments/testFixtures';
 
@@ -223,5 +223,45 @@ describe('path helpers', () => {
 
   it('mirrors x but not y', () => {
     expect(mirrorPath('M1 2 C3 4 5 6 7 8 Z')).toBe('M-1 2 C-3 4 -5 6 -7 8 Z');
+  });
+});
+
+describe('body heights and legs come from the body model (skin rule)', () => {
+  const BODIES = [
+    { heightCm: 176, weightKg: 85, bodyType: 'mens' as const },
+    { heightCm: 190, weightKg: 80, bodyType: 'mens' as const, overrides: { chestCm: 98, waistCm: 82, inseamCm: 88 } },
+    { heightCm: 165, weightKg: 60, bodyType: 'mens' as const },
+    { heightCm: 163, weightKg: 68, bodyType: 'womens' as const },
+    { heightCm: 170, weightKg: 75, bodyType: 'womens' as const },
+    { heightCm: 158, weightKg: 90, bodyType: 'womens' as const, overrides: { waistCm: 98, hipsCm: 118 } },
+  ];
+
+  it("draws the waist, hip line, crotch and knee at the body's heights", () => {
+    for (const input of BODIES) {
+      const m = estimateBody(input).measurements;
+      const g = bodyGeometry(m);
+      expect(g.y.waist).toBeCloseTo(m.heightCm - m.waistHeightCm);
+      expect(g.y.hip).toBeCloseTo(m.heightCm - m.hipHeightCm);
+      expect(g.y.crotch).toBeCloseTo(m.heightCm - m.inseamCm);
+      expect(g.y.knee).toBeCloseTo(m.heightCm - m.kneeHeightCm);
+    }
+  });
+
+  it('leg widths follow thigh, knee and calf', () => {
+    const m = estimateBody(BODIES[0]!).measurements;
+    const g = bodyGeometry(m);
+    expect(g.leg.thighHalf).toBeCloseTo(halfWidth.leg(m.thighCm));
+    expect(g.leg.kneeHalf).toBeCloseTo(halfWidth.leg(m.kneeCm));
+    expect(g.leg.calfHalf).toBeCloseTo(halfWidth.leg(m.calfCm));
+    const thicker = bodyGeometry({ ...m, thighCm: m.thighCm + 10 });
+    expect(thicker.leg.thighHalf).toBeGreaterThan(g.leg.thighHalf);
+  });
+
+  it('keeps the thighs inside the hips and apart at the middle', () => {
+    for (const input of BODIES) {
+      const g = bodyGeometry(estimateBody(input).measurements);
+      expect(g.leg.thighX + g.leg.thighHalf).toBeLessThanOrEqual(g.half.hip + 0.5);
+      expect(g.leg.thighX - g.leg.thighHalf).toBeGreaterThanOrEqual(0);
+    }
   });
 });

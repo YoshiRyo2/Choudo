@@ -70,6 +70,12 @@ export const halfWidth = {
   chest: (c: number) => c / 5.4,
   waist: (c: number) => c / 5.65,
   hips: (c: number) => c / 5.5,
+  /**
+   * A leg (thigh, knee, calf; and a trouser leg round it): a little deeper than wide
+   * where the thighs press together, depth/width ≈ 1.15, so C ≈ π(w + d)/2 gives
+   * w ≈ C / 3.38. Skin only: it turns an engine circumference into a front width.
+   */
+  leg: (c: number) => c / 6.75,
 };
 
 // ---------- body ----------
@@ -138,7 +144,6 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
   const shape = SILHOUETTE[m.bodyType];
   const H = m.heightCm;
   const s = H / 176; // general scale vs. the reference body
-  const girthScale = m.hipsCm / 103;
 
   const half = {
     neck: 6 * Math.sqrt(m.chestCm / 104) * shape.neck,
@@ -150,8 +155,8 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
   // Shoulders never narrower than the chest beneath them.
   half.shoulder = Math.max(half.shoulder, half.chest + 1.5);
 
-  const hip = 0.49 * H;
-  const knee = 0.72 * H;
+  // Heights come from the body model (skin rule): navel (waist), the fullest seat
+  // (hip line), the crotch (inseam) and the knee. estimateBody keeps them in order.
   const y = {
     chin: 0.125 * H,
     neckBase: 0.155 * H,
@@ -159,28 +164,29 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
     shoulder: 0.19 * H,
     armpit: 0.235 * H,
     chest: shape.chestY * H,
-    waist: 0.385 * H,
-    hip,
-    // Entered inseams can be anything plausible; keep the crotch between hip and knee.
-    crotch: Math.min(Math.max(H - m.inseamCm, hip + 3), knee - 12),
-    knee,
+    waist: H - m.waistHeightCm,
+    hip: H - m.hipHeightCm,
+    crotch: H - m.inseamCm,
+    knee: H - m.kneeHeightCm,
     ankle: 0.955 * H,
     floor: H,
   };
 
   const head = { cx: 0, cy: 0.064 * H, rx: 7.6 * s, ry: 0.064 * H };
 
-  // Legs taper from a full thigh to the knee, swell a little at the calf and
-  // narrow to the ankle, standing slightly apart so each leg reads on its own.
-  const kneeHalf = Math.max(4.6, 5.6 * girthScale ** 0.9 * s);
+  // Legs: widths from the body's thigh, knee and calf girths. The thighs fill the
+  // hips side by side (pressed together at the middle, never past the hip line's
+  // width); the knees, calves and ankles stand slightly apart so each leg reads.
+  const thighHalf = Math.min(halfWidth.leg(m.thighCm), (half.hip + 0.5) / 2);
+  const kneeHalf = halfWidth.leg(m.kneeCm);
   const leg = {
     thighY: y.crotch + 5,
-    thighX: half.hip * 0.5 + 0.2,
-    thighHalf: half.hip * 0.5 - 0.6,
-    kneeX: half.hip * 0.42 + 0.9,
+    thighX: Math.max(thighHalf, half.hip - thighHalf),
+    thighHalf,
+    kneeX: Math.max(half.hip * 0.42 + 0.9, kneeHalf + 0.3),
     kneeHalf,
     calfY: lerp(y.knee, y.ankle, 0.3),
-    calfHalf: kneeHalf * 1.04,
+    calfHalf: halfWidth.leg(m.calfCm),
     ankleX: half.hip * 0.38 + 1.4,
     ankleHalf: 3.1 * s,
   };
