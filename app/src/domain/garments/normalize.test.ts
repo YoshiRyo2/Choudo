@@ -88,8 +88,8 @@ describe('pants measurements', () => {
     expect(size.provenance.waist?.conversions).toEqual(['inches to cm']);
   });
 
-  it('MEASUREMENT_KEYS keeps its first eight in order and ends with the pants keys', () => {
-    expect(MEASUREMENT_KEYS).toEqual(['chest', 'waist', 'hips', 'length', 'sleeve', 'shoulder', 'inseam', 'rise', 'thigh', 'knee', 'legOpening']);
-    expect(GIRTH_KEYS).toEqual(['chest', 'waist', 'hips', 'thigh', 'knee', 'legOpening']);
+  it('MEASUREMENT_KEYS keeps its first eight in order, then the pants keys, then the knit hem band', () => {
+    expect(MEASUREMENT_KEYS).toEqual(['chest', 'waist', 'hips', 'length', 'sleeve', 'shoulder', 'inseam', 'rise', 'thigh', 'knee', 'legOpening', 'hemBand']);
+    expect(GIRTH_KEYS).toEqual(['chest', 'waist', 'hips', 'thigh', 'knee', 'legOpening', 'hemBand']);
   });
 });

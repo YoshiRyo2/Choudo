@@ -195,6 +195,7 @@ const TOP_PERSONAL = { girth: 'chest', length: 'length' } as const;
 export const TEMPLATE_ZONES: Record<TemplateId, TemplateZones> = {
   tee: { template: 'tee', zones: TOP_ZONES, personal: TOP_PERSONAL },
   shirt: { template: 'shirt', zones: TOP_ZONES, personal: TOP_PERSONAL },
+  knit: { template: 'knit', zones: TOP_ZONES, personal: TOP_PERSONAL },
   pants: { template: 'pants', zones: PANTS_ZONES, personal: null },
 };
 

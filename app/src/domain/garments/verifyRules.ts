@@ -25,6 +25,8 @@ export const GIRTH_METHOD_LIMITS: Record<GirthKey, { flatMax: number; circumfere
   thigh: { flatMax: 50, circumferenceMin: 40 },
   knee: { flatMax: 40, circumferenceMin: 28 },
   legOpening: { flatMax: 35, circumferenceMin: 22 },
+  // Knit rib hem band, relaxed. ASSUMED: a little under the chest's limits (bands run narrower than the body).
+  hemBand: { flatMax: 75, circumferenceMin: 55 },
 };
 
 /** Plausible garment measurements (cm, full circumferences) for tops. */
