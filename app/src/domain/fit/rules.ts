@@ -143,19 +143,67 @@ export const TOP_GIRTH_RULES: Record<GarmentSizing, { chest: GirthRule; waist: G
  */
 export const KNIT_EASE_OFFSET_CM = 10;
 
-/** A tee chest rule moved out by the knit offset. Tight is about the body, not the cut, so it stays. */
-const knitChest = (tee: GirthRule): GirthRule => ({
-  ...tee,
-  fittedMax: tee.fittedMax + KNIT_EASE_OFFSET_CM,
-  relaxedMax: tee.relaxedMax + KNIT_EASE_OFFSET_CM,
-  ideal: tee.ideal + KNIT_EASE_OFFSET_CM,
-});
+/** A tee chest rule moved out by a template's offset. Tight is about the body, not the cut, so it stays. */
+function shiftedChest(tee: GirthRule, offsetCm: number): GirthRule {
+  return { ...tee, fittedMax: tee.fittedMax + offsetCm, relaxedMax: tee.relaxedMax + offsetCm, ideal: tee.ideal + offsetCm };
+}
+const knitChest = (tee: GirthRule): GirthRule => shiftedChest(tee, KNIT_EASE_OFFSET_CM);
 
 /** Knit chest by the garment's sizing: the top chest rules shifted by KNIT_EASE_OFFSET_CM (ASSUMED). */
 export const KNIT_GIRTH_RULES: Record<GarmentSizing, GirthRule> = {
   mens: knitChest(TOP_GIRTH_RULES.mens.chest),
   unisex: knitChest(TOP_GIRTH_RULES.unisex.chest),
   womens: knitChest(TOP_GIRTH_RULES.womens.chest),
+};
+
+/**
+ * How much roomier a jacket is cut than a tee, chest ease in cm. ASSUMED from one
+ * chart, not from fit tests: Port Authority's J317 soft shell measures 46 in round
+ * the chest (23 in flat) in M against its size chart's 38–40 in chest, about
+ * 17.8 cm of ease on M–XL, where a regular tee aims for +5 cm. Charts and these
+ * bands are bare-body: the jacket is graded to go over something light, and what's
+ * worn under it beyond that is added to the body (layers.ts). Tune with Test mode.
+ */
+export const JACKET_EASE_OFFSET_CM = 13;
+
+/** Jacket chest by the garment's sizing: the top chest rules shifted by JACKET_EASE_OFFSET_CM (ASSUMED). */
+export const JACKET_GIRTH_RULES: Record<GarmentSizing, GirthRule> = {
+  mens: shiftedChest(TOP_GIRTH_RULES.mens.chest, JACKET_EASE_OFFSET_CM),
+  unisex: shiftedChest(TOP_GIRTH_RULES.unisex.chest, JACKET_EASE_OFFSET_CM),
+  womens: shiftedChest(TOP_GIRTH_RULES.womens.chest, JACKET_EASE_OFFSET_CM),
+};
+
+/**
+ * A jacket's shoulder (seam to seam) against the body's shoulder width, cm.
+ * ASSUMED: a jacket's shoulder seam should sit on the shoulder point, ±1.5 cm;
+ * narrower pulls across the back (tight), up to 4 cm wider is a soft, dropped
+ * shoulder (relaxed), beyond that it hangs off the shoulder (loose). No stretch.
+ */
+export const JACKET_SHOULDER: GirthRule = {
+  kind: 'girth',
+  tightBelow: -1.5,
+  fittedMax: 1.5,
+  relaxedMax: 4,
+  ideal: 0,
+  stretch: { some: 0, high: 0, compression: 0 },
+};
+
+/**
+ * Where a jacket or coat's hem lands, by length − torso length (cm; 0 = the hip
+ * line, where a top's length is scored to end). ASSUMED marks: cropped more than
+ * 6 cm above the hip line (at the waist), hip length, thigh from 12 cm below
+ * (past the crotch, about 10 cm below the hip line), knee from 32 cm (the hip line
+ * is about 35–39 cm above the knee), calf from 45 cm. Descriptive only.
+ */
+export const JACKET_LENGTH: LandingRule = {
+  kind: 'landing',
+  marks: [
+    { label: 'cropped', atCm: -Infinity },
+    { label: 'hip', atCm: -6 },
+    { label: 'thigh', atCm: 12 },
+    { label: 'knee-length', atCm: 32 },
+    { label: 'calf', atCm: 45 },
+  ],
 };
 
 /**

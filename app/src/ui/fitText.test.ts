@@ -428,3 +428,23 @@ describe('skirt and shorts wording', () => {
     expect(bodyPlaceText(zone({ zone: 'hips', bodyAt: 'hip_point' }))).toBe(' where the chart measures the hips');
   });
 });
+
+describe('jacket wording', () => {
+  it('describes a charted shoulder against the shoulder points', () => {
+    const s = (diffCm: number, label: ZoneFit['label'] = 'fitted') => describeZone(zone({ zone: 'shoulder', diffCm, label }), 'metric');
+    expect(s(3, 'relaxed')).toBe('Shoulder seams sit 3.0 cm wider than your shoulders.');
+    expect(s(0.2)).toBe('Shoulder seams sit right on your shoulders.');
+    expect(s(-2, 'tight')).toBe('Shoulder seams sit 2.0 cm narrower than your shoulders.');
+    expect(zoneName('shoulder')).toBe('Shoulders');
+  });
+
+  it('places a jacket hem against the hip line, and still a skirt hem against the knee', () => {
+    const jacket = (diffCm: number, landing: string) => describeZone(zone({ zone: 'length', kind: 'landing', label: 'noted', diffCm, landing }), 'metric');
+    expect(jacket(2, 'hip')).toBe('Hip length: the hem ends 2.0 cm below your hip line.');
+    expect(jacket(0.2, 'hip')).toBe('Hip length: the hem ends at your hip line.');
+    expect(jacket(-8, 'cropped')).toBe('Cropped: the hem ends 8.0 cm above your hip line.');
+    expect(jacket(35, 'knee-length')).toBe('Knee length: the hem ends 35.0 cm below your hip line.');
+    const skirt = describeZone(zone({ zone: 'length', kind: 'landing', label: 'noted', diffCm: -6, landing: 'above-knee', bodyAt: 'knee' }), 'metric');
+    expect(skirt).toMatch(/above your knee\.$/);
+  });
+});

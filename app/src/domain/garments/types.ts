@@ -9,7 +9,8 @@
  *    is a full circumference. Produced by `normalizeGarment`.
  */
 
-export type GarmentCategory = 'top' | 'bottom';
+/** The outfit slot: top (tees, shirts, knits), bottom, or outer (jackets and coats, worn over the top). */
+export type GarmentCategory = 'top' | 'bottom' | 'outer';
 
 export type GarmentType =
   | 'tee'
@@ -25,7 +26,9 @@ export type GarmentType =
   | 'hoodie'
   | 'sweatshirt'
   | 'sweater'
-  | 'cardigan';
+  | 'cardigan'
+  | 'jacket'
+  | 'coat';
 
 /** Who the size chart is cut for. */
 export type GarmentSizing = 'mens' | 'womens' | 'unisex';

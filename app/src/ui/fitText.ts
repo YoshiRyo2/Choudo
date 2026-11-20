@@ -36,6 +36,7 @@ export const ZONE_NAME: Record<ZoneId, string> = {
   legOpening: 'Leg opening',
   hemBand: 'Hem band',
   walkingRoom: 'Walking room',
+  shoulder: 'Shoulders',
 };
 
 export const LABEL_TEXT: Record<FitLabel, string> = {
@@ -64,6 +65,7 @@ const ZONE_PLACE: Record<ZoneId, string> = {
   legOpening: 'at the hem',
   hemBand: 'at the hem band',
   walkingRoom: 'at the hem',
+  shoulder: 'at the shoulders',
 };
 
 /**
@@ -98,6 +100,9 @@ export function formatDiff(cm: number, units: UnitSystem): string {
 /** Under this many cm we say "matches" instead of quoting a tiny number. */
 const MATCH_CM = 0.5;
 
+/** Jacket length marks: these hems land against the hip line, not the knee. */
+const HIP_LINE_LANDINGS: readonly string[] = ['cropped', 'hip', 'thigh', 'knee-length', 'calf'];
+
 /** One plain sentence about a zone. */
 export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType = 'mens'): string {
   if (z.diffCm === null) return z.note ?? 'The size chart doesn’t give us enough to compare.';
@@ -109,7 +114,7 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
   // A blocked landing (won't go on, won't stay up): the engine says why.
   if (z.kind === 'landing' && z.tone === 'bad' && z.note) return z.note;
   // A hem landing against the knee: shorts (inseam) and skirts (length).
-  if (z.kind === 'landing' && (z.zone === 'inseam' || z.zone === 'length')) {
+  if (z.kind === 'landing' && (z.zone === 'inseam' || z.zone === 'length') && !HIP_LINE_LANDINGS.includes(z.landing ?? '')) {
     const where = !over && !under ? 'at your knee' : `${d} ${over ? 'below' : 'above'} your knee`;
     return `${LANDING_TEXT[z.landing ?? ''] ?? 'Here'}: the hem ends ${where}.`;
   }
@@ -125,6 +130,11 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
         ? `${d} smaller than your ${part}.`
         : `${d} smaller than your ${part}, but the fabric stretches.`;
     case 'length':
+      // A jacket's hem lands against the hip line, where a top's length is scored to end.
+      if (z.kind === 'landing') {
+        const where = !over && !under ? 'at your hip line' : `${d} ${over ? 'below' : 'above'} your hip line`;
+        return `${LANDING_TEXT[z.landing ?? ''] ?? 'Here'}: the hem ends ${where}.`;
+      }
       if (over) return `Ends ${d} lower than a regular-length top would on you.`;
       if (under) return `Ends ${d} higher than a regular-length top would on you.`;
       return 'A regular length on you.';
@@ -157,6 +167,10 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
       return z.label === 'tight'
         ? `${d} smaller than your hips: more than the rib can stretch.`
         : `${d} smaller than your hips, relaxed; the rib stretches to gather there.`;
+    case 'shoulder':
+      if (over) return `Shoulder seams sit ${d} wider than your shoulders.`;
+      if (under) return `Shoulder seams sit ${d} narrower than your shoulders.`;
+      return 'Shoulder seams sit right on your shoulders.';
     case 'walkingRoom':
       if (z.diffCm < 0) return `${d} short of a full stride at the hem: expect shorter steps, or look for a slit.`;
       return `Room for a full stride, with ${d} to spare at the hem.`;
@@ -193,6 +207,11 @@ const LANDING_TEXT: Record<string, string> = {
   maxi: 'Maxi',
   restricted: 'Short steps',
   free: 'Full stride',
+  cropped: 'Cropped',
+  hip: 'Hip length',
+  thigh: 'Thigh length',
+  'knee-length': 'Knee length',
+  calf: 'Calf length',
 };
 
 /**

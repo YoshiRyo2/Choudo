@@ -46,6 +46,8 @@ export const HEM_HALF: Record<GarmentType, number> = {
   sweatshirt: 9,
   sweater: 9,
   cardigan: 9,
+  jacket: 9,
+  coat: 9,
 };
 
 /** How much wider than the leg under it a fallback thigh or knee is drawn (cm, half width). Skin only. */

@@ -47,7 +47,7 @@ export interface Relation {
 }
 
 /** The template a garment type is fitted, checked and drawn with. */
-export type TemplateId = 'tee' | 'shirt' | 'knit' | 'pants' | 'shorts' | 'skirt';
+export type TemplateId = 'tee' | 'shirt' | 'knit' | 'pants' | 'shorts' | 'skirt' | 'jacket';
 
 export const TYPE_TEMPLATE: Record<GarmentType, TemplateId> = {
   tee: 'tee',
@@ -64,6 +64,8 @@ export const TYPE_TEMPLATE: Record<GarmentType, TemplateId> = {
   sweatshirt: 'knit',
   sweater: 'knit',
   cardigan: 'knit',
+  jacket: 'jacket',
+  coat: 'jacket',
 };
 
 export const GARMENT_TYPES = Object.keys(TYPE_TEMPLATE) as GarmentType[];
@@ -227,6 +229,16 @@ export const CATEGORY_SPECS: Record<TemplateId, CategorySpec> = {
     landmarks: null,
     checks: { required: ['waist', 'length'], ranges: SKIRT_RANGES, labelEase: null, relations: SKIRT_RELATIONS },
     defaultWeight: 'light',
+  },
+  // Worn over the top (outer slot). Data checks come with the first rows (PR 4, task 4).
+  jacket: {
+    template: 'jacket',
+    ...TOP_SPEC,
+    category: 'outer',
+    checks: KNIT_CHECKS,
+    landmarks: null,
+    defaultWeight: 'mid',
+    scoredDefinitions: { length: ['hps', 'center_back'], sleeve: ['shoulder_to_cuff', 'center_back_to_cuff'] },
   },
 };
 
