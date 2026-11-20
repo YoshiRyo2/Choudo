@@ -36,6 +36,7 @@ const problems = distProblems({
   manifest: JSON.parse(readFileSync(resolve(dist, 'manifest.webmanifest'), 'utf8')),
   localOnly: localOnlyFiles(SEED_GARMENTS),
   base: PAGES_BASE,
+  swSource: existsSync(resolve(dist, 'sw.js')) ? readFileSync(resolve(dist, 'sw.js'), 'utf8') : '',
 });
 
 if (problems.length > 0) {

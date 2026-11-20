@@ -6,12 +6,12 @@
 /**
  * Problems with a build in dist/, as messages; empty when it's fine to deploy.
  * @param {{ files: string[], indexHtml: string, manifest: { start_url?: string, icons?: { src: string }[] },
- *           localOnly: string[], base: string }} build
+ *           localOnly: string[], base: string, swSource: string }} build
  *   files: every file in dist/, relative to it with "/" separators. localOnly: the seed's
- *   local-only photo files. base: the site's path, e.g. "/Choudo/".
+ *   local-only photo files. base: the site's path, e.g. "/Choudo/". swSource: dist/sw.js's text.
  * @returns {string[]}
  */
-export function distProblems({ files, indexHtml, manifest, localOnly, base }) {
+export function distProblems({ files, indexHtml, manifest, localOnly, base, swSource }) {
   const problems = [];
   const have = new Set(files);
   const origin = 'https://pages.invalid';
@@ -38,6 +38,16 @@ export function distProblems({ files, indexHtml, manifest, localOnly, base }) {
   for (const icon of manifest.icons ?? []) check('manifest: icon', new URL(icon.src, manifestUrl).pathname);
 
   if (!have.has('sw.js')) problems.push('sw.js is missing');
+  else {
+    // build/serviceWorker.ts stamps a per-build cache and the files to precache.
+    if (swSource.includes("'choudo-dev'")) problems.push('sw.js still has its dev cache name: the build did not stamp it');
+    for (const [, url] of indexHtml.matchAll(/\b(?:src|href)="([^"]+)"/g)) {
+      const file = url.startsWith(base) ? url.slice(base.length) : null;
+      if (file?.startsWith('assets/') && !swSource.includes(JSON.stringify(file))) {
+        problems.push(`sw.js does not precache ${file}`);
+      }
+    }
+  }
   for (const file of files) {
     if (file === 'landmarks.html' || file.startsWith('dev/')) problems.push(`${file} is dev-only and must not ship`);
   }

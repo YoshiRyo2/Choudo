@@ -64,7 +64,7 @@ app/src/
 app/dev/       landmarks.html + landmarksServer.ts: the picker page and its save endpoint,
                Vite dev server only (apply: 'serve'), never in npm run build
 app/build/     build-only: pagesBase.ts (PAGES_BASE '/Choudo/'), leaveOutLocalPhotos.ts (Vite
-               plugin: deletes local-only photos from dist/)
+               plugin: deletes local-only photos from dist/), serviceWorker.ts (stamps dist/sw.js)
 app/public/sw.js  service worker (offline), registered by the production build only
 .github/workflows/deploy-pages.yml  builds app/ and deploys it to GitHub Pages on every push to main
 app/scripts/   data-check.mjs (npm run data:check), fit-report.mjs (npm run fit:report),
@@ -229,9 +229,11 @@ CI and cloud sessions install with `npm ci --ignore-scripts` then `npm rebuild e
 - Every push to `main` runs `.github/workflows/deploy-pages.yml`: install, `npm run check`,
   `npm run build`, `npm run dist:check`, then deploy to https://yoshiryo2.github.io/Choudo/.
   Pages' source must be "GitHub Actions" (repo settings).
-- Installable PWA: `public/manifest.webmanifest` uses relative URLs (works at `/` and `/Choudo/`);
-  `public/sw.js` caches what the app fetches so it opens offline (pages network-first, hashed
-  `assets/` cache-first, the rest stale-while-revalidate). Bump its `CACHE` when its logic changes.
+- Installable PWA: `public/manifest.webmanifest` uses relative URLs (works at `/` and `/Choudo/`).
+  `public/sw.js` lets it open offline: the build stamps its `BUILD` line (`build/serviceWorker.ts`)
+  with a per-build cache name and the files to precache (page, manifest, icons, code, woff2), and
+  the worker deletes older caches. Pages load network-first; garment photos network-first, cached
+  as viewed; everything else cache-first. `dist:check` fails on an unstamped worker.
 - Dev-only, absent from the build: the landmark picker (dev server only) and Test mode
   (`ui/devTools.ts`; the panel and its switch are guarded by `import.meta.env.DEV` where drawn).
 - local-only photos are never warped and are deleted from `dist/`; `dist:check` fails if one ships.

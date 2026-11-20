@@ -20,7 +20,8 @@ const files = [
   'garments/ryo-grey-polo-front.png',
 ];
 const localOnly = ['garments/gildan-5000-front.png', 'garments/ryo-navy-graphic-tee-front.png'];
-const clean = { files, indexHtml, manifest, localOnly, base };
+const swSource = 'const BUILD = {"cache":"choudo-1a2b3c","precache":["./","assets/index-abc.js"]};';
+const clean = { files, indexHtml, manifest, localOnly, base, swSource };
 
 describe('distProblems', () => {
   it('passes a clean build', () => {
@@ -34,7 +35,10 @@ describe('distProblems', () => {
 
   it('flags an index.html URL with no file behind it', () => {
     const html = indexHtml.replace('index-abc.js', 'index-old.js');
-    expect(distProblems({ ...clean, indexHtml: html })).toEqual(['index.html: /Choudo/assets/index-old.js is not in dist/']);
+    expect(distProblems({ ...clean, indexHtml: html })).toEqual([
+      'index.html: /Choudo/assets/index-old.js is not in dist/',
+      'sw.js does not precache assets/index-old.js',
+    ]);
   });
 
   it('flags a manifest icon or start_url with no file behind it', () => {
@@ -47,6 +51,13 @@ describe('distProblems', () => {
 
   it('flags a missing service worker', () => {
     expect(distProblems({ ...clean, files: files.filter((f) => f !== 'sw.js') })).toEqual(['sw.js is missing']);
+  });
+
+  it('flags a service worker that was not stamped by the build', () => {
+    expect(distProblems({ ...clean, swSource: "const BUILD = { cache: 'choudo-dev', precache: ['./'] };" })).toEqual([
+      'sw.js still has its dev cache name: the build did not stamp it',
+      'sw.js does not precache assets/index-abc.js',
+    ]);
   });
 
   it('flags dev-only files', () => {
