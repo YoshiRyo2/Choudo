@@ -426,7 +426,7 @@ export function topShape(
       waist: { x: waistHalf, y: g.y.waist },
       length: { x: hem.x, y: hemY },
       sleeve: { x: outerEnd.x + 1, y: outerEnd.y },
-      ...(knit ? { hemBand: { x: hem.x, y: bandTopY + RIB_HEM_CM / 2 } } : {}),
+      ...(knit ? { hemBand: { x: hem.x, y: bandTopY + 1 } } : {}),
     },
     ...(rib ? { rib } : {}),
     ...(hood ? { hood } : {}),

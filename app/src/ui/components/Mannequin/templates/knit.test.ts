@@ -50,7 +50,8 @@ describe('knit rib hem band', () => {
 
   it('pins the hem band zone on the band', () => {
     const s = draw();
-    expect(s.markers.hemBand).toEqual({ x: s.right.hem.x, y: s.rib!.hemTopY + RIB_HEM_CM / 2 });
+    // At the top of the band, clear of the length pin at the hem.
+    expect(s.markers.hemBand).toEqual({ x: s.right.hem.x, y: s.rib!.hemTopY + 1 });
   });
 });
 
