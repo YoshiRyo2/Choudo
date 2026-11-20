@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../../../domain/body';
 import { findGarment } from '../../../domain/garments';
-import { bodyGeometry, bodyHalfAt, bottomShape, halfWidth, limbFrame, mirrorPath, smoothPath } from './geometry';
+import { bodyGeometry, bodyHalfAt, halfWidth, limbFrame, mirrorPath, smoothPath } from './geometry';
 import { MAX_SIDE_FLARE_CM, topShape } from './topShape';
 import { UNKNOWN_CHEST_TEE } from '../../../domain/garments/testFixtures';
 
@@ -91,15 +91,6 @@ describe('garment shapes', () => {
   it('marks unverified girths as approximate', () => {
     const tee = UNKNOWN_CHEST_TEE;
     expect(topShape(g, tee, tee.sizes[1]!.measurements, 104).approximate).toBe(true);
-  });
-
-  it('puts a short inseam hem above a long one, and pools anything past the floor', () => {
-    const jean = findGarment('corvo-slim-jean')!;
-    const short = bottomShape(g, jean, { waist: 84, hips: 100, inseam: 70 });
-    const long = bottomShape(g, jean, { waist: 84, hips: 100, inseam: 120 });
-    expect(short.markers.inseam!.y).toBeLessThan(long.markers.inseam!.y);
-    expect(long.pooled).toBe(true);
-    expect(long.markers.inseam!.y).toBeLessThanOrEqual(g.y.floor);
   });
 });
 

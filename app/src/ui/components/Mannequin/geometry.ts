@@ -9,7 +9,6 @@
  */
 
 import type { BodyMeasurements, BodyType } from '../../../domain/body';
-import type { Garment, GarmentType, SizeMeasurements } from '../../../domain/garments';
 
 export interface Pt {
   x: number;
@@ -338,71 +337,4 @@ export interface Marker {
   y: number;
 }
 
-export interface BottomShape {
-  body: string;
-  markers: Partial<Record<'waist' | 'hips' | 'inseam', Marker>>;
-  /** The hem would reach past the floor — drawn bunched at the ankle. */
-  pooled: boolean;
-  approximate: boolean;
-}
-
-/** Half the leg opening, by cut. */
-const HEM_HALF: Record<GarmentType, number> = {
-  jeans: 9.5,
-  chinos: 9,
-  joggers: 6.5,
-  trousers: 12.5,
-  tee: 9,
-  'long-sleeve-tee': 9,
-  polo: 9,
-  'button-up': 9,
-};
-
-export function bottomShape(g: BodyGeometry, garment: Garment, size: SizeMeasurements): BottomShape {
-  const approximate = !garment.girthVerified;
-  // Pants sit a little below the natural waist.
-  const bandY = lerp(g.y.waist, g.y.hip, 0.25);
-  const bandHalf = Math.max(
-    approximate || size.waist === undefined ? 0 : halfWidth.waist(size.waist),
-    bodyHalfAt(g, bandY) + 0.5,
-  );
-  const hipHalf = Math.max(
-    approximate || size.hips === undefined ? 0 : halfWidth.hips(size.hips),
-    g.half.hip + 0.6,
-  );
-  const crotchY = g.y.crotch + 2;
-  const inseam = size.inseam ?? g.y.floor - crotchY;
-  const rawHem = crotchY + inseam;
-  const pooled = rawHem > g.y.floor - 0.5;
-  const hemY = Math.min(rawHem, g.y.floor - 0.5);
-  const hemHalf = Math.max(HEM_HALF[garment.type] + (pooled ? 1.2 : 0), g.leg.ankleHalf + 1.5);
-  const kneeHalf = Math.max((hipHalf / 2 + hemHalf) / 2, g.leg.kneeHalf + 1);
-
-  const t = Math.min(1, Math.max(0, (hemY - g.y.knee) / (g.y.ankle - g.y.knee)));
-  const hemX = hemY > g.y.knee ? lerp(g.leg.kneeX, g.leg.ankleX, t) : g.leg.kneeX;
-
-  const right: Pt[] = [
-    { x: bandHalf, y: bandY, corner: true },
-    { x: hipHalf, y: g.y.hip },
-    { x: hipHalf - 0.4, y: crotchY + 3 },
-  ];
-  if (hemY > g.y.knee + 4) right.push({ x: g.leg.kneeX + kneeHalf, y: g.y.knee });
-  right.push(
-    { x: hemX + hemHalf, y: hemY, corner: true },
-    { x: hemX - hemHalf, y: hemY, corner: true },
-  );
-  if (hemY > g.y.knee + 4) right.push({ x: Math.max(0.6, g.leg.kneeX - kneeHalf), y: g.y.knee });
-  right.push({ x: 0, y: crotchY, corner: true });
-
-  const left = [...right].reverse().map((p) => ({ ...p, x: -p.x })).slice(1); // skip duplicate crotch point
-  return {
-    body: smoothPath([...right, ...left], true),
-    markers: {
-      waist: { x: bandHalf, y: bandY },
-      hips: { x: hipHalf, y: g.y.hip },
-      inseam: { x: hemX + hemHalf, y: hemY },
-    },
-    pooled,
-    approximate,
-  };
-}
+// Pants are drawn by templates/pants.ts (pantsShape).

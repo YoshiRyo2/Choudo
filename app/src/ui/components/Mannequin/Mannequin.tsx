@@ -2,8 +2,9 @@ import { useId, useMemo } from 'react';
 import type { BodyMeasurements } from '../../../domain/body';
 import type { GarmentFit, ZoneFit } from '../../../domain/fit';
 import type { Garment } from '../../../domain/garments';
-import { bodyGeometry, bottomShape, type Marker } from './geometry';
+import { bodyGeometry, type Marker } from './geometry';
 import { affineToSvg, warpPieces, type WarpPiece, type WarpRegion } from './photoWarp';
+import { pantsShape } from './templates/pants';
 import { topShape } from './topShape';
 import { usePhotoSize, type PhotoSize } from './usePhotoSize';
 import './Mannequin.css';
@@ -36,7 +37,7 @@ export function Mannequin({ body, top, bottom, showFit = true, className }: Mann
   const topSize = top?.garment.sizes.find((s) => s.label === top.sizeLabel);
   const bottomSize = bottom?.garment.sizes.find((s) => s.label === bottom.sizeLabel);
   const topDraw = top && topSize ? topShape(g, top.garment, topSize.measurements, body.chestCm) : null;
-  const bottomDraw = bottom && bottomSize ? bottomShape(g, bottom.garment, bottomSize.measurements) : null;
+  const bottomDraw = bottom && bottomSize ? pantsShape(g, body, bottom.garment, bottomSize.measurements) : null;
 
   // A product photo, when the top has one and the file is present, is warped onto
   // this size's outline over the flat colour.
