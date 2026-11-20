@@ -65,9 +65,10 @@ export type ZoneId =
  * waistband sits; centre_back = a length from the centre of the back neck;
  * knee = a distance down to the knee (where a hem lands against it);
  * hip_point = the body's girth where a skirt chart measures its hips;
- * stride = the girth round both legs mid-stride, at the hem.
+ * stride = the girth round both legs mid-stride, at the hem;
+ * over_layer = the body plus what is worn under the garment (layers.ts).
  */
-export type BodyAt = 'band' | 'centre_back' | 'knee' | 'hip_point' | 'stride';
+export type BodyAt = 'band' | 'centre_back' | 'knee' | 'hip_point' | 'stride' | 'over_layer';
 
 export type Rule = GirthRule | LengthRule | LandingRule;
 

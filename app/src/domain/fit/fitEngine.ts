@@ -23,6 +23,7 @@ import {
   type LandingRule,
   type LengthRule,
 } from './rules';
+import { layerAllowanceCm, type UnderLayer, type WornOver } from './layers';
 import { ruleFor, zoneSpecsFor, type BodyAt, type Rule, type ZoneId, type ZoneSpec } from './zones';
 
 export type { ZoneId } from './zones';
@@ -85,6 +86,8 @@ export interface GarmentFit {
   zones: ZoneFit[];
   /** Worst tone across zones; "unknown" if a girth couldn't be checked. See overallTone. */
   overall: FitTone;
+  /** Set only when fitted over a layer (a jacket over a hoodie): what is under it. */
+  over?: WornOver;
 }
 
 // ---------- labelling (exported so the thresholds can be tested directly) ----------
@@ -175,12 +178,18 @@ function bandsFor(rule: Rule, tightAllowanceCm: number): FitBand[] {
   ];
 }
 
+/** What a layer underneath adds to the body, per body key, for zones marked `layered`. */
+type LayerAdd = Partial<Record<'chestCm' | 'waistCm', number>>;
+
 /** How one zone of one size fits. Exported for tests; use fitGarment. */
-export function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, gs: GarmentSize): ZoneFit {
+export function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, gs: GarmentSize, layer?: LayerAdd): ZoneFit {
   const size = gs.measurements;
-  const bodyCm = spec.bodyTarget ? spec.bodyTarget(body.measurements, garment, size) : body.measurements[spec.bodyKey];
-  // A worked-out body number rests on estimated heights, so it's estimated even when the user typed the measurement.
-  const workedOut = bodyCm !== body.measurements[spec.bodyKey];
+  const overLayer = spec.layered === true && layer !== undefined;
+  const bare = spec.bodyTarget ? spec.bodyTarget(body.measurements, garment, size) : body.measurements[spec.bodyKey];
+  const bodyCm = overLayer ? bare + (layer[spec.bodyKey as keyof LayerAdd] ?? 0) : bare;
+  // A worked-out body number rests on estimated heights (or an assumed layer), so it's
+  // estimated even when the user typed the measurement.
+  const workedOut = overLayer || bodyCm !== body.measurements[spec.bodyKey];
   const zoneRule = ruleFor(spec, garment);
   // Fraction-scale girth bounds become cm for this body, so labels, bands and ease all read in cm.
   const rule = zoneRule.kind === 'girth' ? girthRuleInCm(zoneRule, bodyCm) : zoneRule;
@@ -196,7 +205,7 @@ export function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, gs: G
     bands: bandsFor(rule, tightAllowanceCm),
     ...(garmentOrigin !== undefined ? { garmentOrigin } : {}),
     ...(spec.optional ? { optional: true as const } : {}),
-    ...(workedOut && spec.bodyAt ? { bodyAt: spec.bodyAt } : {}),
+    ...(overLayer ? { bodyAt: 'over_layer' as const } : workedOut && spec.bodyAt ? { bodyAt: spec.bodyAt } : {}),
   } as const;
 
   const reason = unknownReason(spec, rule, garment, garmentCm);
@@ -225,16 +234,23 @@ export function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, gs: G
 
 // ---------- public API ----------
 
-/** How one size of a garment fits this body, zone by zone. */
-export function fitGarment(body: BodyModel, garment: Garment, sizeLabel: string): GarmentFit {
+/**
+ * How one size of a garment fits this body, zone by zone. With `under` (a top worn
+ * under a jacket), the garment's layered zones compare with the body plus that
+ * layer (layers.ts); templates without layered zones ignore it.
+ */
+export function fitGarment(body: BodyModel, garment: Garment, sizeLabel: string, under?: UnderLayer): GarmentFit {
   const size = garment.sizes.find((s) => s.label === sizeLabel);
   if (!size) {
     throw new Error(`${garment.id} has no size "${sizeLabel}"`);
   }
-  const zones = zoneSpecsFor(garment, size.measurements).map((spec) =>
-    fitZone(spec, body, garment, size),
-  );
-  return { garmentId: garment.id, sizeLabel, bodyType: body.measurements.bodyType, zones, overall: overallTone(zones) };
+  const specs = zoneSpecsFor(garment, size.measurements);
+  const layered = under !== undefined && specs.some((s) => s.layered);
+  const add = layered ? layerAllowanceCm(body.measurements, under) : undefined;
+  const layer: LayerAdd | undefined = add ? { chestCm: add.chestCm, waistCm: add.waistCm } : undefined;
+  const zones = specs.map((spec) => fitZone(spec, body, garment, size, layer));
+  const fit: GarmentFit = { garmentId: garment.id, sizeLabel, bodyType: body.measurements.bodyType, zones, overall: overallTone(zones) };
+  return layered ? { ...fit, over: { garmentId: under.garment.id, type: under.garment.type } } : fit;
 }
 
 /**
@@ -257,7 +273,7 @@ export function overallTone(allZones: ZoneFit[]): FitTone {
   return worst;
 }
 
-/** fitGarment for every size, in chart order. */
-export function fitAllSizes(body: BodyModel, garment: Garment): GarmentFit[] {
-  return garment.sizes.map((s) => fitGarment(body, garment, s.label));
+/** fitGarment for every size, in chart order (over `under`, when given). */
+export function fitAllSizes(body: BodyModel, garment: Garment, under?: UnderLayer): GarmentFit[] {
+  return garment.sizes.map((s) => fitGarment(body, garment, s.label, under));
 }
