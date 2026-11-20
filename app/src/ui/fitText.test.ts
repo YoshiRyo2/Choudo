@@ -380,3 +380,51 @@ describe('knit wording', () => {
     );
   });
 });
+
+describe('skirt and shorts wording', () => {
+  const landing = (z: ZoneFit['zone'], diffCm: number, mark: string, patch: Partial<ZoneFit> = {}) =>
+    zone({ zone: z, kind: 'landing', label: 'noted', diffCm, landing: mark, ...patch });
+
+  it('names walking room', () => {
+    expect(zoneName('walkingRoom')).toBe('Walking room');
+  });
+
+  it('says where a shorts hem ends against the knee', () => {
+    expect(zoneLabelText(landing('inseam', -16.3, 'mid-thigh'))).toBe('Mid-thigh');
+    expect(describeZone(landing('inseam', -16.3, 'mid-thigh'), 'metric')).toBe('Mid-thigh: the hem ends 16.3 cm above your knee.');
+    expect(describeZone(landing('inseam', -0.2, 'knee'), 'metric')).toBe('At the knee: the hem ends at your knee.');
+  });
+
+  it('still compares a pants inseam with yours', () => {
+    expect(describeZone(zone({ zone: 'inseam', kind: 'length', label: 'good', diffCm: 1 }), 'metric')).toBe('1.0 cm longer than your inseam.');
+  });
+
+  it('says where a skirt hem ends against the knee', () => {
+    expect(zoneLabelText(landing('length', 13.1, 'midi'))).toBe('Midi');
+    expect(zoneLabelText(landing('length', -20, 'mini'))).toBe('Mini');
+    expect(zoneLabelText(landing('length', -8, 'above-knee'))).toBe('Above the knee');
+    expect(zoneLabelText(landing('length', 30, 'maxi'))).toBe('Maxi');
+    expect(describeZone(landing('length', 13.1, 'midi'), 'metric')).toBe('Midi: the hem ends 13.1 cm below your knee.');
+    expect(describeZone(landing('length', -8, 'above-knee'), 'imperial')).toBe('Above the knee: the hem ends 3.1 in above your knee.');
+  });
+
+  it('keeps a top’s length wording', () => {
+    expect(describeZone(zone({ zone: 'length', kind: 'length', label: 'good', diffCm: 0 }), 'metric')).toBe('A regular length on you.');
+  });
+
+  it('warns when the hem is too narrow for a full stride', () => {
+    const tight = landing('walkingRoom', -8.3, 'restricted', { tone: 'warn' });
+    expect(zoneLabelText(tight)).toBe('Short steps');
+    expect(describeZone(tight, 'metric')).toBe('8.3 cm short of a full stride at the hem: expect shorter steps, or look for a slit.');
+    const free = landing('walkingRoom', 15.5, 'free');
+    expect(zoneLabelText(free)).toBe('Full stride');
+    expect(describeZone(free, 'metric')).toBe('Room for a full stride, with 15.5 cm to spare at the hem.');
+  });
+
+  it('says where each worked-out body number is taken', () => {
+    expect(bodyPlaceText(landing('inseam', -16, 'mid-thigh', { bodyAt: 'knee' }))).toBe(' from your crotch to your knee');
+    expect(bodyPlaceText(landing('length', 13, 'midi', { bodyAt: 'knee' }))).toBe(' from the waistband to your knee');
+    expect(bodyPlaceText(landing('walkingRoom', 15, 'free', { bodyAt: 'stride' }))).toBe(' round both legs mid-stride, at the hem');
+    expect(bodyPlaceText(zone({ zone: 'hips', bodyAt: 'hip_point' }))).toBe(' where the chart measures the hips');
+  });
+});

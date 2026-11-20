@@ -108,6 +108,11 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
 
   // A blocked landing (won't go on, won't stay up): the engine says why.
   if (z.kind === 'landing' && z.tone === 'bad' && z.note) return z.note;
+  // A hem landing against the knee: shorts (inseam) and skirts (length).
+  if (z.kind === 'landing' && (z.zone === 'inseam' || z.zone === 'length')) {
+    const where = !over && !under ? 'at your knee' : `${d} ${over ? 'below' : 'above'} your knee`;
+    return `${LANDING_TEXT[z.landing ?? ''] ?? 'Here'}: the hem ends ${where}.`;
+  }
 
   switch (z.zone) {
     case 'chest':
@@ -153,8 +158,8 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
         ? `${d} smaller than your hips: more than the rib can stretch.`
         : `${d} smaller than your hips, relaxed; the rib stretches to gather there.`;
     case 'walkingRoom':
-      if (under) return `${d} short of a full stride at the hem: expect shorter steps.`;
-      return 'Room for a full stride at the hem.';
+      if (z.diffCm < 0) return `${d} short of a full stride at the hem: expect shorter steps, or look for a slit.`;
+      return `Room for a full stride, with ${d} to spare at the hem.`;
   }
 }
 
@@ -165,6 +170,9 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
 export function bodyPlaceText(z: ZoneFit): string {
   if (z.bodyAt === 'band') return ' where the waistband sits';
   if (z.bodyAt === 'centre_back') return z.zone === 'sleeve' ? ' from the centre of your back to the wrist' : ' from the back of your neck';
+  if (z.bodyAt === 'knee') return z.zone === 'inseam' ? ' from your crotch to your knee' : ' from the waistband to your knee';
+  if (z.bodyAt === 'stride') return ' round both legs mid-stride, at the hem';
+  if (z.bodyAt === 'hip_point') return ' where the chart measures the hips';
   return '';
 }
 
@@ -177,6 +185,14 @@ const LANDING_TEXT: Record<string, string> = {
   slim: 'Slim leg',
   straight: 'Straight leg',
   wide: 'Wide leg',
+  'mid-thigh': 'Mid-thigh',
+  'above-knee': 'Above the knee',
+  knee: 'At the knee',
+  mini: 'Mini',
+  midi: 'Midi',
+  maxi: 'Maxi',
+  restricted: 'Short steps',
+  free: 'Full stride',
 };
 
 /**

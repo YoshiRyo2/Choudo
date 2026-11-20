@@ -52,8 +52,8 @@ export function predictionFor(args: {
   const oddsOf = (zone: string) => chances(sizeOdds.zones.find((z) => z.zone === zone));
   const verdict = VERDICTS.reduce((best, v) => (sizeOdds.verdicts[v] > sizeOdds.verdicts[best] ? v : best), VERDICTS[0]!);
   const top = garment.category === 'top';
-  // A bottom's length question is about the inseam.
-  const lengthZone = top ? 'length' : 'inseam';
+  // A bottom's length question is about the inseam; a skirt has a length instead.
+  const lengthZone = top || !fit.zones.some((z) => z.zone === 'inseam') ? 'length' : 'inseam';
   const prediction: FitTestPrediction = {
     category: top ? 'top' : 'bottom',
     body,

@@ -82,7 +82,7 @@ export function FitTestPanel({ garment, size, fit, records, onSave, onClear, bod
             q === 'length' ? (
               <Choices
                 key={q}
-                legend={garment.category === 'top' ? 'Length' : zoneName('inseam', bodyType)}
+                legend={fit?.zones.some((z) => z.zone === 'inseam') ? zoneName('inseam', bodyType) : 'Length'}
                 name={`${id}-length`}
                 options={LENGTH_ANSWERS.map((a) => [a, LENGTH_TEXT[a]])}
                 value={picked.length}

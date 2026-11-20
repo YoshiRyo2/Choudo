@@ -79,6 +79,14 @@ describe('small helpers', () => {
 });
 
 describe('bottoms', () => {
+  it('predictionFor a skirt asks about its length, where the hem lands', () => {
+    const skirt = findGarment('landsend-a-line-skirt')!;
+    const preference = preferenceSpec(null, null);
+    const p = predictionFor({ body, model, garment: skirt, size: '8', preference, anchor: null, odds: sampleFit(model, skirt, preference) });
+    expect(p.category).toBe('bottom');
+    expect(p.lengthLabel).toBe('noted');
+  });
+
   const jean = findGarment('corvo-slim-jean')!;
   const preference = preferenceSpec(null, null);
   const predictJean = () =>
