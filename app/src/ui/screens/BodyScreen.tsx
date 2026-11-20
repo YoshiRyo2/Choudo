@@ -11,6 +11,7 @@ import { cmToIn, kgToLb, round } from '../../domain/units';
 import { Mannequin } from '../components/Mannequin/Mannequin';
 import { FieldError, NumberInput } from '../components/NumberInput';
 import { SegmentedControl } from '../components/SegmentedControl';
+import { Wordmark } from '../components/Wordmark';
 import type { UnitSystem } from '../state/stored';
 import {
   braSizeProblemText,
@@ -152,7 +153,7 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
     <main className="body-screen">
       <form className="body-screen__form" onSubmit={submit} noValidate aria-describedby={`${formId}-privacy`}>
         <header className="body-screen__intro">
-          <p className="wordmark">Choudo</p>
+          <Wordmark />
           <h1>Your measurements</h1>
           <p className="body-screen__lede">
             Height and weight are enough to start. We’ll compare them with each brand’s size chart.

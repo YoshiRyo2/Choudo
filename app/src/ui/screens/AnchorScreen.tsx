@@ -3,6 +3,7 @@ import { canAnchor, FIT_STYLES, type Anchor, type FitStyle } from '../../domain/
 import { GARMENTS, type Garment } from '../../domain/garments';
 import { GarmentIcon } from '../components/GarmentIcon';
 import { FieldError, NumberInput } from '../components/NumberInput';
+import { Wordmark } from '../components/Wordmark';
 import { FIT_STYLE_TEXT } from '../fitText';
 import type { UnitSystem } from '../state/stored';
 import { anchorToTeeForm, teeFormToAnchor, type MeasuredTeeForm } from './anchorForm';
@@ -34,7 +35,7 @@ export function AnchorScreen({ units, anchor, style, onDone, onSkip, skipLabel }
   return (
     <main className="anchor-screen">
       <header className="anchor-screen__intro">
-        <p className="wordmark">Choudo</p>
+        <Wordmark />
         {step === 'choose' && (
           <>
             <h1>Got a tee that fits the way you like?</h1>

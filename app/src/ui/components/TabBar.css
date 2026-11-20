@@ -36,9 +36,9 @@
   color: var(--ink);
   font-weight: 600;
 }
-/* A strip of tape over the current section. */
+/* A brand strip under the current section's icon. */
 .tabbar__tab.is-current svg {
-  border-bottom: 3px solid var(--tape);
+  border-bottom: 3px solid var(--brand);
   padding-bottom: 1px;
 }
 

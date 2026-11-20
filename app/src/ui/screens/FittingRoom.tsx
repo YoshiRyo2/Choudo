@@ -11,6 +11,7 @@ import { NameForm } from '../components/NameForm';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Sheet } from '../components/Sheet';
 import { SizePicker } from '../components/SizePicker';
+import { Wordmark } from '../components/Wordmark';
 import { makeId } from '../state/closet';
 import { makeFitTest, predictionFor } from '../state/fitTests';
 import { garmentOdds } from '../state/odds';
@@ -128,7 +129,7 @@ export function FittingRoom({
   return (
     <div className="fitting">
       <header className="fitting__bar">
-        <p className="wordmark">Choudo</p>
+        <Wordmark />
         <SegmentedControl
           label="Units"
           hideLabel
