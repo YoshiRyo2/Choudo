@@ -5,7 +5,7 @@
  */
 
 import { inToCm } from '../units';
-import type { FitIntent, GarmentType, GirthKey, MeasurementKey } from './types';
+import type { FitIntent, GarmentType, GirthKey, MeasurementKey, SleeveDefinition } from './types';
 
 export interface Range {
   min: number;
@@ -34,8 +34,39 @@ export const TOP_RANGES: Partial<Record<MeasurementKey, Range>> = {
   chest: { min: 75, max: 170 },
   waist: { min: 70, max: 160 },
   shoulder: { min: 35, max: 65 },
-  // Long sleeves measured shoulder seam to cuff only; other definitions vary too much.
-  sleeve: { min: 50, max: 75 },
+};
+
+/** Long sleeves by where they're measured from. Tops check shoulder seam to cuff only; other definitions vary too much. */
+export const TOP_SLEEVE_RANGES: Partial<Record<SleeveDefinition, Range>> = {
+  shoulder_to_cuff: { min: 50, max: 75 },
+};
+
+/**
+ * Plausible knit measurements (hoodies, sweatshirts), cm, full circumferences.
+ * ASSUMED from typical charts: knits run bigger than tees (a 5XL hoodie is 34 in
+ * flat, 173 cm round), and a rib hem band runs narrower than the chest.
+ */
+export const KNIT_RANGES: Partial<Record<MeasurementKey, Range>> = {
+  chest: { min: 80, max: 180 },
+  shoulder: { min: 35, max: 75 },
+  hemBand: { min: 60, max: 150 },
+};
+
+/**
+ * Knit long sleeves: shoulder seam to cuff as tops, and centre back to cuff
+ * (half the back plus the sleeve; Gildan's 18500 runs 32½–40 in). ASSUMED.
+ */
+export const KNIT_SLEEVE_RANGES: Partial<Record<SleeveDefinition, Range>> = {
+  shoulder_to_cuff: { min: 50, max: 75 },
+  center_back_to_cuff: { min: 70, max: 110 },
+};
+
+/** Knit length (high point of shoulder to hem) by garment type. ASSUMED, as tees. */
+export const KNIT_LENGTH_RANGES: Partial<Record<GarmentType, Range>> = {
+  hoodie: { min: 55, max: 90 },
+  sweatshirt: { min: 55, max: 90 },
+  sweater: { min: 55, max: 90 },
+  cardigan: { min: 55, max: 95 },
 };
 
 /** Top length (high point of shoulder to hem) by garment type. */

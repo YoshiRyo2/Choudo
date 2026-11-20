@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../body';
-import { normalizeGarment, type SeedGarment } from '../garments';
+import { CATEGORY_SPECS, normalizeGarment, type SeedGarment } from '../garments';
 import { KNIT_HOODIE, KNIT_HOODIE_SEED, UNKNOWN_CHEST_SEED } from '../garments/testFixtures';
 import { fitGarment } from './fitEngine';
 import { canAnchor, chestTarget, garmentChestTarget, personalFit, preferenceSpec, resolvePreference } from './preference';
@@ -15,7 +15,7 @@ import {
   WOMENS_TOP_CHEST,
 } from './rules';
 import { hpsLengthCm, lengthTargetCm, sleeveFromShoulderPointCm, sleeveTargetCm } from './tops';
-import { ruleFor, templateZones, zoneSpecsFor } from './zones';
+import { ruleFor, TEMPLATE_ZONES, templateZones, zoneSpecsFor } from './zones';
 
 const body = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
 const m = body.measurements;
@@ -133,5 +133,16 @@ describe('knit personal fit', () => {
 
   it("isn't offered as an anchor tee", () => {
     expect(canAnchor(KNIT_HOODIE)).toBe(false);
+  });
+});
+
+describe("data:check and the zones agree on what's scoreable", () => {
+  it("lists the same length and sleeve definitions as each top template's zones accept", () => {
+    for (const template of ['tee', 'shirt', 'knit'] as const) {
+      const zones = TEMPLATE_ZONES[template].zones;
+      const accepts = (z: string) => [...(zones.find((s) => s.zone === z)!.needs!.accepts)].sort();
+      expect(accepts('length')).toEqual([...CATEGORY_SPECS[template].scoredDefinitions!.length].sort());
+      expect(accepts('sleeve')).toEqual([...CATEGORY_SPECS[template].scoredDefinitions!.sleeve].sort());
+    }
   });
 });

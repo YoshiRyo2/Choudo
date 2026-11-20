@@ -13,13 +13,25 @@ import type {
   GarmentWeight,
   GarmentType,
   LandmarkName,
+  LengthDefinition,
   MeasurementKey,
   PantsLandmarkName,
   SizeMeasurements,
+  SleeveDefinition,
   TopLandmarkName,
 } from './types';
 import { KNIT_OPTIONAL_LANDMARKS, PANTS_LANDMARKS, TOP_LANDMARKS } from './types';
-import { BOTTOM_RANGES, MAX_THIGH_TO_HIPS, TOP_LENGTH_RANGES, TOP_RANGES, type Range } from './verifyRules';
+import {
+  BOTTOM_RANGES,
+  KNIT_LENGTH_RANGES,
+  KNIT_RANGES,
+  KNIT_SLEEVE_RANGES,
+  MAX_THIGH_TO_HIPS,
+  TOP_LENGTH_RANGES,
+  TOP_RANGES,
+  TOP_SLEEVE_RANGES,
+  type Range,
+} from './verifyRules';
 
 /** A check between two measurements of one size (cm, full circumference). Breaking it is a warning. */
 export interface Relation {
@@ -58,6 +70,8 @@ export interface CategoryChecks {
   ranges: Partial<Record<MeasurementKey, Range>>;
   /** Top length (from the high point of the shoulder) by garment type. */
   lengthRanges?: Partial<Record<GarmentType, Range>>;
+  /** Long sleeves by where they're measured from; a definition not listed isn't range-checked. */
+  sleeveRanges?: Partial<Record<SleeveDefinition, Range>>;
   /** Ease against a typical body for the size label: the chest for letter-sized tops, the waist for pants sized in inches. */
   labelEase: 'chest' | 'waist' | null;
   /** Checks between measurements of one size (pants: opening ≤ knee ≤ thigh). */
@@ -96,6 +110,11 @@ export interface CategorySpec {
   optionalLandmarks?: readonly LandmarkName[];
   /** Fabric bulk when a row doesn't give its weight (design §3: tee and shirt light, knit mid). */
   defaultWeight: GarmentWeight;
+  /**
+   * Tops: the length and sleeve definitions the fit can score (as the zones'
+   * `needs` in domain/fit/zones.ts). Any other leaves that zone unscored.
+   */
+  scoredDefinitions?: { length: readonly LengthDefinition[]; sleeve: readonly SleeveDefinition[] };
   checks: CategoryChecks;
 }
 
@@ -103,7 +122,25 @@ const TOP_CHECKS: CategoryChecks = {
   required: ['chest', 'length'],
   ranges: TOP_RANGES,
   lengthRanges: TOP_LENGTH_RANGES,
+  sleeveRanges: TOP_SLEEVE_RANGES,
   labelEase: 'chest',
+};
+
+const KNIT_RELATIONS: readonly Relation[] = [
+  {
+    keys: ['hemBand', 'chest'],
+    holds: (m) => m.hemBand <= m.chest,
+    message: (label, a, b) => `hemBand in ${label} (${a}) is wider than its chest (${b})`,
+  },
+];
+
+const KNIT_CHECKS: CategoryChecks = {
+  required: ['chest', 'length'],
+  ranges: KNIT_RANGES,
+  lengthRanges: KNIT_LENGTH_RANGES,
+  sleeveRanges: KNIT_SLEEVE_RANGES,
+  labelEase: 'chest',
+  relations: KNIT_RELATIONS,
 };
 
 const TOP_SPEC = {
@@ -113,6 +150,7 @@ const TOP_SPEC = {
   landmarks: TOP_LANDMARKS,
   checks: TOP_CHECKS,
   defaultWeight: 'light',
+  scoredDefinitions: { length: ['hps'], sleeve: ['shoulder_to_cuff'] },
 } as const satisfies Omit<CategorySpec, 'template'>;
 
 export const CATEGORY_SPECS: Record<TemplateId, CategorySpec> = {
@@ -122,8 +160,11 @@ export const CATEGORY_SPECS: Record<TemplateId, CategorySpec> = {
   knit: {
     template: 'knit',
     ...TOP_SPEC,
+    checks: KNIT_CHECKS,
     optionalLandmarks: KNIT_OPTIONAL_LANDMARKS,
     defaultWeight: 'mid',
+    // Knit charts often measure from the centre back (domain/fit/tops.ts converts).
+    scoredDefinitions: { length: ['hps', 'center_back'], sleeve: ['shoulder_to_cuff', 'center_back_to_cuff'] },
   },
   pants: {
     template: 'pants',

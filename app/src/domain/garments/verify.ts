@@ -216,6 +216,7 @@ export function checkRanges(g: SeedGarment, sizes: GarmentSize[]): string[] {
   const { checks, lengthDefinition } = categorySpec(g);
   const sleeveDefinition = chartDefinition(g.chart, 'sleeve');
   const hpsLength = chartDefinition(g.chart, 'length') === 'hps';
+  const sleeveRange = g.sleeve === 'long' && sleeveDefinition !== undefined ? checks.sleeveRanges?.[sleeveDefinition] : undefined;
   const outside = (what: string, v: number, r: Range) => {
     if (v < r.min || v > r.max) out.push(`${what} is ${cm(v)}, outside ${r.min}–${r.max} cm`);
   };
@@ -227,9 +228,9 @@ export function checkRanges(g: SeedGarment, sizes: GarmentSize[]): string[] {
       const r = checks.ranges[key];
       if (v === undefined || r === undefined) continue;
       if (isGirthKey(key) && !girthKnown(key)) continue;
-      if (key === 'sleeve' && !(g.sleeve === 'long' && sleeveDefinition === 'shoulder_to_cuff')) continue;
       outside(`${key} in ${s.label}`, v, r);
     }
+    if (m.sleeve !== undefined && sleeveRange) outside(`sleeve in ${s.label}`, m.sleeve, sleeveRange);
     if (lengthDefinition === 'required' && m.length !== undefined && hpsLength) {
       const r = checks.lengthRanges?.[g.type];
       if (r) outside(`length in ${s.label}`, m.length, r);
@@ -288,7 +289,8 @@ export function unscorableZones(g: SeedGarment): UnscorableZone[] {
     }
   }
   const length = chartDefinition(g.chart, 'length');
-  if (spec.lengthDefinition === 'required' && present.has('length') && length !== 'hps') {
+  const scored = spec.scoredDefinitions;
+  if (spec.lengthDefinition === 'required' && present.has('length') && !(length !== undefined && scored?.length.includes(length))) {
     const reason =
       length === 'center_back'
         ? 'length is measured from the back of the neck, not the shoulder'
@@ -306,7 +308,8 @@ export function unscorableZones(g: SeedGarment): UnscorableZone[] {
     out.push({ key: 'rise', reason: 'rise isn’t the front rise', required: false });
   }
   // Only long sleeves are scored; short sleeves are a style choice.
-  if (g.sleeve === 'long' && present.has('sleeve') && chartDefinition(g.chart, 'sleeve') !== 'shoulder_to_cuff') {
+  const sleeve = chartDefinition(g.chart, 'sleeve');
+  if (g.sleeve === 'long' && present.has('sleeve') && !(sleeve !== undefined && scored?.sleeve.includes(sleeve))) {
     out.push({ key: 'sleeve', reason: 'sleeve isn’t measured shoulder to cuff', required: false });
   }
   return out;
