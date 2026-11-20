@@ -69,6 +69,9 @@ export function pantsShape(g: BodyGeometry, body: BodyMeasurements, garment: Gar
   const bandY = g.height - bandHeight(body, riseForBand(garment, size));
   const bandHalf = Math.max(waist === undefined ? 0 : halfWidth.waist(waist), bodyHalfAt(g, bandY) + 0.5);
   const hipHalf = Math.max(hips === undefined ? 0 : halfWidth.hips(hips), g.half.hip + 0.6);
+  // The hip corner sits on the hip line, unless the band is already below it (a rise
+  // the fit calls "won't stay up"): then just under the band, so the outline never doubles back.
+  const hipY = Math.max(g.y.hip, bandY + 1);
 
   const crotchY = g.y.crotch + 2;
   const inseam = size.inseam ?? g.y.floor - crotchY;
@@ -97,7 +100,7 @@ export function pantsShape(g: BodyGeometry, body: BodyMeasurements, garment: Gar
 
   const right: Pt[] = [
     { x: bandHalf, y: bandY, corner: true },
-    { x: hipHalf, y: g.y.hip },
+    { x: hipHalf, y: hipY },
     { x: thighOuter, y: g.leg.thighY },
     { ...kneeOuter },
     { ...hemOuter, corner: true },
@@ -109,17 +112,20 @@ export function pantsShape(g: BodyGeometry, body: BodyMeasurements, garment: Gar
   const left = [...right].reverse().map((p) => ({ ...p, x: -p.x })).slice(1); // skip the shared crotch point
 
   const rightEdges: SleeveEdges = {
-    outer: edge({ x: hipHalf, y: g.y.hip }, kneeOuter, hemOuter),
+    outer: edge({ x: hipHalf, y: hipY }, kneeOuter, hemOuter),
     inner: edge({ x: 0, y: crotchY }, kneeInner, hemInner),
   };
-  const legOutline = (e: SleeveEdges) => smoothPath([...e.outer, ...[...e.inner].reverse()], true);
+  // Each leg's clip follows the pants outline itself (out through the thigh), so the
+  // photo reaches the outline's edge; the strips' own edges run straight hip to knee.
+  const legRight = right.slice(1);
+  const legOutline = (pts: Pt[]) => smoothPath(pts, true);
   const leftEdges: SleeveEdges = { outer: rightEdges.outer.map(mirrorX), inner: rightEdges.inner.map(mirrorX) };
   const waistRight: Pt = { x: bandHalf, y: bandY };
-  const hipRight: Pt = { x: hipHalf, y: g.y.hip };
+  const hipRight: Pt = { x: hipHalf, y: hipY };
   const mirror = (p: XY): Pt => ({ x: -p.x, y: p.y });
   return {
     body: smoothPath([...right, ...left], true),
-    legs: { right: legOutline(rightEdges), left: legOutline(leftEdges) },
+    legs: { right: legOutline(legRight), left: legOutline(legRight.map((p) => ({ ...p, x: -p.x }))) },
     landmarks: {
       waistLeft: mirror(waistRight),
       waistMid: { x: 0, y: bandY },
@@ -139,7 +145,7 @@ export function pantsShape(g: BodyGeometry, body: BodyMeasurements, garment: Gar
     markers: {
       waist: { x: bandHalf, y: bandY },
       rise: { x: 0, y: bandY },
-      hips: { x: hipHalf, y: g.y.hip },
+      hips: { x: hipHalf, y: hipY },
       thigh: { x: thighOuter, y: g.leg.thighY },
       inseam: { x: hemOuter.x, y: hemY },
       legOpening: { x: hemX, y: hemY },

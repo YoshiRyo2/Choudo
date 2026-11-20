@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../../../../domain/body';
 import { bandHeight, riseForBand } from '../../../../domain/fit';
 import { findGarment, type Garment } from '../../../../domain/garments';
-import { SLEEVE_STRIPS } from '../photoWarp';
+import { foldedPieces, SLEEVE_STRIPS, warpPantsPieces } from '../photoWarp';
+import { SYNTHETIC_JEANS_LANDMARKS } from '../pantsFixture';
 import { bodyGeometry, halfWidth } from '../geometry';
 import { HEM_HALF, pantsShape } from './pants';
 
@@ -77,5 +78,28 @@ describe('pantsShape', () => {
     expect(short.markers.inseam!.y).toBeLessThan(long.markers.inseam!.y);
     expect(long.pooled).toBe(true);
     expect(long.markers.inseam!.y).toBeLessThanOrEqual(g.y.floor);
+  });
+});
+
+describe('pantsShape edge cases (from the branch review)', () => {
+  it('a band below the hip line still draws the right way up, and the photo doesn’t fold', () => {
+    // A rise so short the band lands below the hip line: the fit's "won't stay up" case.
+    const low = { ...size, rise: 5 };
+    expect(m.heightCm - bandHeight(m, riseForBand(jean, low))).toBeGreaterThan(g.y.hip);
+    const shape = pantsShape(g, m, jean, low);
+    const l = shape.landmarks;
+    expect(l.waistRight.y).toBeLessThan(l.hipRight.y);
+    expect(l.hipRight.y).toBeLessThan(shape.markers.thigh!.y);
+    expect(shape.limbEdges.right.outer[0]!.y).toBeCloseTo(l.hipRight.y);
+    const pieces = warpPantsPieces(SYNTHETIC_JEANS_LANDMARKS, l, shape.limbEdges);
+    expect(foldedPieces(pieces)).toEqual([]);
+  });
+
+  it("clips each leg's photo to the same outline as the pants, through the outer thigh", () => {
+    const shape = pantsShape(g, m, jean, { ...size, thigh: 70 });
+    const r = (v: number) => (Math.round(v * 100) / 100).toString();
+    const thigh = shape.markers.thigh!;
+    expect(shape.legs.right).toContain(`${r(thigh.x)} ${r(thigh.y)}`);
+    expect(shape.legs.left).toContain(`${r(-thigh.x)} ${r(thigh.y)}`);
   });
 });
