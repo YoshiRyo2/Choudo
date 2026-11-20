@@ -41,9 +41,10 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.discover__action.is-pass { color: var(--chalk-bad); }
-.discover__action.is-like { color: var(--chalk-good); }
-.discover__action.is-like svg { fill: color-mix(in srgb, var(--chalk-good) 18%, transparent); }
+.discover__action { color: var(--ink); }
+/* Like is the positive action: brand fill, ink heart. */
+.discover__action.is-like { background: var(--brand); color: var(--on-brand); }
+.discover__action.is-like svg { fill: var(--on-brand); }
 
 .discover__end {
   align-self: center;

@@ -28,7 +28,8 @@
 }
 
 .number-input__box.is-invalid {
-  border-color: var(--chalk-bad);
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
 }
 
 .number-input__box input {

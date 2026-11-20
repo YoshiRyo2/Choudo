@@ -52,12 +52,12 @@
 }
 .swipe-card__stamp.is-like {
   left: 16px;
-  color: var(--chalk-good);
+  color: var(--ink);
   transform: rotate(-12deg);
 }
 .swipe-card__stamp.is-pass {
   right: 16px;
-  color: var(--chalk-bad);
+  color: var(--muted);
   transform: rotate(12deg);
 }
 

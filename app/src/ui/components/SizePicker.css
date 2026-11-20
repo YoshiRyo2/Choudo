@@ -14,9 +14,10 @@
 .sizes__row {
   display: flex;
   flex-wrap: wrap;
-  /* Rows leave room for the "Suggested" caption under a chip, wherever it wraps. */
-  gap: 20px 8px;
-  padding-bottom: 14px;
+  /* Even rows; the gap and top padding leave room for the "Suggested" tag that
+     sits on a chip's top edge, wherever it wraps. */
+  gap: 12px 8px;
+  padding-top: 8px;
 }
 
 .size-chip {
@@ -72,13 +73,22 @@
   box-shadow: 0 0 0 1.5px var(--paper-raised);
 }
 
+/* A small tag across the suggested chip's top edge (the chip's accessible name
+   says "suggested size" separately, so this is hidden from screen readers). */
 .size-chip__suggested {
   position: absolute;
-  top: 100%;
+  top: 0;
   left: 50%;
-  transform: translate(-50%, 2px);
-  font-size: 0.7rem;
+  transform: translate(-50%, -50%);
+  padding: 0 5px;
+  font-size: 0.625rem;
   font-weight: 600;
+  line-height: 14px;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   color: var(--ink);
+  background: var(--paper-raised);
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  pointer-events: none;
 }

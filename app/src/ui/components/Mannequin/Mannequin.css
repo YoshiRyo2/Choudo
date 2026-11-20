@@ -76,8 +76,12 @@
 .tone-bad { color: var(--chalk-bad); }
 .tone-unknown { color: var(--muted); }
 
-/* Height tape */
-.tape__strip { fill: var(--tape); }
+/* Height ruler: a quiet paper strip; yellow tape is kept for the fit readout. */
+.tape__strip {
+  fill: var(--paper-raised);
+  stroke: var(--line);
+  stroke-width: 0.3;
+}
 .tape__tick { stroke: var(--ink); stroke-width: 0.25; }
 .tape__num {
   font-family: var(--font-numeric);

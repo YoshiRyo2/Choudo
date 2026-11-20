@@ -159,6 +159,7 @@
 .size-pill {
   position: relative;
   min-width: 48px;
+  min-height: 44px;
   padding: 10px 12px;
   text-align: center;
   font-size: var(--step-1);
