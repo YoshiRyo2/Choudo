@@ -81,7 +81,10 @@ describe('girth method per measurement in the engine', () => {
     expect(fit.zones.map((z) => [z.zone, z.label === 'unknown'])).toEqual([
       ['waist', false],
       ['hips', true],
+      ['thigh', true],
+      ['rise', true],
       ['inseam', false],
+      ['legOpening', true],
     ]);
     expect(fit.overall).not.toBe('good'); // never good with a girth unchecked
   });

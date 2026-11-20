@@ -156,12 +156,15 @@ describe('fitGarment', () => {
     expect(fit.zones.every((z) => z.diffCm !== null)).toBe(true);
   });
 
-  it('scores waist, hips and inseam for bottoms', () => {
+  it('scores waist, hips and inseam for bottoms, and the leg zones the chart allows', () => {
     const fit = fitGarment(body, findGarment('corvo-slim-jean')!, '32x30');
     expect(fit.zones.map((z) => [z.zone, z.label])).toEqual([
       ['waist', 'fitted'], // 84 vs 84
       ['hips', 'fitted'], // 100 vs 100
+      ['thigh', 'unknown'], // no thigh on the chart
+      ['rise', 'unknown'], // a rise, but not said to be the front rise
       ['inseam', 'short'], // 76 vs 80
+      ['legOpening', 'unknown'],
     ]);
   });
 
@@ -228,11 +231,11 @@ describe('fitGarment', () => {
     expect(() => fitGarment(body, findGarment('knightweave-tee')!, 'XXXL')).toThrow();
   });
 
-  it('runs for every garment and size in the seed without unknowns on placeholder data', () => {
+  it('runs for every garment and size in the seed without unknown required zones on placeholder data', () => {
     const avg = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
     for (const id of ['fieldline-boxy-tee', 'fieldline-jogger', 'corvo-relaxed-jean']) {
       for (const fit of fitAllSizes(avg, findGarment(id)!)) {
-        expect(fit.zones.every((z) => z.label !== 'unknown')).toBe(true);
+        expect(fit.zones.every((z) => z.optional || z.label !== 'unknown')).toBe(true);
       }
     }
   });

@@ -8,6 +8,7 @@
 
 import type { BodyMeasurements, MeasurementKey as BodyKey } from '../body';
 import {
+  stretchOf,
   templateOf,
   type DefinitionName,
   type Garment,
@@ -19,15 +20,19 @@ import {
   BOTTOM_HIPS,
   BOTTOM_WAIST,
   INSEAM,
+  LEG_OPENING,
+  RISE,
   SLEEVE,
+  THIGH,
   TOP_GIRTH_RULES,
   TOP_LENGTH,
   type GirthRule,
   type LandingRule,
   type LengthRule,
 } from './rules';
+import { bandHeight, girthAtHeight, riseForBand } from './pants';
 
-export type ZoneId = 'chest' | 'waist' | 'hips' | 'length' | 'sleeve' | 'inseam';
+export type ZoneId = 'chest' | 'waist' | 'hips' | 'length' | 'sleeve' | 'inseam' | 'thigh' | 'rise' | 'legOpening';
 
 export type Rule = GirthRule | LengthRule | LandingRule;
 
@@ -128,9 +133,61 @@ const TOP_ZONES: readonly ZoneSpec[] = [
 ];
 
 const PANTS_ZONES: readonly ZoneSpec[] = [
-  { zone: 'waist', garmentKey: 'waist', bodyKey: 'waistCm', rule: BOTTOM_WAIST },
+  // Compared where the band sits: lower on the body for a lower rise (fit/pants.ts).
+  {
+    zone: 'waist',
+    garmentKey: 'waist',
+    bodyKey: 'waistCm',
+    rule: BOTTOM_WAIST,
+    bodyTarget: (m, g, s) => girthAtHeight(m, bandHeight(m, riseForBand(g, s))),
+  },
   { zone: 'hips', garmentKey: 'hips', bodyKey: 'hipsCm', rule: BOTTOM_HIPS },
+  {
+    zone: 'thigh',
+    garmentKey: 'thigh',
+    bodyKey: 'thighCm',
+    rule: THIGH,
+    optional: true,
+    needs: {
+      definition: 'thigh',
+      accepts: ['at_crotch', 'below_crotch_2_5cm'],
+      reason: (brand) => `${brand}'s chart doesn't say where the thigh is measured.`,
+    },
+  },
+  {
+    zone: 'rise',
+    garmentKey: 'rise',
+    bodyKey: 'frontRiseCm',
+    optional: true,
+    rule: {
+      ...RISE,
+      // The only way a rise makes a size bad: the band would sit below the hip line.
+      blocks: ({ body, garmentCm }) =>
+        bandHeight(body, garmentCm) < body.hipHeightCm
+          ? { label: 'short', note: 'The waistband would sit below your hips, so it won’t stay up.' }
+          : null,
+    },
+    needs: {
+      definition: 'rise',
+      accepts: ['front'],
+      reason: (brand) => `${brand} doesn't say this is the front rise, so we can't place the waistband.`,
+    },
+  },
   { zone: 'inseam', garmentKey: 'inseam', bodyKey: 'inseamCm', rule: INSEAM },
+  {
+    zone: 'legOpening',
+    garmentKey: 'legOpening',
+    bodyKey: 'heelAnkleCm',
+    optional: true,
+    rule: {
+      ...LEG_OPENING,
+      // Without stretch or a zip, an opening smaller than the heel won't go on.
+      blocks: ({ body, garment, garmentCm }) =>
+        stretchOf(garment, 'legOpening') === 'none' && !garment.ankleZip && garmentCm < body.heelAnkleCm
+          ? { label: 'tight', note: 'Too narrow to get over your heel: no stretch and no zip.' }
+          : null,
+    },
+  },
 ];
 
 const TOP_PERSONAL = { girth: 'chest', length: 'length' } as const;

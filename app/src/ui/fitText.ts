@@ -31,6 +31,9 @@ export const ZONE_NAME: Record<ZoneId, string> = {
   length: 'Length',
   sleeve: 'Sleeve',
   inseam: 'Inseam',
+  thigh: 'Thigh',
+  rise: 'Rise',
+  legOpening: 'Leg opening',
 };
 
 export const LABEL_TEXT: Record<FitLabel, string> = {
@@ -54,6 +57,9 @@ const ZONE_PLACE: Record<ZoneId, string> = {
   length: 'in length',
   sleeve: 'in the sleeves',
   inseam: 'in the leg',
+  thigh: 'at the thigh',
+  rise: 'in the rise',
+  legOpening: 'at the hem',
 };
 
 /**
@@ -117,6 +123,9 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
       if (over) return `${d} longer than your inseam.`;
       if (under) return `${d} shorter than your inseam.`;
       return 'Matches your inseam.';
+    default:
+      // Thigh, rise and leg opening get their own wording in the next commit.
+      return z.note ?? '';
   }
 }
 

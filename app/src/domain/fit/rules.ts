@@ -147,6 +147,51 @@ export const BOTTOM_HIPS: GirthRule = {
   ideal: 3,
 };
 
+/**
+ * Pants thigh (garment thigh − body thigh). ASSUMED, not sourced yet (no pants
+ * fit tests): a little closer than the seat, since a thigh has less to move.
+ * Tune with Test mode.
+ */
+export const THIGH: GirthRule = {
+  kind: 'girth',
+  tightBelow: -1,
+  fittedMax: 5,
+  relaxedMax: 10,
+  ideal: 3,
+};
+
+/**
+ * Where a pants waistband sits, by garment front rise − body front rise (cm along
+ * the body; × RISE_VERTICAL_RATIO is how far below the navel). ASSUMED marks:
+ * high from 2 cm short (about 1.5 cm below the navel, or above it), mid down to
+ * 7 cm short (about 5 cm below), low below that. Never bad, except below the hip
+ * line (the zone's blocks check in zones.ts).
+ */
+export const RISE: LandingRule = {
+  kind: 'landing',
+  marks: [
+    { label: 'low', atCm: -Infinity },
+    { label: 'mid', atCm: -7 },
+    { label: 'high', atCm: -2 },
+  ],
+};
+
+/**
+ * A pants leg opening, by opening − heel–ankle girth (cm). ASSUMED marks from
+ * typical cuts (skinny under the heel girth, needing stretch; slim to +6 cm;
+ * straight to +14; wide beyond). Never bad, except when it can't pass the heel
+ * (the zone's blocks check in zones.ts).
+ */
+export const LEG_OPENING: LandingRule = {
+  kind: 'landing',
+  marks: [
+    { label: 'skinny', atCm: -Infinity },
+    { label: 'slim', atCm: 0 },
+    { label: 'straight', atCm: 6 },
+    { label: 'wide', atCm: 14 },
+  ],
+};
+
 /** Top length vs. body torso length (high shoulder point -> hip line). */
 export const TOP_LENGTH: LengthRule = { kind: 'length', shortBelow: -4, longAbove: 5, ideal: 1 };
 

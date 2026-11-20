@@ -132,7 +132,8 @@ const TONE_RANK: Record<FitTone, number> = { unknown: 0, good: 1, warn: 2, bad: 
 function unknownReason(spec: ZoneSpec, rule: Rule, garment: Garment, garmentCm: number | undefined): string | null {
   if (garmentCm === undefined) return `${garment.brand} doesn't list this measurement.`;
   const key = spec.garmentKey;
-  if (rule.kind === 'girth' && !(isGirthKey(key) ? girthKnown(garment, key) : garment.girthVerified)) {
+  // A girth zone, or any zone on a girth measurement (a leg opening's landing), needs its method.
+  if ((rule.kind === 'girth' || isGirthKey(key)) && !(isGirthKey(key) ? girthKnown(garment, key) : garment.girthVerified)) {
     return `${garment.brand}'s chart doesn't say whether this is measured flat or all the way round.`;
   }
   if (spec.needs) {

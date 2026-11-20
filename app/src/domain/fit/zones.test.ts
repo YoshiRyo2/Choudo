@@ -18,9 +18,9 @@ describe('zones per template', () => {
     expect(zonesOf(withWaist)).toEqual(['chest', 'waist', 'length']);
   });
 
-  it('scores pants on waist, hips and inseam', () => {
+  it('scores pants on waist, hips, thigh, rise, inseam and leg opening', () => {
     const chino = findGarment('fieldline-slim-chino')!;
-    expect(zonesOf(chino)).toEqual(['waist', 'hips', 'inseam']);
+    expect(zonesOf(chino)).toEqual(['waist', 'hips', 'thigh', 'rise', 'inseam', 'legOpening']);
   });
 
   it("picks a top's chest rule by the garment's sizing", () => {
