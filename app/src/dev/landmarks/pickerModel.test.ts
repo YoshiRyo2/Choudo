@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { findGarment } from '../../domain/garments';
-import { TOP_LANDMARKS } from '../../domain/garments/types';
+import { PANTS_LANDMARKS, TOP_LANDMARKS } from '../../domain/garments/types';
 import type { WarpPiece } from '../../ui/components/Mannequin/photoWarp';
-import { DIAGRAM, LANDMARK_LABELS, PLACE_ORDER, SHORT_LABELS, foldWarning, nextPoint, previewSizes } from './pickerModel';
+import { DIAGRAM, LANDMARK_LABELS, PICKER_KITS, PLACE_ORDER, SHORT_LABELS, foldWarning, kitFor, nextPoint, previewSizes } from './pickerModel';
 
 describe('picker order', () => {
   it('covers every landmark once, with a label and a diagram spot', () => {
@@ -68,5 +68,35 @@ describe('foldWarning', () => {
     const msg = foldWarning([piece(['neckFront', 'shoulderRight', 'shoulderMid']), piece(['neckFront', 'shoulderLeft', 'shoulderMid'])])!;
     expect(msg).toContain('Front neck, Shoulder, right, the centre line, Shoulder, left');
     expect(msg.match(/Front neck/g)).toHaveLength(1);
+  });
+});
+
+describe('the pants kit', () => {
+  it('places every pants landmark once, round the outline, with words for each', () => {
+    const kit = PICKER_KITS.pants;
+    expect([...kit.order].sort()).toEqual([...PANTS_LANDMARKS].sort());
+    for (const n of PANTS_LANDMARKS) {
+      expect(kit.labels[n]).toBeTruthy();
+      expect(kit.short[n]).toBeTruthy();
+      expect(kit.diagram[n]).toBeDefined();
+    }
+    expect(new Set(Object.values(kit.short)).size).toBe(PANTS_LANDMARKS.length);
+  });
+
+  it('picks the kit by template', () => {
+    expect(kitFor(findGarment('corvo-slim-jean')!)).toBe(PICKER_KITS.pants);
+    expect(kitFor(findGarment('gildan-5000')!)).toBe(PICKER_KITS.top);
+  });
+
+  it('goes round the pants points in order', () => {
+    expect(nextPoint('waistLeft', {}, PICKER_KITS.pants.order)).toBe('waistMid');
+    expect(nextPoint('hipLeft', {}, PICKER_KITS.pants.order)).toBe('waistLeft');
+  });
+
+  it('names pants points and leg edges in a fold warning', () => {
+    const w = foldWarning([{ corners: ['crotch', 'legO1Right', 'kneeInnerRight'] } as never])!;
+    expect(w).toMatch(/Crotch/);
+    expect(w).toMatch(/a leg edge/);
+    expect(w).toMatch(/Knee, right, inner/);
   });
 });

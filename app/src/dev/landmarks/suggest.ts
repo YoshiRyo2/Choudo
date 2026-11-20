@@ -21,7 +21,7 @@
  *    slanted, and long sleeves at any angle.
  */
 
-import type { TopLandmarkName } from '../../domain/garments/types';
+import type { PantsLandmarkName, TopLandmarkName } from '../../domain/garments/types';
 
 export interface XY {
   x: number;
@@ -301,5 +301,106 @@ export function suggestLandmarks(mask: Uint8Array, w: number, h: number): Landma
     sleeveInnerLeft: r(left.inner),
     sleeveOuterRight: r(right.outer),
     sleeveInnerRight: r(right.inner),
+  };
+}
+
+// ---------- pants ----------
+
+export type PantsLandmarks = Record<PantsLandmarkName, XY>;
+
+/** The filled runs [from, to] (inclusive pixel x) on one mask row, left to right. */
+function runs(mask: Uint8Array, w: number, y: number): [number, number][] {
+  const out: [number, number][] = [];
+  let start = -1;
+  for (let x = 0; x <= w; x++) {
+    const on = x < w && mask[y * w + x] === 1;
+    if (on && start < 0) start = x;
+    if (!on && start >= 0) {
+      out.push([start, x - 1]);
+      start = -1;
+    }
+  }
+  return out;
+}
+
+/** The two widest runs on a row, left first: a pair of legs. null unless there are two. */
+function legsOn(mask: Uint8Array, w: number, y: number): [[number, number], [number, number]] | null {
+  const r = runs(mask, w, y)
+    .sort((a, b) => b[1] - b[0] - (a[1] - a[0]))
+    .slice(0, 2)
+    .sort((a, b) => a[0] - b[0]);
+  return r.length === 2 ? [r[0]!, r[1]!] : null;
+}
+
+/**
+ * First guesses for a pair of pants laid flat, read off the cut-out's rows:
+ *  - waist: the top row's extent (a few px in), its middle where the band dips;
+ *  - crotch: the first row, going down, where the garment splits into two legs;
+ *  - hips: the widest row above the crotch;
+ *  - hem: the lowest row with two legs (a few px up); knees half way from crotch to hem.
+ * Left and right are as you look at the photo. null when the mask never splits
+ * into two legs (not a pair of pants).
+ */
+export function suggestPantsLandmarks(mask: Uint8Array, w: number, h: number): PantsLandmarks | null {
+  const filled = (y: number) => runs(mask, w, y).length > 0;
+  let top = 0;
+  while (top < h && !filled(top)) top++;
+  let bottom = h - 1;
+  while (bottom > top && !filled(bottom)) bottom--;
+  if (top >= bottom) return null;
+  const inset = Math.max(1, Math.round((bottom - top) * 0.004));
+
+  // The band can dip in the middle, so the top rows may be two pieces: the crotch
+  // is the first split below where the garment is one piece.
+  let whole = top;
+  while (whole <= bottom && runs(mask, w, whole).length !== 1) whole++;
+  let crotchY = -1;
+  for (let y = whole; y <= bottom; y++) {
+    if (legsOn(mask, w, y)) {
+      crotchY = y;
+      break;
+    }
+  }
+  let hemY = bottom - inset;
+  while (hemY > crotchY && !legsOn(mask, w, hemY)) hemY--;
+  if (crotchY < 0 || hemY - crotchY < (bottom - top) * 0.25) return null;
+
+  const waistRow = runs(mask, w, top + inset);
+  const waistLeft = { x: waistRow[0]![0], y: top };
+  const waistRight = { x: waistRow[waistRow.length - 1]![1], y: top };
+  const midX = Math.round((waistLeft.x + waistRight.x) / 2);
+  let midY = top;
+  while (midY < crotchY && mask[midY * w + midX] !== 1) midY++;
+
+  let hipY = top;
+  let hipWidth = -1;
+  for (let y = top; y < crotchY; y++) {
+    const r = runs(mask, w, y);
+    const width = r.length ? r[r.length - 1]![1] - r[0]![0] : -1;
+    if (width > hipWidth) [hipY, hipWidth] = [y, width];
+  }
+  const hipRow = runs(mask, w, hipY);
+
+  const [leftLeg, rightLeg] = legsOn(mask, w, crotchY)!;
+  const kneeY = Math.round((crotchY + hemY) / 2);
+  const knees = legsOn(mask, w, kneeY);
+  const hems = legsOn(mask, w, hemY)!;
+  if (!knees) return null;
+
+  return {
+    waistLeft,
+    waistMid: { x: midX, y: midY },
+    waistRight,
+    hipLeft: { x: hipRow[0]![0], y: hipY },
+    hipRight: { x: hipRow[hipRow.length - 1]![1], y: hipY },
+    crotch: { x: Math.round((leftLeg[1] + rightLeg[0]) / 2), y: crotchY },
+    kneeOuterLeft: { x: knees[0][0], y: kneeY },
+    kneeInnerLeft: { x: knees[0][1], y: kneeY },
+    kneeOuterRight: { x: knees[1][1], y: kneeY },
+    kneeInnerRight: { x: knees[1][0], y: kneeY },
+    hemOuterLeft: { x: hems[0][0], y: hemY },
+    hemInnerLeft: { x: hems[0][1], y: hemY },
+    hemOuterRight: { x: hems[1][1], y: hemY },
+    hemInnerRight: { x: hems[1][0], y: hemY },
   };
 }

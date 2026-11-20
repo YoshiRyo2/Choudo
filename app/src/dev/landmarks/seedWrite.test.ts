@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TOP_LANDMARKS, type GarmentImage, type TopLandmarkName } from '../../domain/garments/types';
+import { PANTS_LANDMARKS, TOP_LANDMARKS, type GarmentImage, type TopLandmarkName } from '../../domain/garments/types';
 import SEED from '../../domain/garments/seed.json?raw';
 import { formatImage, writeGarmentImage } from './seedWrite';
 
@@ -101,5 +101,13 @@ describe('writeGarmentImage', () => {
   it('throws for an unknown garment or broken JSON', () => {
     expect(() => writeGarmentImage(SEED, 'nope', image('x'))).toThrow(/no garment with id "nope"/);
     expect(() => writeGarmentImage('{ "garments": [ { "id": "a" ', 'a', image('x'))).toThrow(/seed.json/);
+  });
+});
+
+describe('formatImage for pants', () => {
+  it('seedWrite writes pants landmarks in PANTS_LANDMARKS order', () => {
+    const shuffled = Object.fromEntries([...PANTS_LANDMARKS].reverse().map((n, i) => [n, { x: i, y: i }]));
+    const text = formatImage({ file: 'garments/j.png', photographedSize: null, landmarks: shuffled }, '      ');
+    expect(Object.keys(JSON.parse(text).landmarks)).toEqual([...PANTS_LANDMARKS]);
   });
 });

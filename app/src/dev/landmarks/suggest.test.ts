@@ -5,10 +5,13 @@ import {
   convexityDefects,
   insetMask,
   suggestLandmarks,
+  suggestPantsLandmarks,
   traceOutline,
   type Landmarks,
   type XY,
 } from './suggest';
+import { PANTS_LANDMARKS } from '../../domain/garments/types';
+import { SYNTHETIC_JEANS_LANDMARKS, SYNTHETIC_JEANS_OUTLINE, SYNTHETIC_JEANS_PX } from '../../ui/components/Mannequin/pantsFixture';
 
 const W = 200, H = 200;
 
@@ -123,5 +126,34 @@ describe('suggestLandmarks', () => {
   it('returns null for an empty or tiny mask', () => {
     expect(suggestLandmarks(new Uint8Array(W * H), W, H)).toBeNull();
     expect(suggestLandmarks(draw([[P(5, 5), P(9, 5), P(9, 9), P(5, 9)]]), W, H)).toBeNull();
+  });
+});
+
+describe('suggestPantsLandmarks', () => {
+  const { width: PW, height: PH } = SYNTHETIC_JEANS_PX;
+  const poly = SYNTHETIC_JEANS_OUTLINE.map((n) => SYNTHETIC_JEANS_LANDMARKS[n]);
+  const inside = (x: number, y: number) => {
+    let c = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const [a, b] = [poly[i]!, poly[j]!];
+      if (a.y > y !== b.y > y && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) c = !c;
+    }
+    return c;
+  };
+  const mask = new Uint8Array(PW * PH);
+  for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) if (inside(x + 0.5, y + 0.5)) mask[y * PW + x] = 1;
+
+  it('suggests pants landmarks from a synthetic jeans mask', () => {
+    const lm = suggestPantsLandmarks(mask, PW, PH)!;
+    expect(lm).not.toBeNull();
+    for (const name of PANTS_LANDMARKS) {
+      const [got, want] = [lm[name], SYNTHETIC_JEANS_LANDMARKS[name]];
+      expect(Math.hypot(got.x - want.x, got.y - want.y), `${name} at ${got.x},${got.y}, want ${want.x},${want.y}`).toBeLessThanOrEqual(15);
+    }
+  });
+
+  it('returns null for a tee mask', () => {
+    const tee = draw([[P(60, 30), P(140, 30), P(180, 70), P(150, 85), P(140, 75), P(140, 180), P(60, 180), P(60, 75), P(50, 85), P(20, 70)]]);
+    expect(suggestPantsLandmarks(tee, W, H)).toBeNull();
   });
 });
