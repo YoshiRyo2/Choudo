@@ -80,6 +80,29 @@ export const KNIT_LENGTH_RANGES: Partial<Record<GarmentType, Range>> = {
   cardigan: { min: 55, max: 95 },
 };
 
+/**
+ * Plausible jacket and coat measurements, cm, full circumferences. ASSUMED from
+ * typical charts: a jacket goes over a top, so it runs bigger than a knit (a 6XL
+ * soft shell is 71 in round), and a shoulder seam sits near the shoulder point.
+ */
+export const JACKET_RANGES: Partial<Record<MeasurementKey, Range>> = {
+  chest: { min: 85, max: 190 },
+  waist: { min: 75, max: 180 },
+  shoulder: { min: 38, max: 62 },
+};
+
+/** Jacket long sleeves, by where they're measured from. ASSUMED (J317 runs 34¼–40½ in from the centre back). */
+export const JACKET_SLEEVE_RANGES: Partial<Record<SleeveDefinition, Range>> = {
+  shoulder_to_cuff: { min: 50, max: 80 },
+  center_back_to_cuff: { min: 70, max: 110 },
+};
+
+/** Jacket length (high point of shoulder to hem): to the hip and thigh for jackets, down to the calf for coats. ASSUMED. */
+export const JACKET_LENGTH_RANGES: Partial<Record<GarmentType, Range>> = {
+  jacket: { min: 50, max: 100 },
+  coat: { min: 70, max: 125 },
+};
+
 /** Top length (high point of shoulder to hem) by garment type. */
 export const TOP_LENGTH_RANGES: Partial<Record<GarmentType, Range>> = {
   tee: { min: 60, max: 90 },

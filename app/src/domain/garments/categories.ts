@@ -24,6 +24,9 @@ import type {
 import { KNIT_OPTIONAL_LANDMARKS, PANTS_LANDMARKS, TOP_LANDMARKS } from './types';
 import {
   BOTTOM_RANGES,
+  JACKET_LENGTH_RANGES,
+  JACKET_RANGES,
+  JACKET_SLEEVE_RANGES,
   KNIT_GIRTH_METHOD_LIMITS,
   KNIT_LENGTH_RANGES,
   KNIT_RANGES,
@@ -230,12 +233,22 @@ export const CATEGORY_SPECS: Record<TemplateId, CategorySpec> = {
     checks: { required: ['waist', 'length'], ranges: SKIRT_RANGES, labelEase: null, relations: SKIRT_RELATIONS },
     defaultWeight: 'light',
   },
-  // Worn over the top (outer slot). Data checks come with the first rows (PR 4, task 4).
+  // Worn over the top (outer slot); fitted over what's under it (domain/fit/layers.ts).
   jacket: {
     template: 'jacket',
     ...TOP_SPEC,
     category: 'outer',
-    checks: KNIT_CHECKS,
+    checks: {
+      required: ['chest', 'length'],
+      ranges: JACKET_RANGES,
+      lengthRanges: JACKET_LENGTH_RANGES,
+      sleeveRanges: JACKET_SLEEVE_RANGES,
+      // Flat chests run as big as a knit's (a 6XL soft shell is 35½ in flat).
+      girthMethodLimits: KNIT_GIRTH_METHOD_LIMITS,
+      // The typical-chest table is a tee's; a jacket's chest carries its own offset.
+      labelEase: null,
+      relations: [],
+    },
     landmarks: null,
     defaultWeight: 'mid',
     scoredDefinitions: { length: ['hps', 'center_back'], sleeve: ['shoulder_to_cuff', 'center_back_to_cuff'] },
