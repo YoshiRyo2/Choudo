@@ -1,6 +1,7 @@
 import type { GarmentFit, GarmentOdds, MeasureHint, PreferenceSpec, ZoneOdds } from '../../domain/fit';
 import type { Garment } from '../../domain/garments';
 import {
+  bodyPlaceText,
   describeZone,
   ESTIMATED_MARK,
   formatDiff,
@@ -91,6 +92,7 @@ export function FitReadout({ garment, fit, units, odds, preference, hint, showOd
             <p className="zone__numbers">
               <span>
                 You <span className="num">{formatLength(z.bodyCm, units)}</span>
+                {bodyPlaceText(z)}
                 {z.bodySource === 'estimated' && <span className="zone__est"> estimated</span>}
               </span>
               {z.garmentCm !== null && z.diffCm !== null && (
@@ -137,6 +139,9 @@ function ZoneOddsLines({
 }) {
   if (!odds || odds.labels.unknown === 1) return null;
   const personal = personalOddsText(odds, garment, hasLengthPreference);
+  // A landing zone that never blocks has no label odds to give.
+  const labels = labelOddsText(odds);
+  if (!personal && labels === '') return null;
   return (
     <dl className="zone__odds">
       {personal && (
@@ -145,10 +150,12 @@ function ZoneOddsLines({
           <dd className="num">{personal}</dd>
         </div>
       )}
-      <div>
-        <dt>Label</dt>
-        <dd className="num">{labelOddsText(odds)}</dd>
-      </div>
+      {labels !== '' && (
+        <div>
+          <dt>Label</dt>
+          <dd className="num">{labels}</dd>
+        </div>
+      )}
     </dl>
   );
 }

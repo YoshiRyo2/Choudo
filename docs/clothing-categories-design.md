@@ -692,8 +692,14 @@ Split into 1a (commits 1–2, Medium, no visible change) and 1b (3–8).
 - **Test mode** records bottoms (waist, thigh when scored, inseam); records are v3.
 - **Known effect, not changed**: body and garment errors are drawn independently per key, so each
   extra girth zone adds its own chance of "too tight". Pants (waist, hips, thigh) lean towards
-  "too tight" in the odds on estimated data more than a single-girth tee does. Drawing thigh with
-  hips (ANSUR residual correlation) would fix it; that's a follow-up.
+  "too tight" in the odds on estimated data more than a single-girth tee does (men 176/85, Corvo
+  Slim Jean 36x32: too-tight 0.42 against fits 0.11, though every zone fits at the point
+  estimate). Drawing thigh with hips alone only helps partly (the men's thigh SD of 4 cm against a
+  tight boundary of about −3.5 cm makes the thigh tight on its own about 1 draw in 5); the fix is to
+  correlate the leg girths with the body's waist / hips draw (ANSUR residual correlations), or
+  narrow the men's thigh spread. A follow-up, before real pants data lands.
+- **Readout**: a waist worked out at the band says so ("You 84.1 cm where the waistband sits",
+  estimated), and landing zones' odds give only the chance they block ("Won't go on 4%").
 
 ### PR 2 — hoodies / sweaters (Medium)
 - `knit` zones: chest (personal, tee `INTENT_EASE` plus a knit offset), length (`hps` or `center_back` against

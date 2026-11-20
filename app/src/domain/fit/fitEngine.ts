@@ -58,6 +58,11 @@ export interface ZoneFit {
   /** Set (true) only when the size's overall result doesn't need this zone. */
   optional?: true;
   /**
+   * Set only when bodyCm isn't the body measurement itself but worked out from it:
+   * "band" = the body's girth where the waistband sits (pants waist below the navel).
+   */
+  bodyAt?: 'band';
+  /**
    * The label ranges for this zone, in cm of difference, lowest first. Lets the UI
    * draw a scale without knowing the rules. Ends are ±Infinity.
    */
@@ -169,10 +174,12 @@ function bandsFor(rule: Rule, tightAllowanceCm: number): FitBand[] {
 export function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, gs: GarmentSize): ZoneFit {
   const size = gs.measurements;
   const bodyCm = spec.bodyTarget ? spec.bodyTarget(body.measurements, garment, size) : body.measurements[spec.bodyKey];
+  // A worked-out body number rests on estimated heights, so it's estimated even when the user typed the measurement.
+  const workedOut = bodyCm !== body.measurements[spec.bodyKey];
   const zoneRule = ruleFor(spec, garment);
   // Fraction-scale girth bounds become cm for this body, so labels, bands and ease all read in cm.
   const rule = zoneRule.kind === 'girth' ? girthRuleInCm(zoneRule, bodyCm) : zoneRule;
-  const bodySource = body.sources[spec.bodyKey];
+  const bodySource = workedOut ? 'estimated' : body.sources[spec.bodyKey];
   const garmentCm = size[spec.garmentKey];
   const garmentOrigin = gs.provenance[spec.garmentKey]?.origin;
   const tightAllowanceCm = stretchAllowance(rule, stretchOf(garment, spec.garmentKey)) * bodyCm;
@@ -184,6 +191,7 @@ export function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, gs: G
     bands: bandsFor(rule, tightAllowanceCm),
     ...(garmentOrigin !== undefined ? { garmentOrigin } : {}),
     ...(spec.optional ? { optional: true as const } : {}),
+    ...(workedOut ? { bodyAt: 'band' as const } : {}),
   } as const;
 
   const reason = unknownReason(spec, rule, garment, garmentCm);

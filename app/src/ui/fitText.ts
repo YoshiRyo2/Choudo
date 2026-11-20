@@ -44,7 +44,7 @@ export const LABEL_TEXT: Record<FitLabel, string> = {
   short: 'Short',
   good: 'Good length',
   long: 'Long',
-  // Landing zones (none in the catalogue yet) say where an edge ends; the mark carries the detail.
+  // Landing zones say where an edge ends; zoneLabelText shows the mark instead ("Mid rise").
   noted: 'Where it ends',
   unknown: 'Can’t tell',
 };
@@ -142,6 +142,11 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
       }
       return `${LANDING_TEXT[z.landing ?? ''] ?? 'This leg'}: ${d} wider than your heel.`;
   }
+}
+
+/** Where a worked-out body number was taken, after "You 84.1 cm": the waist of a jean is where its band sits. */
+export function bodyPlaceText(z: ZoneFit): string {
+  return z.bodyAt === 'band' ? ' where the waistband sits' : '';
 }
 
 /** How a landing zone's mark reads on its own: "Mid rise", "Straight leg". */
@@ -429,8 +434,16 @@ export function measureHintText(hint: MeasureHint, bodyType: BodyType = 'mens'):
   return `Measure your ${name} to decide between ${listOf(hint.sizes)}.`;
 }
 
-/** Objective labels by chance, likeliest first: "Fitted 61% · Relaxed 30% · Tight 9%". Under 1% is left out. */
+/**
+ * Objective labels by chance, likeliest first: "Fitted 61% · Relaxed 30% · Tight 9%". Under 1% is left out.
+ * A landing zone has no scale of labels, only the chance it blocks ("Won’t go on 4%"), or "" when it never does.
+ */
 export function labelOddsText(z: ZoneOdds): string {
+  if (z.kind === 'landing') {
+    const blocked = (z.labels.tight ?? 0) + (z.labels.short ?? 0);
+    if (blocked < 0.01) return '';
+    return `${z.labels.tight ? 'Won’t go on' : 'Won’t stay up'} ${formatPercent(blocked)}`;
+  }
   return Object.entries(z.labels)
     .filter(([, p]) => p >= 0.01)
     .sort((a, b) => b[1] - a[1])

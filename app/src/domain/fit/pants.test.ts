@@ -145,3 +145,20 @@ describe('pants zones', () => {
     expect([at(29), at(33), at(39), at(47)]).toEqual(['skinny', 'slim', 'straight', 'wide']);
   });
 });
+
+describe('the waist at the band', () => {
+  it('is marked as worked out at the band, and estimated, when the band is off the navel', () => {
+    const entered = { ...model(), sources: { ...model().sources, waistCm: 'entered' as const } };
+    const waist = fitGarment(entered, jean(), '28').zones.find((z) => z.zone === 'waist')!;
+    expect(waist.bodyAt).toBe('band');
+    expect(waist.bodySource).toBe('estimated');
+  });
+
+  it('stays your own waist, with its own source, at the navel', () => {
+    const entered = { ...model(), sources: { ...model().sources, waistCm: 'entered' as const } };
+    const g = jean({ chart: { unit: 'cm', girth: 'circumference', definitions: { thigh: 'at_crotch' } } });
+    const waist = fitGarment(entered, g, '28').zones.find((z) => z.zone === 'waist')!;
+    expect('bodyAt' in waist).toBe(false);
+    expect(waist.bodySource).toBe('entered');
+  });
+});

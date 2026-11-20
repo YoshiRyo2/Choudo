@@ -20,6 +20,7 @@ import {
   sourceLine,
   summarize,
   zoneLabelText,
+  bodyPlaceText,
 } from './fitText';
 
 const zone = (patch: Partial<ZoneFit>): ZoneFit => ({
@@ -324,5 +325,30 @@ describe('pants wording', () => {
     const s = summarize(fitGarment(body, narrow, '32x32'));
     expect(s.headline).toBe('Probably won’t fit');
     expect(s.detail).toMatch(/won’t go on at the hem/i);
+  });
+});
+
+describe('landing-zone odds', () => {
+  const landing = (zone: ZoneOdds['zone'], labels: ZoneOdds['labels']): ZoneOdds => ({
+    zone,
+    kind: 'landing',
+    labels,
+    personal: { under: 0, right: 1, over: 0, unknown: 0 },
+  });
+
+  it('gives only the chance it won’t go on or stay up', () => {
+    expect(labelOddsText(landing('legOpening', { noted: 0.96, tight: 0.04 }))).toBe('Won’t go on 4%');
+    expect(labelOddsText(landing('rise', { noted: 0.9, short: 0.1 }))).toBe('Won’t stay up 10%');
+  });
+
+  it('says nothing when it always lands', () => {
+    expect(labelOddsText(landing('rise', { noted: 1 }))).toBe('');
+  });
+});
+
+describe('a body number worked out at the band', () => {
+  it('says where it was measured', () => {
+    expect(bodyPlaceText(zone({ zone: 'waist', bodyAt: 'band' }))).toBe(' where the waistband sits');
+    expect(bodyPlaceText(zone({ zone: 'waist' }))).toBe('');
   });
 });
