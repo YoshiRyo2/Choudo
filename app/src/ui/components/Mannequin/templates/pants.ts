@@ -11,7 +11,7 @@
 
 import type { BodyMeasurements } from '../../../../domain/body';
 import { bandHeight, riseForBand } from '../../../../domain/fit';
-import { girthKnown, type Garment, type GarmentType, type SizeMeasurements } from '../../../../domain/garments';
+import { girthKnown, type Garment, type GarmentType, type PantsLandmarkName, type SizeMeasurements } from '../../../../domain/garments';
 import { bodyHalfAt, halfWidth, lerp, smoothPath, type BodyGeometry, type Marker, type Pt } from '../geometry';
 import { SLEEVE_STRIPS, type SleeveEdges, type XY } from '../photoWarp';
 
@@ -20,6 +20,10 @@ export interface BottomShape {
   markers: Partial<Record<'waist' | 'hips' | 'thigh' | 'rise' | 'inseam' | 'legOpening', Marker>>;
   /** Each leg's outer edge (hip → knee → hem) and inner edge (crotch → knee → hem), SLEEVE_STRIPS + 1 points each, for the photo warp's leg strips. */
   limbEdges: { left: SleeveEdges; right: SleeveEdges };
+  /** Each leg's own outline (its strips' clip), so a leg's photo never spills onto the other leg. */
+  legs: { left: string; right: string };
+  /** Drawn points matching a pants photo's landmarks, for the warp. */
+  landmarks: Record<PantsLandmarkName, Pt>;
   /** The hem would reach past the floor — drawn bunched at the ankle. */
   pooled: boolean;
   /** Some width is a fallback, not the chart's: drawn dashed. */
@@ -108,8 +112,30 @@ export function pantsShape(g: BodyGeometry, body: BodyMeasurements, garment: Gar
     outer: edge({ x: hipHalf, y: g.y.hip }, kneeOuter, hemOuter),
     inner: edge({ x: 0, y: crotchY }, kneeInner, hemInner),
   };
+  const legOutline = (e: SleeveEdges) => smoothPath([...e.outer, ...[...e.inner].reverse()], true);
+  const leftEdges: SleeveEdges = { outer: rightEdges.outer.map(mirrorX), inner: rightEdges.inner.map(mirrorX) };
+  const waistRight: Pt = { x: bandHalf, y: bandY };
+  const hipRight: Pt = { x: hipHalf, y: g.y.hip };
+  const mirror = (p: XY): Pt => ({ x: -p.x, y: p.y });
   return {
     body: smoothPath([...right, ...left], true),
+    legs: { right: legOutline(rightEdges), left: legOutline(leftEdges) },
+    landmarks: {
+      waistLeft: mirror(waistRight),
+      waistMid: { x: 0, y: bandY },
+      waistRight,
+      hipLeft: mirror(hipRight),
+      hipRight,
+      crotch: { x: 0, y: crotchY },
+      kneeOuterLeft: mirror(kneeOuter),
+      kneeInnerLeft: mirror(kneeInner),
+      kneeOuterRight: kneeOuter,
+      kneeInnerRight: kneeInner,
+      hemOuterLeft: mirror(hemOuter),
+      hemInnerLeft: mirror(hemInner),
+      hemOuterRight: hemOuter,
+      hemInnerRight: hemInner,
+    },
     markers: {
       waist: { x: bandHalf, y: bandY },
       rise: { x: 0, y: bandY },
@@ -118,10 +144,7 @@ export function pantsShape(g: BodyGeometry, body: BodyMeasurements, garment: Gar
       inseam: { x: hemOuter.x, y: hemY },
       legOpening: { x: hemX, y: hemY },
     },
-    limbEdges: {
-      right: rightEdges,
-      left: { outer: rightEdges.outer.map(mirrorX), inner: rightEdges.inner.map(mirrorX) },
-    },
+    limbEdges: { right: rightEdges, left: leftEdges },
     pooled,
     approximate,
   };

@@ -12,6 +12,6 @@ export { checkGarment } from './verify';
 export type { AuditDiff, AuditResult, CheckIssue, GarmentCheck, UnscorableZone } from './verify';
 export { gradeGarment } from './grade';
 export { CATALOGUE_SCOPES, catalogueFor, fitsBodyType } from './catalogue';
-export { CATEGORY_SPECS, categorySpec, GARMENT_TYPES, isGarmentType, templateOf, TYPE_TEMPLATE } from './categories';
+export { CATEGORY_SPECS, categorySpec, GARMENT_TYPES, isGarmentType, pantsLandmarks, templateOf, topLandmarks, TYPE_TEMPLATE } from './categories';
 export type { CategoryChecks, CategorySpec, TemplateId } from './categories';
 export type { CatalogueScope } from './catalogue';

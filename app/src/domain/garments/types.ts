@@ -217,6 +217,32 @@ export const TOP_LANDMARKS = [
 export type TopLandmarkName = (typeof TOP_LANDMARKS)[number];
 
 /**
+ * Named points on a pair of pants laid flat, front view ("Left" is the viewer's
+ * left): the waistband's corners and centre, the hip corners, the crotch, and each
+ * leg's outer and inner edge at the knee and at the hem.
+ */
+export const PANTS_LANDMARKS = [
+  'waistLeft',
+  'waistMid',
+  'waistRight',
+  'hipLeft',
+  'hipRight',
+  'crotch',
+  'kneeOuterLeft',
+  'kneeInnerLeft',
+  'kneeOuterRight',
+  'kneeInnerRight',
+  'hemOuterLeft',
+  'hemInnerLeft',
+  'hemOuterRight',
+  'hemInnerRight',
+] as const;
+export type PantsLandmarkName = (typeof PANTS_LANDMARKS)[number];
+
+/** Any template's landmark name. Which ones a photo needs depends on its garment's template. */
+export type LandmarkName = TopLandmarkName | PantsLandmarkName;
+
+/**
  * A front product photo, and where the garment's landmarks are in it.
  * Used to warp the photo onto the drawn outline of whichever size is worn.
  */
@@ -233,8 +259,12 @@ export interface GarmentImage {
    * for every size). The warp fits the photo to each size's outline either way.
    */
   photographedSize: string | null;
-  /** Image pixel coordinates, origin top-left. */
-  landmarks: Record<TopLandmarkName, { x: number; y: number }>;
+  /**
+   * Image pixel coordinates, origin top-left: every landmark of the garment's
+   * template (TOP_LANDMARKS or PANTS_LANDMARKS; validateImage checks). Read a
+   * complete set with topLandmarks() / pantsLandmarks().
+   */
+  landmarks: Partial<Record<LandmarkName, { x: number; y: number }>>;
 }
 
 export interface GarmentSource {

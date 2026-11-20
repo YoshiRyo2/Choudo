@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as
 import { estimateBody, type BodyInput } from '../../domain/body';
 import { findGarment } from '../../domain/garments';
 import { TOP_LANDMARKS, type Garment, type GarmentImage, type TopLandmarkName } from '../../domain/garments/types';
+import { topLandmarks } from '../../domain/garments/categories';
 import { validateImage } from '../../domain/garments/validate';
 import { bodyGeometry } from '../../ui/components/Mannequin/geometry';
 import { Mannequin } from '../../ui/components/Mannequin/Mannequin';
@@ -175,7 +176,7 @@ export function LandmarkPicker() {
     const folded = p.labels.flatMap((label) => {
       const size = p.garment.sizes.find((s) => s.label === label)!;
       const shape = topShape(g, p.garment, size.measurements, body.chestCm);
-      return foldedPieces(warpPieces(image.landmarks, shape.landmarks, shape.sleeveEdges));
+      return foldedPieces(warpPieces(topLandmarks(image)!, shape.landmarks, shape.sleeveEdges));
     });
     return foldWarning(folded);
   }, [image, garment, body]);

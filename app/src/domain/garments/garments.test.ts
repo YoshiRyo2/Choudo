@@ -260,3 +260,46 @@ describe('seed bottoms', () => {
     }
   });
 });
+
+describe('a pants photo', () => {
+  const jeanSeed = SEED_GARMENTS.find((s) => s.id === 'corvo-slim-jean')!;
+  const landmarks = {
+    waistLeft: { x: 250, y: 100 },
+    waistMid: { x: 450, y: 110 },
+    waistRight: { x: 650, y: 100 },
+    hipLeft: { x: 220, y: 300 },
+    hipRight: { x: 680, y: 300 },
+    crotch: { x: 450, y: 420 },
+    kneeOuterLeft: { x: 250, y: 850 },
+    kneeInnerLeft: { x: 420, y: 850 },
+    kneeOuterRight: { x: 650, y: 850 },
+    kneeInnerRight: { x: 480, y: 850 },
+    hemOuterLeft: { x: 260, y: 1320 },
+    hemInnerLeft: { x: 410, y: 1320 },
+    hemOuterRight: { x: 640, y: 1320 },
+    hemInnerRight: { x: 490, y: 1320 },
+  };
+  const image = { file: 'garments/test-jeans.png', photographedSize: null, landmarks };
+
+  it('validateImage accepts a pants photo with all 14 landmarks in order', () => {
+    expect(validateSeed([{ ...jeanSeed, image }])).toEqual([]);
+  });
+
+  it('rejects a hem whose outer corner is inside its inner one, and a missing knee', () => {
+    const swapped = { ...landmarks, hemOuterRight: { x: 480, y: 1320 }, hemInnerRight: { x: 640, y: 1320 } };
+    expect(validateSeed([{ ...jeanSeed, image: { ...image, landmarks: swapped } }]).join('\n')).toMatch(/right hem/);
+    const { kneeOuterLeft: _gone, ...partial } = landmarks;
+    expect(validateSeed([{ ...jeanSeed, image: { ...image, landmarks: partial } }]).join('\n')).toMatch(/kneeOuterLeft/);
+  });
+
+  it('rejects a crotch above the hips or a knee below the hem', () => {
+    const high = { ...landmarks, crotch: { x: 450, y: 200 } };
+    expect(validateSeed([{ ...jeanSeed, image: { ...image, landmarks: high } }]).join('\n')).toMatch(/crotch/);
+    const low = { ...landmarks, kneeInnerLeft: { x: 420, y: 1350 } };
+    expect(validateSeed([{ ...jeanSeed, image: { ...image, landmarks: low } }]).join('\n')).toMatch(/left leg/);
+  });
+
+  it('pants landmarks on a top are a problem', () => {
+    expect(validateSeed([{ ...base, image }]).join('\n')).toMatch(/collarLeft/);
+  });
+});

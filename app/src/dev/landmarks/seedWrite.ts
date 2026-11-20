@@ -105,7 +105,7 @@ export function formatImage(image: GarmentImage, indent: string, step = '  '): s
   const a = indent + step;
   const b = a + step;
   const points = TOP_LANDMARKS.map((name) => {
-    const p = image.landmarks[name];
+    const p = image.landmarks[name]!;
     return `${b}${JSON.stringify(name)}: { "x": ${Math.round(p.x)}, "y": ${Math.round(p.y)} }`;
   });
   return [

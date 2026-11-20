@@ -7,8 +7,17 @@
  * today exist; hoodies, skirts, jackets and the rest come with their own PRs.
  */
 
-import type { GarmentCategory, GarmentType, MeasurementKey, SizeMeasurements, TopLandmarkName } from './types';
-import { TOP_LANDMARKS } from './types';
+import type {
+  GarmentCategory,
+  GarmentImage,
+  GarmentType,
+  LandmarkName,
+  MeasurementKey,
+  PantsLandmarkName,
+  SizeMeasurements,
+  TopLandmarkName,
+} from './types';
+import { PANTS_LANDMARKS, TOP_LANDMARKS } from './types';
 import { BOTTOM_RANGES, MAX_THIGH_TO_HIPS, TOP_LENGTH_RANGES, TOP_RANGES, type Range } from './verifyRules';
 
 /** A check between two measurements of one size (cm, full circumference). Breaking it is a warning. */
@@ -77,7 +86,7 @@ export interface CategorySpec {
   /** Whether rows must give chart.lengthDefinition (tops), or must not (bottoms have no top length). */
   lengthDefinition: 'required' | 'forbidden';
   /** Photo landmark names, or null when this template can't take a photo texture yet. */
-  landmarks: readonly TopLandmarkName[] | null;
+  landmarks: readonly LandmarkName[] | null;
   checks: CategoryChecks;
 }
 
@@ -104,7 +113,7 @@ export const CATEGORY_SPECS: Record<TemplateId, CategorySpec> = {
     category: 'bottom',
     sleeve: 'forbidden',
     lengthDefinition: 'forbidden',
-    landmarks: null,
+    landmarks: PANTS_LANDMARKS,
     checks: { required: ['waist', 'inseam'], ranges: BOTTOM_RANGES, labelEase: 'waist', relations: PANTS_RELATIONS },
   },
 };
@@ -116,3 +125,24 @@ export const isGarmentType = (type: unknown): type is GarmentType =>
 export const templateOf = (g: { type: GarmentType }): TemplateId => TYPE_TEMPLATE[g.type];
 
 export const categorySpec = (g: { type: GarmentType }): CategorySpec => CATEGORY_SPECS[templateOf(g)];
+
+type Point = { x: number; y: number };
+
+/** A photo's landmarks as a complete set of these names, or null when any is missing. */
+function landmarkSet<N extends LandmarkName>(image: Pick<GarmentImage, 'landmarks'>, names: readonly N[]): Record<N, Point> | null {
+  const out = {} as Record<N, Point>;
+  for (const n of names) {
+    const p = image.landmarks[n];
+    if (!p) return null;
+    out[n] = p;
+  }
+  return out;
+}
+
+/** A top photo's 13 landmarks, or null when it isn't a complete top set. */
+export const topLandmarks = (image: Pick<GarmentImage, 'landmarks'>): Record<TopLandmarkName, Point> | null =>
+  landmarkSet(image, TOP_LANDMARKS);
+
+/** A pants photo's 14 landmarks, or null when it isn't a complete pants set. */
+export const pantsLandmarks = (image: Pick<GarmentImage, 'landmarks'>): Record<PantsLandmarkName, Point> | null =>
+  landmarkSet(image, PANTS_LANDMARKS);

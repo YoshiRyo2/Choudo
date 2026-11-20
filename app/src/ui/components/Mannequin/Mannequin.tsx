@@ -1,9 +1,9 @@
 import { useId, useMemo } from 'react';
 import type { BodyMeasurements } from '../../../domain/body';
 import type { GarmentFit, ZoneFit } from '../../../domain/fit';
-import type { Garment } from '../../../domain/garments';
+import { pantsLandmarks, topLandmarks, type Garment } from '../../../domain/garments';
 import { bodyGeometry, type Marker } from './geometry';
-import { affineToSvg, warpPieces, type WarpPiece, type WarpRegion } from './photoWarp';
+import { affineToSvg, warpPantsPieces, warpPieces, type WarpPiece, type WarpRegion } from './photoWarp';
 import { pantsShape } from './templates/pants';
 import { topShape } from './topShape';
 import { usePhotoSize, type PhotoSize } from './usePhotoSize';
@@ -39,13 +39,19 @@ export function Mannequin({ body, top, bottom, showFit = true, className }: Mann
   const topDraw = top && topSize ? topShape(g, top.garment, topSize.measurements, body.chestCm) : null;
   const bottomDraw = bottom && bottomSize ? pantsShape(g, body, bottom.garment, bottomSize.measurements) : null;
 
-  // A product photo, when the top has one and the file is present, is warped onto
-  // this size's outline over the flat colour.
+  // A product photo, when the garment has one and the file is present, is warped
+  // onto this size's outline over the flat colour.
   const photo = top?.garment.image;
   const photoSrc = photo ? `${import.meta.env.BASE_URL}${photo.file}` : null;
   const photoSize = usePhotoSize(photoSrc);
-  const pieces =
-    topDraw && photo && photoSize ? warpPieces(photo.landmarks, topDraw.landmarks, topDraw.sleeveEdges) : null;
+  const topPhoto = photo ? topLandmarks(photo) : null;
+  const pieces = topDraw && topPhoto && photoSize ? warpPieces(topPhoto, topDraw.landmarks, topDraw.sleeveEdges) : null;
+  const bottomPhoto = bottom?.garment.image;
+  const bottomSrc = bottomPhoto ? `${import.meta.env.BASE_URL}${bottomPhoto.file}` : null;
+  const bottomPhotoSize = usePhotoSize(bottomSrc);
+  const pantsPhoto = bottomPhoto ? pantsLandmarks(bottomPhoto) : null;
+  const bottomPieces =
+    bottomDraw && pantsPhoto && bottomPhotoSize ? warpPantsPieces(pantsPhoto, bottomDraw.landmarks, bottomDraw.limbEdges) : null;
   const clipId = `mq${useId().replace(/[^\w-]/g, '')}`;
   const texture = (region: WarpRegion, outline: string) =>
     pieces && photoSrc && photoSize ? (
@@ -55,6 +61,16 @@ export function Mannequin({ body, top, bottom, showFit = true, className }: Mann
         pieces={pieces.filter((p) => p.region === region)}
         src={photoSrc}
         size={photoSize}
+      />
+    ) : null;
+  const bottomTexture = (region: WarpRegion, outline: string) =>
+    bottomPieces && bottomSrc && bottomPhotoSize ? (
+      <PhotoTexture
+        id={`${clipId}-bottom-${region}`}
+        outline={outline}
+        pieces={bottomPieces.filter((p) => p.region === region)}
+        src={bottomSrc}
+        size={bottomPhotoSize}
       />
     ) : null;
 
@@ -106,11 +122,17 @@ export function Mannequin({ body, top, bottom, showFit = true, className }: Mann
       <line className="mannequin__seam" x1={0} x2={0} y1={g.y.neckBase + 4} y2={g.y.crotch - 4} />
 
       {bottomDraw && bottom && (
-        <path
-          className={garmentClass(bottomDraw.approximate, bottom.garment)}
-          d={bottomDraw.body}
-          style={{ fill: bottom.garment.color }}
-        />
+        <g>
+          <path
+            className={garmentClass(bottomDraw.approximate, bottom.garment)}
+            d={bottomDraw.body}
+            style={{ fill: bottom.garment.color }}
+          />
+          {/* The top (band to crotch) clipped to the whole outline, each leg to its own. */}
+          {bottomTexture('body', bottomDraw.body)}
+          {bottomTexture('legRight', bottomDraw.legs.right)}
+          {bottomTexture('legLeft', bottomDraw.legs.left)}
+        </g>
       )}
       {topDraw && top && (
         <g>
