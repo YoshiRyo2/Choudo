@@ -8,6 +8,8 @@ import {
   auditGapsCm,
   bodySdCm,
   garmentSdCm,
+  MAIN_STREAM_BODY_KEYS,
+  MAIN_STREAM_GARMENT_KEYS,
   measurementHint,
   pickSize,
   recommendSize,
@@ -258,5 +260,20 @@ describe('measurementHint', () => {
 
   it('says nothing when there is no recommendation', () => {
     expect(measurementHint(bodyWith({ chestCm: 100 }, 'estimated'), UNKNOWN_CHEST_TEE, regular)).toBeNull();
+  });
+});
+
+describe('sampler streams', () => {
+  it('keeps the main stream to the keys it has always drawn', () => {
+    expect(MAIN_STREAM_BODY_KEYS).toEqual([
+      'chestCm',
+      'waistCm',
+      'hipsCm',
+      'inseamCm',
+      'shoulderWidthCm',
+      'armLengthCm',
+      'torsoLengthCm',
+    ]);
+    expect(MAIN_STREAM_GARMENT_KEYS).toEqual(['chest', 'waist', 'hips', 'length', 'sleeve', 'shoulder', 'inseam', 'rise']);
   });
 });

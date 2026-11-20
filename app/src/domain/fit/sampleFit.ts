@@ -34,7 +34,7 @@ import {
   type PreferenceSpec,
   type Verdict,
 } from './preference';
-import { normal, seededRng } from './random';
+import { keyedSeed, normal, seededRng } from './random';
 import { girthRuleInCm } from './rules';
 import { measurableKeys, templateZones, zoneRule, type MeasurableKey } from './zones';
 import {
@@ -87,11 +87,37 @@ export interface SampleOptions {
   seed?: number;
 }
 
-// Every key in the schema is drawn, whatever the template, in the schema's fixed
-// order: a new measurement is sampled without touching this file, and a seed keeps
-// meaning the same draws.
+// Every key in the schema is drawn, whatever the template, so a new measurement is
+// sampled without touching this file.
 const GARMENT_KEYS = MEASUREMENT_KEYS;
-const BODY_KEYS = BODY_MEASUREMENT_KEYS;
+
+/**
+ * The keys the main random stream draws, in this order, every sample. FROZEN:
+ * never add to these. A seed then keeps meaning the same draws for every garment
+ * whatever keys come later. Every other key draws from its own stream
+ * (keyedSeed), once per sample, so adding a key never moves an existing result.
+ */
+export const MAIN_STREAM_BODY_KEYS: readonly BodyKey[] = [
+  'chestCm',
+  'waistCm',
+  'hipsCm',
+  'inseamCm',
+  'shoulderWidthCm',
+  'armLengthCm',
+  'torsoLengthCm',
+];
+export const MAIN_STREAM_GARMENT_KEYS: readonly MeasurementKey[] = [
+  'chest',
+  'waist',
+  'hips',
+  'length',
+  'sleeve',
+  'shoulder',
+  'inseam',
+  'rise',
+];
+const OWN_STREAM_BODY_KEYS = BODY_MEASUREMENT_KEYS.filter((k) => !MAIN_STREAM_BODY_KEYS.includes(k));
+const OWN_STREAM_GARMENT_KEYS = GARMENT_KEYS.filter((k) => !MAIN_STREAM_GARMENT_KEYS.includes(k));
 
 /** audit − chart (cm) for each measurement the audit covers. Empty without an audit. */
 export function auditGapsCm(garment: Garment): Partial<Record<MeasurementKey, number>> {
@@ -161,6 +187,8 @@ export function sampleFit(
   { samples = SAMPLE_COUNT, seed = SAMPLER_SEED }: SampleOptions = {},
 ): GarmentOdds {
   const rng = seededRng(seed);
+  const bodyStreams = OWN_STREAM_BODY_KEYS.map((k) => [k, seededRng(keyedSeed(seed, k))] as const);
+  const garmentStreams = OWN_STREAM_GARMENT_KEYS.map((k) => [k, seededRng(keyedSeed(seed, k))] as const);
   const gaps = auditGapsCm(garment);
   const sds = garment.sizes.map((s) =>
     Object.fromEntries(GARMENT_KEYS.map((k) => [k, garmentSdCm(garment, s, k, gaps)])) as Record<MeasurementKey, number>,
@@ -174,10 +202,13 @@ export function sampleFit(
   for (let i = 0; i < samples; i++) {
     // Draw everything in a fixed order so a seed always means the same draws.
     const measurements = { ...body.measurements };
-    for (const key of BODY_KEYS) measurements[key] = body.measurements[key] + normal(rng) * bodySdCm(body, key);
+    for (const key of MAIN_STREAM_BODY_KEYS) measurements[key] = body.measurements[key] + normal(rng) * bodySdCm(body, key);
     const drawnBody: BodyModel = { measurements, sources: body.sources };
 
-    const z = Object.fromEntries(GARMENT_KEYS.map((k) => [k, normal(rng)])) as Record<MeasurementKey, number>;
+    const z = Object.fromEntries(MAIN_STREAM_GARMENT_KEYS.map((k) => [k, normal(rng)])) as Record<MeasurementKey, number>;
+    // Keys added since: one draw each from their own stream (they never touch rng).
+    for (const [key, own] of bodyStreams) measurements[key] = body.measurements[key] + normal(own) * bodySdCm(body, key);
+    for (const [key, own] of garmentStreams) z[key] = normal(own);
     const drawnGarment: Garment = {
       ...garment,
       sizes: garment.sizes.map((s, si) => {
