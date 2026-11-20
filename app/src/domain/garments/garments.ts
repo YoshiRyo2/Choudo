@@ -5,6 +5,7 @@
 import seed from './seed.json';
 import { chartDefinition, defaultStretch, girthMethodOf, stretchOverrides } from './chart';
 import { gradeGarment } from './grade';
+import { inToCm } from '../units';
 import { GIRTH_KEYS, normalizeSize } from './normalize';
 import type { Garment, GarmentCategory, GirthKey, SeedGarment } from './types';
 import { checkGarment } from './verify';
@@ -34,6 +35,9 @@ export function normalizeGarment(seedGarment: SeedGarment): Garment {
   if (sleeve !== undefined) garment.sleeveDefinition = sleeve;
   const { length: _l, sleeve: _s, ...others } = chart.definitions ?? {};
   if (Object.keys(others).length > 0) garment.definitions = others;
+  if (chart.hipsBelowWaist !== undefined) {
+    garment.hipsBelowWaistCm = chart.unit === 'in' ? inToCm(chart.hipsBelowWaist) : chart.hipsBelowWaist;
+  }
   if (girthUnknown) garment.girthUnknown = girthUnknown;
   const overrides = stretchOverrides(rest.stretch);
   if (overrides) garment.stretchByKey = overrides;

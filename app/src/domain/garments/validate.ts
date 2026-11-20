@@ -72,7 +72,6 @@ export function validateGarment(g: SeedGarment): string[] {
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const SNAPSHOT_FILE = /^chart-snapshots\/[\w.-]+\.(pdf|png|jpe?g|webp|html?)$/i;
 const FIT_INTENTS: readonly FitIntent[] = ['slim', 'regular', 'relaxed', 'oversized'];
-const LENGTH_DEFINITIONS: readonly LengthDefinition[] = ['hps', 'center_back', 'unknown'];
 
 /** Problems with where a garment's numbers came from (empty = OK). */
 export function validateProvenance(g: SeedGarment): string[] {
@@ -99,9 +98,12 @@ export function validateProvenance(g: SeedGarment): string[] {
 
   problems.push(...validateChart(chart));
   const length = chartDefinition(chart, 'length');
-  if (categorySpec(g).lengthDefinition === 'required') {
-    if (length === undefined || !LENGTH_DEFINITIONS.includes(length)) {
-      problems.push(`tops need chart.lengthDefinition (${LENGTH_DEFINITIONS.join(', ')})`);
+  const spec = categorySpec(g);
+  if (spec.lengthDefinition === 'required') {
+    const allowed: readonly LengthDefinition[] = spec.lengthDefinitions ?? [];
+    if (length === undefined || !allowed.includes(length)) {
+      const who = spec.category === 'top' ? 'tops' : `a ${g.type}`;
+      problems.push(`${who} need${spec.category === 'top' ? '' : 's'} chart.lengthDefinition (${allowed.join(', ')})`);
     }
   } else if (length !== undefined) {
     problems.push('bottoms have no top length: leave out chart.lengthDefinition');

@@ -23,7 +23,7 @@
 
 import { inToCm } from '../units';
 import type { BodyMeasurements } from '../body';
-import type { FitIntent, Garment, GarmentSizing, SizeMeasurements, Stretch } from '../garments';
+import type { FitIntent, Garment, GarmentSizing, SizeMeasurements, Stretch, WaistDefinition } from '../garments';
 
 export interface GirthRule {
   kind: 'girth';
@@ -51,7 +51,11 @@ export interface LengthRule {
  */
 export interface LandingRule {
   kind: 'landing';
-  marks: readonly { label: string; atCm: number }[];
+  /**
+   * tone "warn": reaching this mark is worth a warning (a skirt too narrow to
+   * stride in). It still never makes the size good or bad; only `blocks` does.
+   */
+  marks: readonly { label: string; atCm: number; tone?: 'warn' }[];
   /**
    * A hard stop: where the edge lands makes the garment unwearable (a band below
    * the hip line, a hem that can't pass the heel). Returns the label to report
@@ -245,6 +249,55 @@ export const SHORTS_INSEAM: LandingRule = {
     { label: 'mid-thigh', atCm: -Infinity },
     { label: 'above-knee', atCm: -12 },
     { label: 'knee', atCm: -4 },
+  ],
+};
+
+/**
+ * How far below the navel a skirt's waistband sits, by the chart's
+ * `definitions.waist` (cm, straight down). ASSUMED, to match the pants rise
+ * marks: a natural waist at the navel (where ANSUR II measures the waist; the
+ * narrowest waist isn't in the survey), mid about 4 cm down (pants "mid" runs
+ * 1.5–5 cm), low about 8 cm down. Unknown, or no definition, sits at the navel,
+ * as pants without a rise do.
+ */
+export const SKIRT_BAND_DROP_CM: Record<WaistDefinition, number> = { natural: 0, mid: 4, low: 8, unknown: 0 };
+
+/**
+ * Where a skirt's hem lands, by length − the distance from the band down to the
+ * middle of the kneecap (cm; 0 = the hem at the knee, positive below it). ASSUMED
+ * marks: mini more than 15 cm above the knee (mid-thigh up), above the knee from
+ * 15 to 5 cm, knee within 5 cm, midi from 5 cm below (mid-calf is about 20), maxi
+ * from 28 cm below (the ankle on a typical 40–45 cm knee-to-ankle).
+ */
+export const SKIRT_LENGTH: LandingRule = {
+  kind: 'landing',
+  marks: [
+    { label: 'mini', atCm: -Infinity },
+    { label: 'above-knee', atCm: -15 },
+    { label: 'knee', atCm: -5 },
+    { label: 'midi', atCm: 5 },
+    { label: 'maxi', atCm: 28 },
+  ],
+};
+
+/**
+ * The angle between the legs at the widest point of a walking stride (degrees).
+ * ASSUMED from normal gait: the hip flexes about 30° at heel strike and extends
+ * about 10° at toe-off, so about 40° between the thighs. A skirt's hem must go
+ * round both legs that far apart (domain/fit/skirt.ts, strideGirthCm).
+ */
+export const STRIDE_ANGLE_DEG = 40;
+
+/**
+ * Walking room: a skirt's hem sweep − the stride girth at the hem (cm). Below 0
+ * the hem can't open to a full stride: expect shorter steps (or a slit). ASSUMED;
+ * a warning only, never a size problem (no slit field yet).
+ */
+export const WALKING_ROOM: LandingRule = {
+  kind: 'landing',
+  marks: [
+    { label: 'restricted', atCm: -Infinity, tone: 'warn' },
+    { label: 'free', atCm: 0 },
   ],
 };
 

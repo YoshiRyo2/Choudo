@@ -35,6 +35,7 @@ export const ZONE_NAME: Record<ZoneId, string> = {
   rise: 'Rise',
   legOpening: 'Leg opening',
   hemBand: 'Hem band',
+  walkingRoom: 'Walking room',
 };
 
 export const LABEL_TEXT: Record<FitLabel, string> = {
@@ -62,6 +63,7 @@ const ZONE_PLACE: Record<ZoneId, string> = {
   rise: 'in the rise',
   legOpening: 'at the hem',
   hemBand: 'at the hem band',
+  walkingRoom: 'at the hem',
 };
 
 /**
@@ -150,6 +152,9 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
       return z.label === 'tight'
         ? `${d} smaller than your hips: more than the rib can stretch.`
         : `${d} smaller than your hips, relaxed; the rib stretches to gather there.`;
+    case 'walkingRoom':
+      if (under) return `${d} short of a full stride at the hem: expect shorter steps.`;
+      return 'Room for a full stride at the hem.';
   }
 }
 

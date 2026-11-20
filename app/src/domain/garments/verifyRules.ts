@@ -27,6 +27,8 @@ export const GIRTH_METHOD_LIMITS: Record<GirthKey, { flatMax: number; circumfere
   legOpening: { flatMax: 35, circumferenceMin: 22 },
   // Knit rib hem band, relaxed. ASSUMED: a little under the chest's limits (bands run narrower than the body).
   hemBand: { flatMax: 75, circumferenceMin: 55 },
+  // A skirt's hem sweep, ASSUMED: a pencil skirt is about 90 cm round, so 45 flat; a full skirt runs to 300+.
+  hemSweep: { flatMax: 120, circumferenceMin: 70 },
 };
 
 /**
@@ -108,6 +110,21 @@ export const SHORTS_RANGES: Partial<Record<MeasurementKey, Range>> = {
   inseam: { min: 5, max: 35 },
   legOpening: { min: 40, max: 100 },
 };
+
+/**
+ * Plausible skirt measurements, cm, full circumferences. ASSUMED from typical
+ * charts: a mini from about 35 cm, a maxi to about 110 cm from the waist; the
+ * sweep from a pencil skirt's 80 cm to a full circle's 400.
+ */
+export const SKIRT_RANGES: Partial<Record<MeasurementKey, Range>> = {
+  waist: { min: 55, max: 150 },
+  hips: { min: 75, max: 170 },
+  length: { min: 30, max: 130 },
+  hemSweep: { min: 70, max: 400 },
+};
+
+/** A skirt chart's hip point, cm below the top of the waistband. ASSUMED (charts print 6–9 in). */
+export const SKIRT_HIP_DROP_RANGE: Range = { min: 5, max: 30 };
 
 /**
  * A pants thigh over this share of its seat is probably a typo or a mixed-up

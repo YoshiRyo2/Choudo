@@ -104,8 +104,12 @@ export function labelLength(diffCm: number, rule: LengthRule): LengthLabel {
 
 /** The mark an edge lands at: the last one at or below the difference, or the first when it's below them all. */
 export function landingMark(diffCm: number, rule: LandingRule): string {
-  let mark = rule.marks[0]?.label ?? '';
-  for (const m of rule.marks) if (diffCm >= m.atCm) mark = m.label;
+  return landingMarkOf(diffCm, rule)?.label ?? '';
+}
+
+function landingMarkOf(diffCm: number, rule: LandingRule): LandingRule['marks'][number] | undefined {
+  let mark = rule.marks[0];
+  for (const m of rule.marks) if (diffCm >= m.atCm) mark = m;
   return mark;
 }
 
@@ -209,10 +213,11 @@ export function fitZone(spec: ZoneSpec, body: BodyModel, garment: Garment, gs: G
 
   const diffCm = garmentCm - bodyCm;
   if (rule.kind === 'landing') {
-    const landing = landingMark(diffCm, rule);
+    const mark = landingMarkOf(diffCm, rule);
+    const landing = mark?.label ?? '';
     const blocked = rule.blocks?.({ body: body.measurements, garment, size, garmentCm }) ?? null;
     if (blocked) return { ...base, label: blocked.label, tone: 'bad', diffCm, garmentCm, landing, note: blocked.note };
-    return { ...base, label: 'noted', tone: toneFor('noted', diffCm, rule), diffCm, garmentCm, landing };
+    return { ...base, label: 'noted', tone: mark?.tone ?? toneFor('noted', diffCm, rule), diffCm, garmentCm, landing };
   }
   const label = rule.kind === 'girth' ? labelGirth(diffCm, rule, tightAllowanceCm) : labelLength(diffCm, rule);
   return { ...base, label, tone: toneFor(label, diffCm, rule), diffCm, garmentCm };
