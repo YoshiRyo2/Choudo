@@ -120,7 +120,7 @@
   border-color: var(--ink);
   box-shadow: inset 0 0 0 1px var(--ink);
 }
-.anchor-option:focus-within {
+.anchor-option:has(:focus-visible) {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
@@ -179,7 +179,7 @@
   border-color: var(--ink);
   color: var(--paper-raised);
 }
-.size-pill:focus-within {
+.size-pill:has(:focus-visible) {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }

@@ -86,6 +86,11 @@ select {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
+/* Focus a script put back after a tap (ui/focus.ts): no ring, as a tapped button has
+   none. Keyboard users get it back on their next key press. */
+[data-pointer-focus]:focus-visible {
+  outline: none;
+}
 
 .num {
   font-family: var(--font-numeric);

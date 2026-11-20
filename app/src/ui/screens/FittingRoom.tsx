@@ -12,6 +12,7 @@ import { NameForm } from '../components/NameForm';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Sheet } from '../components/Sheet';
 import { Wordmark } from '../components/Wordmark';
+import { clickedByPointer, refocus } from '../focus';
 import { makeId } from '../state/closet';
 import { makeFitTest, predictionFor } from '../state/fitTests';
 import { garmentOdds } from '../state/odds';
@@ -126,7 +127,8 @@ export function FittingRoom({
   // The Show chip lives in the carousel, which remounts when the scope changes;
   // put focus back on the new chip so a keyboard user isn't dropped.
   const show = catalogueToggle(body.bodyType, catalogue);
-  const refocusShow = useRef(false);
+  // null: leave focus alone; otherwise how the chip was activated.
+  const refocusShow = useRef<null | 'pointer' | 'keyboard'>(null);
 
   const worn = (s: Slot | null): WornGarment | undefined =>
     s ? { garment: s.garment, sizeLabel: s.size, fit: s.fit } : undefined;
@@ -220,12 +222,12 @@ export function FittingRoom({
                 aria-label={show.accessibleName}
                 ref={(el) => {
                   if (el && refocusShow.current) {
-                    refocusShow.current = false;
-                    el.focus();
+                    refocus(el, refocusShow.current === 'pointer');
+                    refocusShow.current = null;
                   }
                 }}
-                onClick={() => {
-                  refocusShow.current = true;
+                onClick={(e) => {
+                  refocusShow.current = clickedByPointer(e) ? 'pointer' : 'keyboard';
                   onCatalogueChange(show.next);
                 }}
               >
