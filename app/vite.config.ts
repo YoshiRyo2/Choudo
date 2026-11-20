@@ -2,10 +2,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { leaveOutLocalPhotos } from './build/leaveOutLocalPhotos.ts';
+import { PAGES_BASE } from './build/pagesBase.ts';
 import { landmarksDevServer } from './dev/landmarksServer.ts';
-
-/** The GitHub Pages project path: the site is served at https://yoshiryo2.github.io/Choudo/. */
-export const PAGES_BASE = '/Choudo/';
 
 export default defineConfig(({ command, isPreview }) => ({
   // The dev server stays at /; the build, and vite preview of it, are for GitHub Pages.

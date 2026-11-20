@@ -51,6 +51,7 @@ app/src/
     components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts, photoWarp.ts + SVG),
                  SwipeCard/ (pure swipe.ts),
                  GarmentCarousel, GarmentBadge, SizePicker, FitReadout, FitSheet, Sheet (<dialog>), TabBar, NameForm,
+                 AboutSheet (from the body screen and the Closet header),
                  ConfirmButton, TapeScale, SegmentedControl, NumberInput
     state/       usePersistentState (localStorage), stored.ts (keys + guards), outfit.ts,
                  feed.ts (likes/passes, feed order), closet.ts (folders, saved outfits), useCloset.ts,
@@ -62,6 +63,10 @@ app/src/
                  (a kit per template: place order, labels, diagram)
 app/dev/       landmarks.html + landmarksServer.ts: the picker page and its save endpoint,
                Vite dev server only (apply: 'serve'), never in npm run build
+app/build/     build-only: pagesBase.ts (PAGES_BASE '/Choudo/'), leaveOutLocalPhotos.ts (Vite
+               plugin: deletes local-only photos from dist/)
+app/public/sw.js  service worker (offline), registered by the production build only
+.github/workflows/deploy-pages.yml  builds app/ and deploys it to GitHub Pages on every push to main
 app/scripts/   data-check.mjs (npm run data:check), fit-report.mjs (npm run fit:report),
                garment-photos.mjs (npm run photos: AI cut-out via photo-model.mjs, BiRefNet-lite,
                MIT; mask clean-up in photo-mask.mjs). Model weights download to app/.models/
@@ -210,19 +215,33 @@ npm test           # unit tests, once
 npm run test:watch # unit tests, watch mode
 npm run check      # typecheck + tests + data:check — gate every commit on this exiting 0
 npm run data:check # garment data report: grade, warnings, errors, audit per garment
+npm run dist:check # after npm run build: URLs under /Choudo/, sw.js, no dev pages or local-only photos
 npm run fit:report # fit-test report from ../data/fit_tests.csv (or a path after --)
 npm run photos     # cut garment photos out into public/garments/ (commit the PNG)
                    # then place landmarks at http://localhost:5173/dev/landmarks?id=<garment>
 npm run icons      # favicon, Apple touch and manifest icons from public/choudo-app-icon-1024.png
-npm run build      # typecheck + production build
+npm run build      # typecheck + production build (base /Choudo/; vite preview serves it there)
 ```
+CI and cloud sessions install with `npm ci --ignore-scripts` then `npm rebuild esbuild`
+(no install scripts, so `npm run photos` won't work there; nothing else needs them).
+
+## Deploy (GitHub Pages)
+- Every push to `main` runs `.github/workflows/deploy-pages.yml`: install, `npm run check`,
+  `npm run build`, `npm run dist:check`, then deploy to https://yoshiryo2.github.io/Choudo/.
+  Pages' source must be "GitHub Actions" (repo settings).
+- Installable PWA: `public/manifest.webmanifest` uses relative URLs (works at `/` and `/Choudo/`);
+  `public/sw.js` caches what the app fetches so it opens offline (pages network-first, hashed
+  `assets/` cache-first, the rest stale-while-revalidate). Bump its `CACHE` when its logic changes.
+- Dev-only, absent from the build: the landmark picker (dev server only) and Test mode
+  (`ui/devTools.ts`; the panel and its switch are guarded by `import.meta.env.DEV` where drawn).
+- local-only photos are never warped and are deleted from `dist/`; `dist:check` fails if one ships.
 Logic that can be pure (geometry, form parsing, wording) lives in its own `.ts` file with
 tests; components stay thin. localStorage keys are versioned (`choudo.body.v2`): bump the
 version when a stored shape changes, and move old data in `ui/state/migrate.ts` (runs once at
 start-up). Keys today: `body` (v2: `bodyType`, optional `braSize`), `units`, `outfit` (fitting
 room), `swipes` (one `{garmentId, sizeShown, liked, at}` per garment), `folders`, `outfits`
 (saved), `anchor` (tee the user likes), `fitStyle`, `catalogue` (`matching` | `all`),
-`testMode`, `fitTests` (v3, Test mode results with a `category`: tops record chest + length,
+`testMode` (dev only), `fitTests` (v3, Test mode results with a `category`: tops record chest + length,
 bottoms waist, thigh + inseam; the CSV column stays `sizing`, bottoms columns come last). Keys from
 before the Choudo rename used the app's old prefix; `migrateAppRename` moves them over
 (when both exist, the `choudo.*` key wins).
