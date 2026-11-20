@@ -24,7 +24,7 @@ const tee: SeedGarment = {
 };
 
 /** Every image on disk and wide enough. */
-const sharp = (): ImageFileInfo => ({ width: 900, localOnly: false });
+const sharp = (): ImageFileInfo => ({ width: 900, gitIgnored: false });
 
 describe('buildReport', () => {
   it('has no errors for the current seed', () => {
@@ -56,13 +56,13 @@ describe('buildReport: garment images', () => {
   });
 
   it('passes an image that exists and is wide enough', () => {
-    const entry = report({ width: MIN_IMAGE_WIDTH_PX, localOnly: false });
+    const entry = report({ width: MIN_IMAGE_WIDTH_PX, gitIgnored: false });
     expect(entry.image).toEqual({ state: 'ok', file: photo.file, width: MIN_IMAGE_WIDTH_PX });
     expect(errorCount([entry])).toBe(0);
   });
 
   it('fails an image that is missing', () => {
-    const entry = report({ width: null, localOnly: false });
+    const entry = report({ width: null, gitIgnored: false });
     expect(entry.image.state).toBe('missing');
     expect(errorCount([entry])).toBe(1);
     // An image problem doesn't take the garment out of the app: it draws in flat colour.
@@ -70,28 +70,39 @@ describe('buildReport: garment images', () => {
   });
 
   it('fails an image narrower than the minimum', () => {
-    const entry = report({ width: MIN_IMAGE_WIDTH_PX - 1, localOnly: false });
+    const entry = report({ width: MIN_IMAGE_WIDTH_PX - 1, gitIgnored: false });
     expect(entry.image).toEqual({ state: 'too-small', file: photo.file, width: MIN_IMAGE_WIDTH_PX - 1 });
     expect(errorCount([entry])).toBe(1);
   });
 
-  it('skips an image that is git-ignored on purpose, present or not', () => {
-    expect(errorCount([report({ width: null, localOnly: true })])).toBe(0);
-    expect(errorCount([report({ width: 556, localOnly: true })])).toBe(0);
-    expect(report({ width: 556, localOnly: true }).image.state).toBe('local-only');
+  const localOnly: SeedGarment = { ...withPhoto, image: { ...photo, licence: 'local-only' } };
+  const reportLocal = (info: ImageFileInfo) => buildReport([localOnly], () => true, () => info)[0]!;
+
+  it('skips a local-only photo, git-ignored or committed, present or not', () => {
+    expect(reportLocal({ width: null, gitIgnored: true }).image.state).toBe('local-only');
+    expect(errorCount([reportLocal({ width: null, gitIgnored: true })])).toBe(0);
+    expect(reportLocal({ width: 900, gitIgnored: false }).image.state).toBe('local-only');
+    expect(errorCount([reportLocal({ width: 556, gitIgnored: false })])).toBe(0);
+  });
+
+  it('fails a git-ignored photo whose licence lets it ship', () => {
+    const entry = report({ width: 900, gitIgnored: true });
+    expect(entry.image.state).toBe('ignored');
+    expect(errorCount([entry])).toBe(1);
+    expect(formatReport([entry])).toMatch(/git-ignored.*"licence": "local-only"/);
   });
 
   it('prints the image line and its error', () => {
-    const ok = formatReport([report({ width: 900, localOnly: false })]);
+    const ok = formatReport([report({ width: 900, gitIgnored: false })]);
     expect(ok).toContain('Image:    garments/tee-front.png (900 px wide)');
-    const missing = formatReport([report({ width: null, localOnly: false })]);
+    const missing = formatReport([report({ width: null, gitIgnored: false })]);
     expect(missing).toContain('Error   [image] garments/tee-front.png is missing (it must be committed under app/public/)');
     expect(missing).toContain('✗ tee');
     expect(missing.split('\n').at(-1)).toBe('1 error, 0 warnings. Grades: 1 charted.');
-    const small = formatReport([report({ width: 480, localOnly: false })]);
+    const small = formatReport([report({ width: 480, gitIgnored: false })]);
     expect(small).toContain(`Error   [image] garments/tee-front.png is 480 px wide; it must be at least ${MIN_IMAGE_WIDTH_PX}`);
-    const local = formatReport([report({ width: null, localOnly: true })]);
-    expect(local).toContain('Image:    garments/tee-front.png (git-ignored on purpose, not on this machine; not checked)');
+    const local = formatReport([reportLocal({ width: null, gitIgnored: true })]);
+    expect(local).toContain('Image:    garments/tee-front.png (local-only, not on this machine; not checked)');
   });
 });
 

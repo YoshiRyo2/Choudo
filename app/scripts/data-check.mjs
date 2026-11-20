@@ -1,9 +1,9 @@
 // Checks every garment in the seed and prints a report: errors, warnings,
 // confidence grade, unscored zones, audit differences and images. Exits 1 on any error.
 //
-// Images: every file a garment's "image" points at must be in app/public/ and at least
-// MIN_IMAGE_WIDTH_PX wide, unless .gitignore leaves it out on purpose (a photo we don't
-// hold the rights to), so a fresh clone shows the same photos as this machine.
+// Images: every image needs a "licence". A "local-only" photo never ships and isn't
+// checked; any other must be committed (not git-ignored), in app/public/ and at least
+// MIN_IMAGE_WIDTH_PX wide, so a fresh clone and the public build show the same photos.
 //
 //   npm run data:check
 //
@@ -38,7 +38,7 @@ for (const g of SEED_GARMENTS) {
   if (!g.image || images.has(g.image.file)) continue;
   const path = resolve(appDir, 'public', g.image.file);
   const width = existsSync(path) ? ((await sharp(path).metadata()).width ?? null) : null;
-  images.set(g.image.file, { width, localOnly: gitIgnored(resolve(appDir, 'public', g.image.file)) });
+  images.set(g.image.file, { width, gitIgnored: gitIgnored(path) });
 }
 
 const entries = buildReport(

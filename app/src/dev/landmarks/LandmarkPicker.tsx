@@ -11,6 +11,7 @@ import { findGarment } from '../../domain/garments';
 import type { Garment, GarmentImage, LandmarkName } from '../../domain/garments/types';
 import { pantsLandmarks, templateOf, topLandmarks } from '../../domain/garments/categories';
 import { validateImage } from '../../domain/garments/validate';
+import { licenceForSave } from './seedWrite';
 import { bodyGeometry } from '../../ui/components/Mannequin/geometry';
 import { Mannequin } from '../../ui/components/Mannequin/Mannequin';
 import { foldedPieces, warpPantsPieces, warpPieces } from '../../ui/components/Mannequin/photoWarp';
@@ -172,6 +173,7 @@ export function LandmarkPicker() {
     photo && complete(points, kit)
       ? {
           file: photo.file,
+          licence: licenceForSave(garment?.image, photo.file),
           photographedSize: garment?.image?.photographedSize ?? null,
           // Only this template's points (a stray point from another template would fail validation).
           landmarks: Object.fromEntries(kit.order.map((n) => [n, points[n]!])),
@@ -361,9 +363,9 @@ function Preview({
         <figure key={label}>
           <div className={templateOf(garment) === 'pants' ? 'picker__frame picker__frame--pants' : 'picker__frame'}>
             {templateOf(garment) === 'pants' ? (
-              <Mannequin body={body} bottom={{ garment: p.garment, sizeLabel: label }} showFit={false} />
+              <Mannequin body={body} bottom={{ garment: p.garment, sizeLabel: label }} showFit={false} photos="all" />
             ) : (
-              <Mannequin body={body} top={{ garment: p.garment, sizeLabel: label }} showFit={false} />
+              <Mannequin body={body} top={{ garment: p.garment, sizeLabel: label }} showFit={false} photos="all" />
             )}
           </div>
           <figcaption>

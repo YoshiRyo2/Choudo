@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { PANTS_LANDMARKS, TOP_LANDMARKS, type GarmentImage, type TopLandmarkName } from '../../domain/garments/types';
 import SEED from '../../domain/garments/seed.json?raw';
-import { formatImage, writeGarmentImage } from './seedWrite';
+import { formatImage, licenceForSave, writeGarmentImage } from './seedWrite';
 
 const image = (file: string, shift = 0): GarmentImage => ({
   file,
+  licence: 'own',
   photographedSize: null,
   landmarks: Object.fromEntries(TOP_LANDMARKS.map((n, i) => [n, { x: 10 * i + shift + 0.4, y: 5 * i }])) as Record<
     TopLandmarkName,
@@ -27,8 +28,9 @@ describe('formatImage', () => {
     const lines = text.split('\n');
     expect(lines[0]).toBe('{');
     expect(lines[1]).toBe('        "file": "garments/x.png",');
-    expect(lines[2]).toBe('        "photographedSize": null,');
-    expect(lines[4]).toBe('          "collarLeft": { "x": 0, "y": 0 },');
+    expect(lines[2]).toBe('        "licence": "own",');
+    expect(lines[3]).toBe('        "photographedSize": null,');
+    expect(lines[5]).toBe('          "collarLeft": { "x": 0, "y": 0 },');
     expect(lines.at(-1)).toBe('      }');
     expect(Object.keys(JSON.parse(text).landmarks)).toEqual([...TOP_LANDMARKS]);
   });
@@ -107,7 +109,17 @@ describe('writeGarmentImage', () => {
 describe('formatImage for pants', () => {
   it('seedWrite writes pants landmarks in PANTS_LANDMARKS order', () => {
     const shuffled = Object.fromEntries([...PANTS_LANDMARKS].reverse().map((n, i) => [n, { x: i, y: i }]));
-    const text = formatImage({ file: 'garments/j.png', photographedSize: null, landmarks: shuffled }, '      ');
+    const text = formatImage({ file: 'garments/j.png', licence: 'own', photographedSize: null, landmarks: shuffled }, '      ');
     expect(Object.keys(JSON.parse(text).landmarks)).toEqual([...PANTS_LANDMARKS]);
+  });
+});
+
+describe('licenceForSave', () => {
+  it("keeps the saved photo's licence, and starts a new photo local-only", () => {
+    const saved = image('garments/a.png');
+    expect(licenceForSave(saved, 'garments/a.png')).toBe('own');
+    expect(licenceForSave({ ...saved, licence: 'brand-permission' }, 'garments/a.png')).toBe('brand-permission');
+    expect(licenceForSave(saved, 'garments/b.png')).toBe('local-only');
+    expect(licenceForSave(undefined, 'garments/a.png')).toBe('local-only');
   });
 });

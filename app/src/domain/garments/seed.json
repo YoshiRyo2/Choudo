@@ -11,6 +11,7 @@
       "color": "#bb643b",
       "image": {
         "file": "garments/gildan-5000-front.png",
+        "licence": "local-only",
         "photographedSize": null,
         "landmarks": {
           "collarLeft": { "x": 217, "y": 33 },
@@ -311,6 +312,7 @@
       "sizing": "mens",
       "image": {
         "file": "garments/ryo-grey-polo-front.png",
+        "licence": "own",
         "photographedSize": null,
         "landmarks": {
           "collarLeft": { "x": 381, "y": 30 },
@@ -368,6 +370,7 @@
       "sizing": "mens",
       "image": {
         "file": "garments/ryo-navy-graphic-tee-front.png",
+        "licence": "local-only",
         "photographedSize": null,
         "landmarks": {
           "collarLeft": { "x": 365, "y": 29 },
@@ -425,6 +428,7 @@
       "sizing": "mens",
       "image": {
         "file": "garments/ryo-cream-boxy-tee-front.png",
+        "licence": "own",
         "photographedSize": null,
         "landmarks": {
           "collarLeft": { "x": 361, "y": 29 },
@@ -482,6 +486,7 @@
       "sizing": "mens",
       "image": {
         "file": "garments/ryo-black-henley-front.png",
+        "licence": "own",
         "photographedSize": null,
         "landmarks": {
           "collarLeft": { "x": 385, "y": 29 },

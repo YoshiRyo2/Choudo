@@ -183,6 +183,7 @@ describe('validateSeed', () => {
 describe('garment photos', () => {
   const photo = {
     file: 'garments/test-front.png',
+    licence: 'own' as const,
     photographedSize: 'M',
     landmarks: {
       collarLeft: { x: 380, y: 60 },
@@ -209,6 +210,13 @@ describe('garment photos', () => {
     expect(validateSeed([base])).toEqual([]);
   });
 
+  it('needs a photo licence from the list', () => {
+    const { licence: _, ...unlicensed } = photo;
+    const message = 'image: licence must be one of own, brand-permission, affiliate-unaltered, local-only';
+    expect(validateSeed([{ ...base, image: unlicensed as typeof photo }]).join('\n')).toContain(message);
+    expect(validateSeed([{ ...base, image: { ...photo, licence: 'mine' as 'own' } }]).join('\n')).toContain(message);
+  });
+
   it('allows an unknown photographed size', () => {
     expect(validateSeed([{ ...base, image: { ...photo, photographedSize: null } }])).toEqual([]);
   });
@@ -220,6 +228,7 @@ describe('garment photos', () => {
         ...base,
         image: {
           file: 'https://example.com/tee.png',
+          licence: 'own',
           photographedSize: 'XXL',
           landmarks: partial as typeof photo.landmarks,
         },
@@ -279,7 +288,7 @@ describe('a pants photo', () => {
     hemOuterRight: { x: 640, y: 1320 },
     hemInnerRight: { x: 490, y: 1320 },
   };
-  const image = { file: 'garments/test-jeans.png', photographedSize: null, landmarks };
+  const image = { file: 'garments/test-jeans.png', licence: 'own' as const, photographedSize: null, landmarks };
 
   it('validateImage accepts a pants photo with all 14 landmarks in order', () => {
     expect(validateSeed([{ ...jeanSeed, image }])).toEqual([]);

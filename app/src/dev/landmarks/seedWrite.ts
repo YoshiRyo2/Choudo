@@ -6,7 +6,7 @@
  * Pure: text in, text out. Used by the dev server's save endpoint (vite.config.ts).
  */
 
-import { PANTS_LANDMARKS, TOP_LANDMARKS, type GarmentImage, type LandmarkName } from '../../domain/garments/types';
+import { PANTS_LANDMARKS, TOP_LANDMARKS, type GarmentImage, type LandmarkName, type PhotoLicence } from '../../domain/garments/types';
 
 /** Where a JSON value sits in the text: [start, end). Objects also list their members. */
 interface Span {
@@ -113,12 +113,22 @@ export function formatImage(image: GarmentImage, indent: string, step = '  '): s
   return [
     '{',
     `${a}"file": ${JSON.stringify(image.file)},`,
+    `${a}"licence": ${JSON.stringify(image.licence)},`,
     `${a}"photographedSize": ${JSON.stringify(image.photographedSize)},`,
     `${a}"landmarks": {`,
     points.join(',\n'),
     `${a}}`,
     `${indent}}`,
   ].join('\n');
+}
+
+/**
+ * The licence a saved photo gets: the one already in seed.json for this file, or
+ * `local-only` for a new photo, so it can't ship until someone sets "own" or
+ * "brand-permission" in seed.json by hand.
+ */
+export function licenceForSave(saved: GarmentImage | undefined, file: string): PhotoLicence {
+  return saved?.file === file ? saved.licence : 'local-only';
 }
 
 /** Members an "image" is added after, when the garment has none yet, best first. */

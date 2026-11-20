@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
 import type { PreferenceSpec } from '../../domain/fit';
 import type { Garment } from '../../domain/garments';
+import { AboutSheet } from '../components/AboutSheet';
 import { FitSheet } from '../components/FitSheet';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { resolveOutfit, suggestedFit } from '../state/outfit';
@@ -42,6 +43,7 @@ export function Closet({ body, preference, units, closet, outfit, onTryOn, onWea
   const [tab, setTab] = useState<ClosetTab>('liked');
   const [details, setDetails] = useState<Garment | null>(null);
   const [filing, setFiling] = useState<Filing | null>(null);
+  const [about, setAbout] = useState(false);
   const folderCount = (kind: FolderItem['kind']) => (id: string) =>
     foldersContaining(closet.folders, { kind, id }).length;
 
@@ -49,7 +51,11 @@ export function Closet({ body, preference, units, closet, outfit, onTryOn, onWea
     <main className="closet">
       <header className="screen-head">
         <h1>Closet</h1>
+        <button type="button" className="button button--quiet screen-head__action" onClick={() => setAbout(true)}>
+          About
+        </button>
       </header>
+      {about && <AboutSheet onClose={() => setAbout(false)} />}
       <div className="closet__tabs">
         <SegmentedControl
           label="Closet section"
