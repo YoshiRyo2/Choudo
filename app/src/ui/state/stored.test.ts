@@ -37,7 +37,7 @@ describe('stored data guards', () => {
   it('checks units and outfits', () => {
     expect(isUnitSystem('imperial')).toBe(true);
     expect(isUnitSystem('cm')).toBe(false);
-    expect(isOutfit({ topId: 'a', topSize: 'M', bottomId: null, bottomSize: null })).toBe(true);
+    expect(isOutfit({ topId: 'a', topSize: 'M', bottomId: null, bottomSize: null, outerId: null, outerSize: null })).toBe(true);
     expect(isOutfit({ topId: 3 })).toBe(false);
   });
 });
@@ -57,7 +57,7 @@ describe('closet data guards', () => {
   });
 
   it('checks saved outfits', () => {
-    const outfit = { id: 'o1', name: 'Friday', savedAt: 'x', topId: 'a', topSize: 'M', bottomId: null, bottomSize: null };
+    const outfit = { id: 'o1', name: 'Friday', savedAt: 'x', topId: 'a', topSize: 'M', bottomId: null, bottomSize: null, outerId: null, outerSize: null };
     expect(isSavedOutfitList([outfit])).toBe(true);
     expect(isSavedOutfitList([{ ...outfit, name: 3 }])).toBe(false);
   });

@@ -11,10 +11,12 @@ export const STORAGE_KEYS = {
   /** v2: `sizing` became `bodyType`, plus an optional bra size (migrate.ts moves v1 over). */
   body: 'choudo.body.v2',
   units: 'choudo.units.v1',
-  outfit: 'choudo.outfit.v1',
+  /** v2: a jacket slot (outerId, outerSize); migrate.ts moves v1 over. */
+  outfit: 'choudo.outfit.v2',
   swipes: 'choudo.swipes.v1',
   folders: 'choudo.folders.v1',
-  outfits: 'choudo.outfits.v1',
+  /** v2: each saved outfit has a jacket slot too. */
+  outfits: 'choudo.outfits.v2',
   /** A tee the user owns and likes the fit of (or null). */
   anchor: 'choudo.anchor.v1',
   /** The answer to "How do you like tees to fit?" (or null). */
@@ -35,6 +37,9 @@ export interface Outfit {
   topSize: string | null;
   bottomId: string | null;
   bottomSize: string | null;
+  /** A jacket or coat over the top, or null. */
+  outerId: string | null;
+  outerSize: string | null;
 }
 
 /** One like or pass in Discover. `at` is an ISO timestamp. */
@@ -58,7 +63,7 @@ export interface Folder {
   items: FolderItem[];
 }
 
-/** A named top + bottom (with sizes) saved from the fitting room. */
+/** A named top + bottom (+ jacket), with sizes, saved from the fitting room. */
 export interface SavedOutfit extends Outfit {
   id: string;
   name: string;
@@ -142,7 +147,7 @@ export interface FitTestRecord {
   prediction: FitTestPrediction;
 }
 
-export const EMPTY_OUTFIT: Outfit = { topId: null, topSize: null, bottomId: null, bottomSize: null };
+export const EMPTY_OUTFIT: Outfit = { topId: null, topSize: null, bottomId: null, bottomSize: null, outerId: null, outerSize: null };
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const isStringOrNull = (v: unknown) => v === null || typeof v === 'string';
@@ -169,7 +174,9 @@ export function isOutfit(v: unknown): v is Outfit {
     isStringOrNull(v.topId) &&
     isStringOrNull(v.topSize) &&
     isStringOrNull(v.bottomId) &&
-    isStringOrNull(v.bottomSize)
+    isStringOrNull(v.bottomSize) &&
+    isStringOrNull(v.outerId) &&
+    isStringOrNull(v.outerSize)
   );
 }
 
