@@ -99,3 +99,10 @@ export const GRADING_MIN_EXCESS_CM = 1;
 
 /** An audit differing from the chart by more than this (cm) is flagged. Girths are full circumferences. */
 export const AUDIT_TOLERANCE_CM = { girth: 3, length: 2 };
+
+/**
+ * A garment image narrower than this (px) fails `npm run data:check`. The cut-outs are
+ * made at 900 px (`maxSide` in scripts/garment-photos.json); anything much smaller looks
+ * soft on a phone screen and usually means an old or wrongly scaled file.
+ */
+export const MIN_IMAGE_WIDTH_PX = 800;

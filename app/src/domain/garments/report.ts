@@ -1,14 +1,37 @@
 /**
- * The `npm run data:check` report: every seed garment's checks, grade and audit,
- * as plain text. Pure — the script supplies the seed and whether snapshot files
- * exist on this machine.
+ * The `npm run data:check` report: every seed garment's checks, grade, audit and
+ * image, as plain text. Pure — the script supplies the seed, whether snapshot files
+ * exist on this machine, and what it found for each image file.
  */
 
 import { gradeGarment } from './grade';
 import type { ConfidenceGrade, SeedGarment, SourceTier } from './types';
 import { checkGarment, type GarmentCheck } from './verify';
+import { MIN_IMAGE_WIDTH_PX } from './verifyRules';
 
 export type SnapshotStatus = 'none' | 'present' | 'missing';
+
+/** What the script found on disk for an image under app/public. */
+export interface ImageFileInfo {
+  /** Pixel width, or null when the file isn't on this machine. */
+  width: number | null;
+  /**
+   * Git-ignored on purpose (a photo we don't hold the rights to, see
+   * photo-sources/README.md). It's never committed, so it isn't checked.
+   */
+  localOnly: boolean;
+}
+
+/**
+ * A garment image's check. Committed images must exist and be at least
+ * MIN_IMAGE_WIDTH_PX wide, so a fresh clone shows the same photos as this machine.
+ */
+export type ImageStatus =
+  | { state: 'none' }
+  | { state: 'ok'; file: string; width: number }
+  | { state: 'local-only'; file: string; width: number | null }
+  | { state: 'missing'; file: string }
+  | { state: 'too-small'; file: string; width: number };
 
 export interface ReportEntry {
   garment: SeedGarment;
@@ -16,6 +39,8 @@ export interface ReportEntry {
   /** null = has errors, left out of the app. */
   grade: ConfidenceGrade | null;
   snapshot: SnapshotStatus;
+  /** An image problem is an error but doesn't block the garment: it draws in flat colour. */
+  image: ImageStatus;
 }
 
 export const TIER_DESCRIPTION: Record<SourceTier, string> = {
@@ -28,8 +53,30 @@ export const TIER_DESCRIPTION: Record<SourceTier, string> = {
   G: 'photo only',
 };
 
-/** Check and grade every garment. Duplicate ids are an error on the later garment. */
-export function buildReport(garments: SeedGarment[], hasFile: (path: string) => boolean): ReportEntry[] {
+function checkImage(file: string, info: ImageFileInfo): ImageStatus {
+  if (info.localOnly) return { state: 'local-only', file, width: info.width };
+  if (info.width === null) return { state: 'missing', file };
+  if (info.width < MIN_IMAGE_WIDTH_PX) return { state: 'too-small', file, width: info.width };
+  return { state: 'ok', file, width: info.width };
+}
+
+const imageError = (image: ImageStatus): string | null =>
+  image.state === 'missing'
+    ? `${image.file} is missing (it must be committed under app/public/)`
+    : image.state === 'too-small'
+      ? `${image.file} is ${image.width} px wide; it must be at least ${MIN_IMAGE_WIDTH_PX}`
+      : null;
+
+/**
+ * Check and grade every garment. Duplicate ids are an error on the later garment.
+ * `hasFile` is for snapshot paths (relative to app/); `imageFile` for image paths
+ * (relative to app/public/).
+ */
+export function buildReport(
+  garments: SeedGarment[],
+  hasFile: (path: string) => boolean,
+  imageFile: (path: string) => ImageFileInfo,
+): ReportEntry[] {
   const seen = new Set<string>();
   return garments.map((garment) => {
     const check = checkGarment(garment);
@@ -41,17 +88,34 @@ export function buildReport(garments: SeedGarment[], hasFile: (path: string) => 
       check,
       grade: gradeGarment(garment, check),
       snapshot: path === undefined ? 'none' : hasFile(path) ? 'present' : 'missing',
+      image: garment.image ? checkImage(garment.image.file, imageFile(garment.image.file)) : { state: 'none' },
     };
   });
 }
 
-export const errorCount = (entries: ReportEntry[]): number => entries.reduce((n, e) => n + e.check.errors.length, 0);
+export const errorCount = (entries: ReportEntry[]): number =>
+  entries.reduce((n, e) => n + e.check.errors.length + (imageError(e.image) ? 1 : 0), 0);
+
+function imageLine(image: ImageStatus): string | null {
+  switch (image.state) {
+    case 'none':
+      return null;
+    case 'ok':
+      return `  Image:    ${image.file} (${image.width} px wide)`;
+    case 'local-only':
+      return `  Image:    ${image.file} (git-ignored on purpose, ${image.width === null ? 'not on this machine' : `${image.width} px wide`}; not checked)`;
+    case 'missing':
+    case 'too-small':
+      return `  Error   [image] ${imageError(image)}`;
+  }
+}
 
 const cm = (v: number) => `${v.toFixed(1)} cm`;
 const signed = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(1)} cm`;
 
-function formatEntry({ garment: g, check, grade, snapshot }: ReportEntry): string[] {
-  const mark = check.errors.length > 0 ? '✗' : check.warnings.length > 0 ? '!' : '✓';
+function formatEntry({ garment: g, check, grade, snapshot, image }: ReportEntry): string[] {
+  const failed = check.errors.length > 0 || imageError(image) !== null;
+  const mark = failed ? '✗' : check.warnings.length > 0 ? '!' : '✓';
   const lines = [`${mark} ${g.id} — ${g.brand} ${g.name}`];
   const src = g.source;
   const origin = src.placeholder
@@ -64,6 +128,8 @@ function formatEntry({ garment: g, check, grade, snapshot }: ReportEntry): strin
   } else if (!src.placeholder) {
     lines.push('  Snapshot: none saved');
   }
+  const imageText = imageLine(image);
+  if (imageText) lines.push(imageText);
   if (check.errors.length === 0 && check.warnings.length === 0) lines.push('  Checks:   pass');
   for (const e of check.errors) lines.push(`  Error   [${e.check}] ${e.message}`);
   for (const w of check.warnings) lines.push(`  Warning [${w.check}] ${w.message}`);

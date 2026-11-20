@@ -56,7 +56,8 @@ app/dev/       landmarks.html + landmarksServer.ts: the picker page and its save
 app/scripts/   data-check.mjs (npm run data:check), fit-report.mjs (npm run fit:report),
                garment-photos.mjs (npm run photos: AI cut-out via photo-model.mjs, BiRefNet-lite,
                MIT; mask clean-up in photo-mask.mjs). Model weights download to app/.models/
-app/chart-snapshots/, app/photo-sources/   local copies of charts and photos, git-ignored
+app/chart-snapshots/, app/photo-sources/   local copies of charts and source photos, git-ignored
+app/public/garments/   committed cut-outs the app shows (not ones from retailer photos, listed in app/.gitignore)
 docs/          adding-garments.md (checklist for adding a garment by hand)
 data/fit_tests.csv    (repo root) fit-test results, pasted from Test mode's CSV export.
 src/, tests/, data/   (repo root) original Python chest-fit engine + real tee CSV.
@@ -133,6 +134,10 @@ inputs/outputs and unit tests. UI only calls their public functions.
   than the one before, or a flat girth that looks like a full circumference (or the reverse). Warnings need review:
   uneven grading, implausible ranges, chest ease for the fit intent, and audit vs chart.
   Thresholds are in `verifyRules.ts`.
+- Images: every `image.file` must be in `app/public/` (committed) and at least
+  `MIN_IMAGE_WIDTH_PX` (800) wide, or `npm run data:check` fails. A cut-out from a photo we don't
+  hold the rights to (Gildan 5000's) is listed in `app/.gitignore` and skipped; without it the
+  garment draws in its flat colour. Source photos in `photo-sources/` are never committed.
 - Confidence grade (`gradeGarment`), checked in order: **unscored** (girth method or top
   length definition unknown) → **estimated** (any estimated value, a placeholder, or tier
   E–G) → **verified** (tier A–C, no warnings, audited) → **charted**.
@@ -149,7 +154,7 @@ npm run test:watch # unit tests, watch mode
 npm run check      # typecheck + tests + data:check — gate every commit on this exiting 0
 npm run data:check # garment data report: grade, warnings, errors, audit per garment
 npm run fit:report # fit-test report from ../data/fit_tests.csv (or a path after --)
-npm run photos     # cut garment photos out into public/garments/ (local only)
+npm run photos     # cut garment photos out into public/garments/ (commit the PNG)
                    # then place landmarks at http://localhost:5173/dev/landmarks?id=<garment>
 npm run icons      # favicon, Apple touch and manifest icons from public/choudo-app-icon-1024.png
 npm run build      # typecheck + production build

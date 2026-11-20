@@ -1,9 +1,14 @@
 # Garment photo sources
 
-Photos used as garment textures. **They are not committed**: product photos aren't
-ours to redistribute, and photos of your own clothes are personal. This folder and
-`public/garments/` are git-ignored. Without a photo the app draws the garment in its
-flat colour.
+Source photos for garment textures. **They are not committed**: product photos aren't
+ours to redistribute, and full-size phone photos of your own clothes are personal (and
+carry EXIF). This folder is git-ignored.
+
+The cut-outs that `npm run photos` makes in `public/garments/` **are committed**, so a
+fresh clone shows them. `npm run data:check` fails if a garment's image is missing or
+under 800 px wide. The exception is a cut-out from a photo we don't hold the rights to,
+like `gildan-5000-front.png` (a retailer's model shot): it's listed in `app/.gitignore`,
+the check skips it, and without it the app draws the garment in its flat colour.
 
 ## Taking the photo
 
@@ -30,7 +35,8 @@ flat colour.
    `rotate` (degrees clockwise, after EXIF) is only needed if the collar isn't at the
    top: photos taken sideways usually need `90` or `270`.
 3. Run `npm run photos -- <garment-id>` (or no id for every photo). It writes
-   `public/garments/<garment-id>-front.png`, about 20 seconds per photo.
+   `public/garments/<garment-id>-front.png`, about 20 seconds per photo. Commit that
+   PNG (unless it's from a photo we don't hold the rights to: list it in `app/.gitignore`).
 
 The first run downloads the background-removal model (224 MB, once) into
 `app/.models/` (git-ignored). It's **BiRefNet-lite**, run locally with ONNX
