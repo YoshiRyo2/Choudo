@@ -5,21 +5,23 @@
  */
 
 import type { BodyModel } from '../../domain/body';
-import { sampleFit, type GarmentOdds, type PreferenceSpec } from '../../domain/fit';
+import { sampleFit, type GarmentOdds, type PreferenceSpec, type UnderLayer } from '../../domain/fit';
 import type { Garment } from '../../domain/garments';
 
 const MAX_ENTRIES = 200;
 const cache = new Map<string, GarmentOdds>();
 
-function keyOf(body: BodyModel, garment: Garment, spec: PreferenceSpec): string {
-  return JSON.stringify([garment.id, body.measurements, body.sources, body.bra ?? null, spec]);
+function keyOf(body: BodyModel, garment: Garment, spec: PreferenceSpec, under?: UnderLayer): string {
+  const layer = under ? [under.garment.id, under.sizeLabel] : null;
+  return JSON.stringify([garment.id, body.measurements, body.sources, body.bra ?? null, spec, layer]);
 }
 
-export function garmentOdds(body: BodyModel, garment: Garment, spec: PreferenceSpec): GarmentOdds {
-  const key = keyOf(body, garment, spec);
+/** Odds for a garment on the bare body, or over `under` (the Fitting room's jacket over its top). */
+export function garmentOdds(body: BodyModel, garment: Garment, spec: PreferenceSpec, under?: UnderLayer): GarmentOdds {
+  const key = keyOf(body, garment, spec, under);
   const hit = cache.get(key);
   if (hit) return hit;
-  const odds = sampleFit(body, garment, spec);
+  const odds = sampleFit(body, garment, spec, under ? { under } : {});
   if (cache.size >= MAX_ENTRIES) cache.delete(cache.keys().next().value!);
   cache.set(key, odds);
   return odds;
