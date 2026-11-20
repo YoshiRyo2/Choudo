@@ -151,7 +151,7 @@ export function FittingRoom({
       </header>
 
       <section className="fitting__stage" aria-label="Mannequin">
-        <Mannequin body={model.measurements} top={worn(top)} bottom={worn(bottom)} />
+        <Mannequin body={model.measurements} top={worn(top)} bottom={worn(bottom)} frame="body" />
         <button type="button" className="fitting__save" aria-label="Save outfit" title="Save outfit" onClick={() => setSaving('naming')}>
           {/* A bookmark with a plus: keep this outfit. */}
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
