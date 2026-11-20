@@ -39,3 +39,32 @@ describe('readFitTestCsv', () => {
     expect(() => readFitTestCsv('tester,size\nT01,M\n')).toThrow(/missing columns/);
   });
 });
+
+describe('bottoms columns', () => {
+  it('come after the original 29, in order', () => {
+    expect(FIT_TEST_COLUMNS.slice(29)).toEqual([
+      'category',
+      'inseam_cm',
+      'waist_cm',
+      'thigh_cm',
+      'predicted_waist_label',
+      'predicted_thigh_label',
+      'p_waist_too_tight',
+      'p_waist_just_right',
+      'p_waist_too_loose',
+      'p_thigh_too_tight',
+      'p_thigh_just_right',
+      'p_thigh_too_loose',
+      'actual_waist',
+      'actual_thigh',
+    ]);
+  });
+
+  it('reads a CSV without the bottoms columns', () => {
+    const old = FIT_TEST_COLUMNS.slice(0, 29);
+    const [r] = readFitTestCsv(`${old.join(',')}\n${old.map((c) => (c === 'tester' ? 'T01' : '')).join(',')}\n`);
+    expect(r?.tester).toBe('T01');
+    expect(r?.actual_waist).toBe('');
+    expect(r?.category).toBe('');
+  });
+});

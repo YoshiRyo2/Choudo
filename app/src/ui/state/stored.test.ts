@@ -84,6 +84,7 @@ describe('fit preference guards', () => {
 
 describe('fit test guards', () => {
   const prediction = {
+    category: 'top',
     body: { heightCm: 178, weightKg: 75, bodyType: 'mens' },
     chestCm: 96.4,
     chestSource: 'estimated',
@@ -107,6 +108,7 @@ describe('fit test guards', () => {
     at: '2026-11-18T10:00:00Z',
     garmentId: 'gildan-5000',
     size: 'M',
+    category: 'top',
     chest: 'just-right',
     length: 'too-short',
     keptSize: 'M',
@@ -119,5 +121,33 @@ describe('fit test guards', () => {
     expect(isFitTestList([{ ...record, chest: 'tight' }])).toBe(false);
     expect(isFitTestList([{ ...record, prediction: { ...prediction, chest: { under: 1 } } }])).toBe(false);
     expect(isFitTestList([{ ...record, prediction: { ...prediction, body: null } }])).toBe(false);
+    // A v2 record (no category) is migrated, not read as is.
+    const { category: _c, ...v2 } = record;
+    expect(isFitTestList([v2])).toBe(false);
+  });
+
+  it('accepts a bottom: no chest answer, waist and thigh answers and chances', () => {
+    const bottom = {
+      ...record,
+      category: 'bottom',
+      chest: null,
+      waist: 'too-tight',
+      thigh: 'just-right',
+      prediction: {
+        ...prediction,
+        category: 'bottom',
+        preferredChestEaseCm: null,
+        inseamCm: 80,
+        waistCm: 90,
+        thighCm: 60,
+        waistLabel: 'fitted',
+        thighLabel: 'relaxed',
+        waist: { under: 0.2, right: 0.7, over: 0.1 },
+        thigh: { under: 0.1, right: 0.8, over: 0.1 },
+      },
+    };
+    expect(isFitTestList([bottom])).toBe(true);
+    expect(isFitTestList([{ ...bottom, waist: 'snug' }])).toBe(false);
+    expect(isFitTestList([{ ...bottom, prediction: { ...bottom.prediction, waist: { under: 1 } } }])).toBe(false);
   });
 });

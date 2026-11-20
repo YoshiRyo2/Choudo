@@ -230,23 +230,25 @@ export function FittingRoom({
 
         {testing && (
           <FitTestPanel
-            garment={browsing === 'top' && top ? top.garment : null}
-            size={browsing === 'top' && top ? top.size : null}
+            key={active ? `${active.garment.id}-${active.size}` : 'none'}
+            garment={active ? active.garment : null}
+            size={active ? active.size : null}
+            fit={active ? active.fit : null}
             records={testing.records}
             onClear={testing.onClear}
             bodyType={body.bodyType}
             onSave={(answers) => {
-              if (!top) return;
+              if (!active) return;
               const prediction = predictionFor({
                 body,
                 model,
-                garment: top.garment,
-                size: top.size,
+                garment: active.garment,
+                size: active.size,
                 preference,
                 anchor: testing.anchor,
-                odds: top.odds,
+                odds: active.odds,
               });
-              testing.onAdd(makeFitTest(makeId(), new Date().toISOString(), top.garment.id, top.size, answers, prediction));
+              testing.onAdd(makeFitTest(makeId(), new Date().toISOString(), active.garment.id, active.size, answers, prediction));
             }}
           />
         )}

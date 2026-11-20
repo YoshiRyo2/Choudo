@@ -41,7 +41,28 @@ export const FIT_TEST_COLUMNS = [
   'actual_length',
   /** The size they'd keep, or "none". */
   'kept_size',
+  // ---- Added for bottoms. Older CSVs don't have these; they read as blank. ----
+  /** top | bottom (blank in older CSVs: tops). On a bottom the length columns are the inseam. */
+  'category',
+  'inseam_cm',
+  /** The body's girth where the waistband sits (cm). */
+  'waist_cm',
+  'thigh_cm',
+  'predicted_waist_label',
+  'predicted_thigh_label',
+  'p_waist_too_tight',
+  'p_waist_just_right',
+  'p_waist_too_loose',
+  'p_thigh_too_tight',
+  'p_thigh_just_right',
+  'p_thigh_too_loose',
+  /** too-tight | just-right | too-loose */
+  'actual_waist',
+  'actual_thigh',
 ] as const;
+
+/** The columns every fit-test CSV has; the bottoms columns after them may be missing from older files. */
+export const REQUIRED_FIT_TEST_COLUMNS = FIT_TEST_COLUMNS.slice(0, FIT_TEST_COLUMNS.indexOf('category'));
 
 export type FitTestColumn = (typeof FIT_TEST_COLUMNS)[number];
 
@@ -87,11 +108,13 @@ export function parseCsv(text: string): string[][] {
   return rows;
 }
 
-/** Rows as objects keyed by the header. Throws if a required column is missing. */
+/** Rows as objects keyed by the header. Throws if a required column is missing; a missing bottoms column reads "". */
 export function readFitTestCsv(text: string): Record<FitTestColumn, string>[] {
   const [header, ...rows] = parseCsv(text);
   if (!header) return [];
-  const missing = FIT_TEST_COLUMNS.filter((c) => !header.includes(c));
+  const missing = REQUIRED_FIT_TEST_COLUMNS.filter((c) => !header.includes(c));
   if (missing.length > 0) throw new Error(`fit_tests.csv is missing columns: ${missing.join(', ')}`);
-  return rows.map((r) => Object.fromEntries(FIT_TEST_COLUMNS.map((c) => [c, r[header.indexOf(c)] ?? ''])) as Record<FitTestColumn, string>);
+  return rows.map(
+    (r) => Object.fromEntries(FIT_TEST_COLUMNS.map((c) => [c, header.includes(c) ? (r[header.indexOf(c)] ?? '') : ''])) as Record<FitTestColumn, string>,
+  );
 }

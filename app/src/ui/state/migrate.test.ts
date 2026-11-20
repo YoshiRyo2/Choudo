@@ -4,6 +4,7 @@ import {
   migrateAppRename,
   migrateBodyV1,
   migrateFitTestsV1,
+  migrateFitTestsV2,
   migrateStorage,
   oldNameOf,
   type StorageLike,
@@ -165,5 +166,33 @@ describe('migrateAppRename (Nimbus -> Choudo)', () => {
     const s = memoryStorage({ 'nimbus.unknown.v1': 1, 'other.app': 2 });
     migrateAppRename(s);
     expect([...s.data.keys()].sort()).toEqual(['nimbus.unknown.v1', 'other.app']);
+  });
+});
+
+describe('migrateFitTestsV2', () => {
+  const v2Body = { heightCm: 178, weightKg: 75, bodyType: 'mens' };
+
+  it('migrates v2 fit tests to v3 as top results', () => {
+    const out = migrateFitTestsV2([record(v2Body), 'junk']);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ category: 'top', chest: 'just-right', length: 'too-long' });
+  });
+
+  it('moves the stored v2 key to v3, and a v1 key still arrives as v3', () => {
+    const s = memoryStorage({ [LEGACY_KEYS.fitTestsV2]: [record(v2Body)] });
+    migrateStorage(s);
+    expect(STORAGE_KEYS.fitTests).toBe('choudo.fitTests.v3');
+    expect(JSON.parse(s.data.get(STORAGE_KEYS.fitTests)!)[0].category).toBe('top');
+    expect(s.data.has(LEGACY_KEYS.fitTestsV2)).toBe(false);
+    const old = memoryStorage({ [LEGACY_KEYS.fitTestsV1]: [record(v1Body)] });
+    migrateStorage(old);
+    expect(JSON.parse(old.data.get(STORAGE_KEYS.fitTests)!)[0].category).toBe('top');
+  });
+
+  it('moves a pre-rename v2 key too', () => {
+    const s = memoryStorage({ 'nimbus.fitTests.v2': [record(v2Body)] });
+    migrateStorage(s);
+    expect(JSON.parse(s.data.get(STORAGE_KEYS.fitTests)!)).toHaveLength(1);
+    expect(s.data.has('nimbus.fitTests.v2')).toBe(false);
   });
 });

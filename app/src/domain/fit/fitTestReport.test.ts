@@ -41,7 +41,7 @@ describe('buildFitTestReport', () => {
   it('label and within-one agreement per zone', () => {
     expect(r.agreement.chest).toEqual({ total: 4, agree: 2, withinOne: 3 });
     expect(r.agreement.length).toEqual({ total: 3, agree: 3, withinOne: 3 });
-    expect(r.skipped).toEqual({ chest: [], length: [4] });
+    expect(r.skipped).toEqual({ chest: [], length: [4], waist: [], thigh: [] });
   });
 
   it('size hit rate leaves out "none" and rows without a recommendation', () => {
@@ -84,5 +84,40 @@ describe('formatFitTestReport', () => {
     const values = row({});
     const csv = `${header}\n${FIT_TEST_COLUMNS.map((c) => values[c]).join(',')}\n`;
     expect(buildFitTestReport(readFitTestCsv(csv)).agreement.chest.agree).toBe(1);
+  });
+});
+
+describe('bottoms in the report', () => {
+  const jean = (patch: Partial<Row>) =>
+    row({
+      category: 'bottom',
+      p_chest_too_tight: '',
+      p_chest_just_right: '',
+      p_chest_too_loose: '',
+      actual_chest: '',
+      p_waist_too_tight: '0.6',
+      p_waist_just_right: '0.3',
+      p_waist_too_loose: '0.1',
+      actual_waist: 'too-tight',
+      p_thigh_too_tight: '0.1',
+      p_thigh_just_right: '0.8',
+      p_thigh_too_loose: '0.1',
+      actual_thigh: 'too-loose',
+      ...patch,
+    });
+  const r = buildFitTestReport([row({}), jean({}), jean({ actual_thigh: '', p_thigh_too_tight: '', p_thigh_just_right: '', p_thigh_too_loose: '' })]);
+
+  it('the report scores waist and thigh answers', () => {
+    expect(r.agreement.waist).toEqual({ total: 2, agree: 2, withinOne: 2 });
+    expect(r.agreement.thigh).toEqual({ total: 1, agree: 0, withinOne: 1 });
+    // A jean has no chest, a top no waist, and a thigh that wasn't asked isn't skipped.
+    expect(r.agreement.chest.total).toBe(1);
+    expect(r.skipped).toEqual({ chest: [], length: [], waist: [], thigh: [] });
+  });
+
+  it('prints the waist and thigh lines', () => {
+    const text = formatFitTestReport(r);
+    expect(text).toMatch(/waist +100%/);
+    expect(text).toMatch(/thigh +0%/);
   });
 });
