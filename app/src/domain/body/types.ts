@@ -69,6 +69,20 @@ export type MeasurementKey =
   | 'armLengthCm'
   | 'torsoLengthCm';
 
+/**
+ * Every body measurement key, in a fixed order. The sampler draws them in this
+ * order, so add new keys at the end or a seed stops meaning the same draws.
+ */
+export const BODY_MEASUREMENT_KEYS: readonly MeasurementKey[] = [
+  'chestCm',
+  'waistCm',
+  'hipsCm',
+  'inseamCm',
+  'shoulderWidthCm',
+  'armLengthCm',
+  'torsoLengthCm',
+];
+
 /** Where each value came from: our estimate, or the user's own tape measure. */
 export type MeasurementSource = 'estimated' | 'entered';
 

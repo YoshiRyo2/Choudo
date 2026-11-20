@@ -12,6 +12,7 @@
 import type { BodyMeasurements } from '../body';
 import { findGarment, type FitIntent, type Garment } from '../garments';
 import type { GarmentFit, ZoneFit, ZoneId } from './fitEngine';
+import { templateZones } from './zones';
 import {
   ANCHOR_CHEST_BAND_CM,
   ANCHOR_LENGTH_BAND_CM,
@@ -81,7 +82,8 @@ export interface PreferenceNoise {
 /** Catalogue garments that can serve as an anchor: real tops whose chest (and grade) we can trust. */
 export function canAnchor(g: Garment): boolean {
   return (
-    g.category === 'top' &&
+    // A garment whose template carries a personal fit (a top): its chest is what we learn from.
+    templateZones(g).personal !== null &&
     !g.source.placeholder &&
     g.girthVerified &&
     g.grade !== 'unscored' &&
@@ -260,25 +262,25 @@ function within(missCm: number, bandCm: number): PersonalResult {
  * and every zone of a bottom — falls back to its objective label.
  */
 export function personalFit(fit: GarmentFit, garment: Garment, pref: ResolvedPreference): PersonalFit {
-  const isTop = garment.category === 'top';
-  const target = isTop ? chestTarget(pref, garment.fitIntent) : null;
+  const personal = templateZones(garment).personal;
+  const target = personal ? chestTarget(pref, garment.fitIntent) : null;
   const zones: PersonalFit['zones'] = {};
   let chestMissCm: number | null = null;
 
   for (const z of fit.zones) {
     if (z.label === 'unknown' || z.diffCm === null) {
       zones[z.zone] = 'unknown';
-    } else if (isTop && z.zone === 'chest' && target) {
+    } else if (personal && z.zone === personal.girth && target) {
       chestMissCm = z.diffCm - target.easeCm;
-      zones.chest = z.label === 'tight' ? 'under' : within(chestMissCm, target.bandCm);
-    } else if (isTop && z.zone === 'length' && pref.lengthDiffCm !== null) {
-      zones.length = within(z.diffCm - pref.lengthDiffCm, pref.lengthBandCm);
+      zones[z.zone] = z.label === 'tight' ? 'under' : within(chestMissCm, target.bandCm);
+    } else if (personal && z.zone === personal.length && pref.lengthDiffCm !== null) {
+      zones[z.zone] = within(z.diffCm - pref.lengthDiffCm, pref.lengthBandCm);
     } else {
       zones[z.zone] = objective(z);
     }
   }
 
-  return { verdict: combine(fit, zones, chestMissCm, target), zones, chestMissCm, target };
+  return { verdict: combine(fit, zones, chestMissCm, target, personal?.girth ?? null), zones, chestMissCm, target };
 }
 
 function combine(
@@ -286,6 +288,7 @@ function combine(
   zones: PersonalFit['zones'],
   chestMissCm: number | null,
   target: ChestTarget | null,
+  personalGirth: ZoneId | null,
 ): Verdict {
   const girths = fit.zones.filter((z) => z.kind === 'girth');
   const lengths = fit.zones.filter((z) => z.kind === 'length');
@@ -296,7 +299,7 @@ function combine(
     const r = zones[z.zone];
     if (r === 'under') return 'snugger';
     if (r === 'over') {
-      return z.zone === 'chest' && chestMissCm !== null && chestMissCm > MUCH_ROOMIER_CM ? 'much-roomier' : 'roomier';
+      return z.zone === personalGirth && chestMissCm !== null && chestMissCm > MUCH_ROOMIER_CM ? 'much-roomier' : 'roomier';
     }
   }
   for (const z of lengths) {

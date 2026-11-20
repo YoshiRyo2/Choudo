@@ -15,8 +15,15 @@
  * Pure: the generator is seeded, so the same inputs always give the same odds.
  */
 
-import type { BodyModel, MeasurementKey as BodyKey } from '../body';
-import { normalizeMeasurements, type Garment, type GarmentSize, type MeasurementKey } from '../garments';
+import { BODY_MEASUREMENT_KEYS, type BodyModel, type MeasurementKey as BodyKey } from '../body';
+import {
+  isGirthKey,
+  MEASUREMENT_KEYS,
+  normalizeMeasurements,
+  type Garment,
+  type GarmentSize,
+  type MeasurementKey,
+} from '../garments';
 import { fitGarment, type FitLabel, type ZoneFit, type ZoneId } from './fitEngine';
 import {
   LIKED_VERDICTS,
@@ -28,7 +35,8 @@ import {
   type Verdict,
 } from './preference';
 import { normal, seededRng } from './random';
-import { BOTTOM_HIPS, BOTTOM_WAIST, TOP_GIRTH_RULES } from './rules';
+import { girthRuleInCm } from './rules';
+import { measurableKeys, templateZones, zoneRule, type MeasurableKey } from './zones';
 import {
   ENTERED_BODY_SD_CM,
   BRA_BUST_SD_CM,
@@ -79,17 +87,11 @@ export interface SampleOptions {
   seed?: number;
 }
 
-const GIRTH_KEYS: readonly MeasurementKey[] = ['chest', 'waist', 'hips'];
-const GARMENT_KEYS: readonly MeasurementKey[] = ['chest', 'waist', 'hips', 'length', 'sleeve', 'shoulder', 'inseam', 'rise'];
-const BODY_KEYS: readonly BodyKey[] = [
-  'chestCm',
-  'waistCm',
-  'hipsCm',
-  'inseamCm',
-  'shoulderWidthCm',
-  'armLengthCm',
-  'torsoLengthCm',
-];
+// Every key in the schema is drawn, whatever the template, in the schema's fixed
+// order: a new measurement is sampled without touching this file, and a seed keeps
+// meaning the same draws.
+const GARMENT_KEYS = MEASUREMENT_KEYS;
+const BODY_KEYS = BODY_MEASUREMENT_KEYS;
 
 /** audit − chart (cm) for each measurement the audit covers. Empty without an audit. */
 export function auditGapsCm(garment: Garment): Partial<Record<MeasurementKey, number>> {
@@ -112,7 +114,7 @@ export function auditGapsCm(garment: Garment): Partial<Record<MeasurementKey, nu
  * origin (estimated / audited), widened to the audit gap when there is one.
  */
 export function garmentSdCm(garment: Garment, size: GarmentSize, key: MeasurementKey, gaps = auditGapsCm(garment)): number {
-  const kind = GIRTH_KEYS.includes(key) ? 'girth' : 'length';
+  const kind = isGirthKey(key) ? 'girth' : 'length';
   const origin = size.provenance[key]?.origin;
   const grade =
     origin === 'estimated' ? 'estimated' : origin === 'audited' ? 'verified' : garment.grade === 'unscored' ? 'charted' : garment.grade;
@@ -134,10 +136,10 @@ export function bodySdCm(body: BodyModel, key: BodyKey): number {
   return sd;
 }
 
-/** The ideal ease the engine aims for on girth zones without a personal target. */
-function idealEaseCm(garment: Garment, zone: ZoneId): number {
-  if (garment.category === 'top') return TOP_GIRTH_RULES[garment.sizing].waist.ideal;
-  return zone === 'hips' ? BOTTOM_HIPS.ideal : BOTTOM_WAIST.ideal;
+/** The ideal ease (cm) the engine aims for on a girth zone without a personal target: the zone's own rule. */
+function idealEaseCm(garment: Garment, zone: ZoneFit): number {
+  const rule = zoneRule(garment, zone.zone);
+  return rule?.kind === 'girth' ? girthRuleInCm(rule, zone.bodyCm).ideal : 0;
 }
 
 const emptyPersonal = (): Record<PersonalResult, number> => ({ under: 0, right: 0, over: 0, unknown: 0 });
@@ -164,6 +166,7 @@ export function sampleFit(
     Object.fromEntries(GARMENT_KEYS.map((k) => [k, garmentSdCm(garment, s, k, gaps)])) as Record<MeasurementKey, number>,
   );
   const tallies: Tally[] = garment.sizes.map(() => ({ zones: new Map(), verdicts: emptyVerdicts(), missSum: 0, missCount: 0 }));
+  const personalGirth = templateZones(garment).personal?.girth ?? null;
   const anchor = spec.anchor;
   const anchorIsThisChart = anchor !== null && anchor.garmentId === garment.id;
   const prefChestSd = anchor ? PREFERENCE_SD_CM.anchorChest : PREFERENCE_SD_CM.style;
@@ -217,9 +220,9 @@ export function sampleFit(
         if (zf.kind === 'girth' && zf.diffCm !== null) {
           scored = true;
           miss +=
-            garment.category === 'top' && zf.zone === 'chest' && personal.chestMissCm !== null
+            zf.zone === personalGirth && personal.chestMissCm !== null
               ? Math.abs(personal.chestMissCm)
-              : Math.abs(zf.diffCm - idealEaseCm(garment, zf.zone));
+              : Math.abs(zf.diffCm - idealEaseCm(garment, zf));
         }
       }
       if (scored) {
@@ -278,20 +281,12 @@ export function recommendSize(body: BodyModel, garment: Garment, spec: Preferenc
   return sampleFit(body, garment, spec, options).recommended;
 }
 
-/** Body measurements the user can type in on the body screen. */
-export type MeasurableKey = 'chestCm' | 'waistCm' | 'hipsCm' | 'inseamCm';
+export type { MeasurableKey } from './zones';
 
 export interface MeasureHint {
   key: MeasurableKey;
   /** The sizes the answer moves between, in chart order. */
   sizes: string[];
-}
-
-function measurableFor(garment: Garment): MeasurableKey[] {
-  if (garment.category === 'top') {
-    return garment.sizes.some((s) => s.measurements.waist !== undefined) ? ['chestCm', 'waistCm'] : ['chestCm'];
-  }
-  return ['waistCm', 'hipsCm', 'inseamCm'];
 }
 
 /**
@@ -310,7 +305,7 @@ export function measurementHint(
   const current = options?.current !== undefined ? options.current : recommendSize(body, garment, spec, options);
   if (current === null) return null;
   const order = garment.sizes.map((s) => s.label);
-  for (const key of measurableFor(garment)) {
+  for (const key of measurableKeys(garment)) {
     if (body.sources[key] !== 'estimated') continue;
     const picks = new Set<string>([current]);
     for (const z of [-HINT_Z, HINT_Z]) {

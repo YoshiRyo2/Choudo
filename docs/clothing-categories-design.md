@@ -1,11 +1,11 @@
 # Clothing categories beyond tees — design report
 
-Status: proposal, no code changed. Written 2026-11-19 against `main` @ `0060dee` (after PRs #27–#32).
+Status: proposal, written 2026-11-19 against `main` @ `0060dee` (after PRs #27–#32). Decisions on the open
+questions are at the end (2026-11-20). PR 1a (registry + rules, commits 1–2 of §6) is built; see "PR 1a as built".
 Order asked for: pants/jeans → hoodies/sweaters → skirts/shorts → jackets/coats → dresses → bras → leggings
 (the PR plan in §6 puts bras before leggings, as requested for the PRs).
 
-**The rule this design keeps** (from the parent session's brief; the `claude/parked-ideas` branch isn't on
-origin, locally, or in any worktree, so this is the only wording I could find):
+**The rule this design keeps**, in short (the full wording is in [parked-ideas.md](parked-ideas.md)):
 
 > Body proportions come only from the fit engine; drawing is a skin on top.
 
@@ -470,7 +470,7 @@ export function fitOutfit(body: BodyModel, worn: WornLayer[]): OutfitFit;
   Nothing extra is needed.
 - An open jacket (`closure: 'open'`, a drawing option) draws two front panels, with the layer under it visible
   between them. Closed comes first; open can wait.
-- Storage: `outfit` → `nimbus.outfit.v3` = `{ [slot]: { id, size } | null }`. `migrate.ts` maps v2's
+- Storage: `outfit` → `choudo.outfit.v2` = `{ [slot]: { id, size } | null }`. `migrate.ts` maps v1's
   `topId/topSize/bottomId/bottomSize` to `top` and `bottom`. Saved outfits (`outfits`) migrate the same way.
   A dress fills `onepiece` and clears `top` and `bottom`; putting a top on clears `onepiece`.
 
@@ -615,9 +615,9 @@ terms note still applies), extends Test mode so its assumed thresholds can be tu
 | 1 | **Generic categories + pants** | **L** | Template/zone/category registry; per-key girth method and stretch; `EaseRule` (cm or fraction); landing zones; pants zones waist (at band height), hips, rise, thigh, inseam, leg opening; new body keys; drawing and warp for pants |
 | 2 | Hoodies / sweaters | M | `knit` template on the tee drawing; CB sleeve and CB length now scoreable; rib hem/cuff stretch; `weight` field |
 | 3 | Skirts / shorts | M | `shorts` (pants template, inseam as landing); `skirt` template (waist, hips at a defined drop, hem landing, walking room) |
-| 4 | Jackets / coats | L | `jacket` template (chest, shoulder, sleeve, bicep, length landing); layering engine; outfit v3 slots + migration; layer stack in the Mannequin |
+| 4 | Jackets / coats | L | `jacket` template (chest, shoulder, sleeve, bicep, length landing); layering engine; outfit v2 slots + migration; layer stack in the Mannequin |
 | 5 | Dresses | L | `onepiece` slot; bust, waist (by seam), hips, length landing; joined top + skirt drawing and mesh |
-| 6 | Bras | M | `bra.ts` beside the zone engine; underbust input; EU/FR/AU + sister sizes; current-bra anchor; simple drawing |
+| 6 | Bras (on hold) | M | `bra.ts` beside the zone engine; underbust input; EU/FR/AU + sister sizes; current-bra anchor; simple drawing |
 | 7 | Leggings | S | `leggings` template: fraction-scale negative ease, `compression` stretch, skin-tight drawing on the pants mesh |
 
 ### PR 1 — generic design + pants (Large)
@@ -631,9 +631,10 @@ Commit order:
    (old `lengthDefinition`/`sleeveDefinition` still read). Landing zones (`kind: 'landing'`) skipped by
    `overallTone`/`pickSize`.
 3. **Body.** `thighCm`, `kneeCm`, `calfCm`, `heelAnkleCm`, `frontRiseCm`, `waistHeightCm`, `hipHeightCm`,
-   `kneeHeightCm` for both body types. Women's from the female file. Men's are fitted fresh from the ANSUR II
-   male file; the men's girths stay on the power law, so existing results don't move. Each key gets its spread
-   in `uncertainty.ts`.
+   `kneeHeightCm` for both body types. Women's from the female file. Men's new keys need an estimate too, but
+   the men's ANSUR II re-fit is its own later PR (decision 3): until then men's new keys come from the
+   existing men's model (ratios of height, labelled assumed), and nothing men's already has moves. Each key
+   gets its spread in `uncertainty.ts`.
 4. **Pants zones** (§2.6), including `bandHeight()` and the body girth at the band.
 5. **`data:check`.** Pants `CategoryChecks`: thigh and leg-opening girth-method limits, relations
    (`legOpening ≤ knee ≤ thigh`, `thigh < hips / 2 + 8`), rise/thigh definitions required for those zones.
@@ -647,8 +648,28 @@ Commit order:
 8. **UI wording.** `zoneName` (Thigh, Rise, Leg opening), landing phrases ("sits 2 cm below your navel"); Test
    mode records bottoms (waist / thigh / length answers).
 
-This could be split into 1a (commits 1–2, Medium, no visible change) and 1b (3–8). One PR as asked is
-fine if the golden test lands first.
+Split into 1a (commits 1–2, Medium, no visible change) and 1b (3–8).
+
+#### PR 1a as built
+
+- **Golden test first**: `domain/fit/golden.test.ts` writes `fitAllSizes`, `personalFit`, `sampleFit` and
+  `measurementHint` for every catalogue garment (plus the unknown-chest test tee) on six bodies and four
+  preferences, and `normalizeGarment` + `checkGarment` for every seed row, one JSON line per garment under
+  `domain/fit/__golden__/`. It stayed byte-identical through both commits, and so did `npm run data:check`.
+- **Registry**: `domain/garments/categories.ts` (`TYPE_TEMPLATE`, `CategorySpec` with the data rules) and
+  `domain/fit/zones.ts` (`TemplateZones`: zones, rule per zone or per sizing, `needs` for definitions,
+  `personal` zones). Templates today: `tee`, `shirt`, `pants`.
+- **One change from §2.3**: the sampler draws *every* schema key (`MEASUREMENT_KEYS`,
+  `BODY_MEASUREMENT_KEYS`) in a fixed order, not the template's keys. Drawing only the template's keys would
+  change the seeded draws for every garment; drawing them all means a new measurement is sampled without
+  touching `sampleFit.ts`. New keys go at the end of those lists.
+- **Rules**: `GirthRule.scale` (`cm` | `fraction`) rather than a new `EaseRule` type, so today's rules stay as
+  written; `girthRuleInCm` turns fraction bounds into cm per body. `GirthRule.stretch` overrides the
+  allowance per zone; a garment's `stretch` may be `{ default, <key>: level }`; new level `compression`
+  (0.35, assumed). `chart.girth` may be `{ default, <girth>: method }`. `chart.definitions` holds length,
+  sleeve, rise, thigh (hips and waist-seam definitions come with skirts and dresses). Landing zones have the
+  label `noted` and a `landing` mark.
+- Also new: `validateGarment` rejects an unknown type, and a category that isn't the type's template's.
 
 ### PR 2 — hoodies / sweaters (Medium)
 - `knit` zones: chest (personal, tee `INTENT_EASE` plus a knit offset), length (`hps` or `center_back` against
@@ -676,7 +697,7 @@ fine if the golden test lands first.
   ±1.5 cm; assumed), sleeve (both definitions), bicep, and length landing (hip / mid-thigh / knee / calf for
   coats).
 - `domain/fit/layers.ts` (§3), `fitOutfit`, and layer notes.
-- Outfit `v3` slots + `migrate.ts`, Fitting room "Outer" picker, closet/saved outfits.
+- Outfit `v2` slots + `migrate.ts`, Fitting room "Outer" picker, closet/saved outfits.
 - Mannequin `worn[]`, envelopes, and clipping of sleeves and arm overlays. Drawn closed first.
 - Photo warp: the tee mesh plus lapel/collar points, optional.
 
@@ -689,7 +710,7 @@ fine if the golden test lands first.
 - Drawing: the tee template's bodice joined to the skirt template at the seam height from the engine. The mesh
   joins both.
 
-### PR 6 — bras (Medium)
+### PR 6 — bras (Medium) — on hold until a brand gives garment specs
 - `domain/fit/bra.ts` (§4), `BraChartSize` seed shape (tier F → estimated), band/cup zones in `GarmentFit`.
 - Underbust override on the body screen; `ESTIMATED_BODY_SD_CM` for an underbust from a bra size, wide.
 - `braSize.ts` gains EU/FR/AU, `convertBraSize` and `sisterSizes`. Tests cover the tables in §4.2 as fixtures.
@@ -705,15 +726,14 @@ fine if the golden test lands first.
 
 ---
 
-## Open questions (Ryo / Derek)
+## Decisions (2026-11-20)
 
-1. Every new threshold is an assumption until fit tests exist: thigh, rise landing marks, leggings fractions,
-   layer bulk, shoulder tolerance. OK to ship them labelled "assumed", as `WOMENS_TOP_CHEST` was?
-2. Should a pants rise ever make a size *bad*, or only move where the waist is measured? This report proposes
-   "only bad when the band lands below the hip line".
-3. Is the men's ANSUR II re-fit (thigh, rise, heights; possibly inseam 0.45 → 0.47) in PR 1, or a separate PR?
-   It changes men's inseam results.
-4. Bras: is a body-chart-only, always-"estimated" bra worth shipping, or should bras wait for a brand with
-   garment specs?
-5. The `claude/parked-ideas` branch can't be found. If it holds more than the one-line rule, the skin-rule
-   section should be checked against it.
+1. New thresholds ship labelled **"assumed"**, as `WOMENS_TOP_CHEST` was: thigh, rise landing marks,
+   leggings fractions, layer bulk, shoulder tolerance, and `compression` stretch.
+2. A pants rise makes a size bad **only when the band lands below the hip line**. Otherwise it only moves
+   where the waist is measured, and says where the band sits.
+3. The **men's ANSUR II re-fit** (thigh, rise, heights, possibly inseam 0.45 → 0.47) is a **separate later
+   PR**, not in 1a or 1b.
+4. **Bras (PR 6) are on hold** until a brand gives garment specs. §4 stays as the design for then.
+5. Storage keys are `choudo.*` since the rename (PR #33); §3.2 says `choudo.outfit.v2`.
+6. The skin rule's full wording is in [parked-ideas.md](parked-ideas.md).

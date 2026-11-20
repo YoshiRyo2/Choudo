@@ -3,9 +3,10 @@
  */
 
 import seed from './seed.json';
+import { chartDefinition, defaultStretch, girthMethodOf, stretchOverrides } from './chart';
 import { gradeGarment } from './grade';
-import { normalizeSize } from './normalize';
-import type { Garment, GarmentCategory, SeedGarment } from './types';
+import { GIRTH_KEYS, normalizeSize } from './normalize';
+import type { Garment, GarmentCategory, GirthKey, SeedGarment } from './types';
 import { checkGarment } from './verify';
 
 /**
@@ -14,14 +15,28 @@ import { checkGarment } from './verify';
  */
 export function normalizeGarment(seedGarment: SeedGarment): Garment {
   const { chart, sizes, ...rest } = seedGarment;
+  // A per-girth method: the girths this garment lists whose method the chart doesn't give.
+  const girthUnknown: GirthKey[] | undefined =
+    typeof chart.girth === 'string'
+      ? undefined
+      : GIRTH_KEYS.filter((k) => girthMethodOf(chart, k) === 'unknown' && sizes.some((s) => s.measurements[k] !== undefined));
   const garment: Garment = {
     ...rest,
-    girthVerified: chart.girth !== 'unknown',
+    // Same key position as the seed's; a per-measurement stretch keeps its default here.
+    stretch: defaultStretch(rest.stretch),
+    girthVerified: girthUnknown ? girthUnknown.length === 0 : chart.girth !== 'unknown',
     sizes: sizes.map((s) => normalizeSize(s, chart)),
     grade: gradeGarment(seedGarment, checkGarment(seedGarment)) ?? 'unscored',
   };
-  if (chart.lengthDefinition !== undefined) garment.lengthDefinition = chart.lengthDefinition;
-  if (chart.sleeveDefinition !== undefined) garment.sleeveDefinition = chart.sleeveDefinition;
+  const length = chartDefinition(chart, 'length');
+  const sleeve = chartDefinition(chart, 'sleeve');
+  if (length !== undefined) garment.lengthDefinition = length;
+  if (sleeve !== undefined) garment.sleeveDefinition = sleeve;
+  const { length: _l, sleeve: _s, ...others } = chart.definitions ?? {};
+  if (Object.keys(others).length > 0) garment.definitions = others;
+  if (girthUnknown) garment.girthUnknown = girthUnknown;
+  const overrides = stretchOverrides(rest.stretch);
+  if (overrides) garment.stretchByKey = overrides;
   return garment;
 }
 
