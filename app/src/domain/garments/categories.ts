@@ -29,6 +29,7 @@ import {
   KNIT_RANGES,
   KNIT_SLEEVE_RANGES,
   MAX_THIGH_TO_HIPS,
+  SHORTS_RANGES,
   TOP_LENGTH_RANGES,
   TOP_RANGES,
   TOP_SLEEVE_RANGES,
@@ -45,7 +46,7 @@ export interface Relation {
 }
 
 /** The template a garment type is fitted, checked and drawn with. */
-export type TemplateId = 'tee' | 'shirt' | 'knit' | 'pants';
+export type TemplateId = 'tee' | 'shirt' | 'knit' | 'pants' | 'shorts';
 
 export const TYPE_TEMPLATE: Record<GarmentType, TemplateId> = {
   tee: 'tee',
@@ -56,6 +57,7 @@ export const TYPE_TEMPLATE: Record<GarmentType, TemplateId> = {
   chinos: 'pants',
   joggers: 'pants',
   trousers: 'pants',
+  shorts: 'shorts',
   hoodie: 'knit',
   sweatshirt: 'knit',
   sweater: 'knit',
@@ -98,6 +100,15 @@ const PANTS_RELATIONS: readonly Relation[] = [
     holds: (m) => m.thigh <= MAX_THIGH_TO_HIPS * m.hips,
     message: (label, a, b) => `thigh in ${label} (${a}) is more than ${MAX_THIGH_TO_HIPS} × its hips (${b})`,
   },
+];
+
+const SHORTS_RELATIONS: readonly Relation[] = [
+  {
+    keys: ['legOpening', 'thigh'],
+    holds: (m) => m.legOpening <= m.thigh,
+    message: (label, a, b) => `legOpening in ${label} (${a}) is wider than its thigh (${b})`,
+  },
+  PANTS_RELATIONS[2]!,
 ];
 
 export interface CategorySpec {
@@ -179,6 +190,17 @@ export const CATEGORY_SPECS: Record<TemplateId, CategorySpec> = {
     landmarks: PANTS_LANDMARKS,
     checks: { required: ['waist', 'inseam'], ranges: BOTTOM_RANGES, labelEase: 'waist', relations: PANTS_RELATIONS },
     defaultWeight: 'mid',
+  },
+  // The pants template cut short: no knee, and the hem lands on the thigh (domain/fit/zones.ts).
+  shorts: {
+    template: 'shorts',
+    category: 'bottom',
+    sleeve: 'forbidden',
+    lengthDefinition: 'forbidden',
+    // No shorts photos yet; the pants landmarks have knees that shorts don't.
+    landmarks: null,
+    checks: { required: ['waist', 'inseam'], ranges: SHORTS_RANGES, labelEase: 'waist', relations: SHORTS_RELATIONS },
+    defaultWeight: 'light',
   },
 };
 

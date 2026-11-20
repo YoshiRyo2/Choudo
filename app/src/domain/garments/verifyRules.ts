@@ -99,6 +99,17 @@ export const BOTTOM_RANGES: Partial<Record<MeasurementKey, Range>> = {
 };
 
 /**
+ * Plausible shorts measurements, cm, full circumferences: the bottoms ranges with
+ * a short inseam (2 in running shorts to 13 in board shorts) and a leg opening
+ * cut round the thigh rather than the ankle. ASSUMED from typical charts.
+ */
+export const SHORTS_RANGES: Partial<Record<MeasurementKey, Range>> = {
+  ...BOTTOM_RANGES,
+  inseam: { min: 5, max: 35 },
+  legOpening: { min: 40, max: 100 },
+};
+
+/**
  * A pants thigh over this share of its seat is probably a typo or a mixed-up
  * method. Real cuts run about 0.55–0.68 (§2.5's "hips / 2 + 8" flags ordinary
  * relaxed jeans once both are full circumferences). ASSUMED.

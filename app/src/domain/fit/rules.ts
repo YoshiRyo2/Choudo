@@ -233,6 +233,22 @@ export const LEG_OPENING: LandingRule = {
 };
 
 /**
+ * Where a shorts hem lands, by garment inseam − the body's crotch-to-knee
+ * distance (cm; 0 = the hem at the middle of the kneecap). ASSUMED marks from
+ * how brands name inseams on a typical 30 cm crotch-to-knee: 5–7 in (13–18 cm)
+ * reads mid-thigh, 9 in (23 cm) just above the knee, 11 in (28 cm) at the knee.
+ * Descriptive only: where shorts end is a style, never a fit problem.
+ */
+export const SHORTS_INSEAM: LandingRule = {
+  kind: 'landing',
+  marks: [
+    { label: 'mid-thigh', atCm: -Infinity },
+    { label: 'above-knee', atCm: -12 },
+    { label: 'knee', atCm: -4 },
+  ],
+};
+
+/**
  * How far the centre of the back neck sits below the high point of the shoulder,
  * measured down a top (cm): a chart's centre-back length reads this much shorter
  * than its HPS length. ASSUMED: a typical back-neck drop (about ¾ in) on knit and

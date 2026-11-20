@@ -26,6 +26,7 @@ import {
   KNIT_GIRTH_RULES,
   LEG_OPENING,
   RISE,
+  SHORTS_INSEAM,
   SLEEVE,
   THIGH,
   TOP_GIRTH_RULES,
@@ -35,6 +36,7 @@ import {
   type LengthRule,
 } from './rules';
 import { bandHeight, girthAtHeight, riseForBand } from './pants';
+import { crotchToKneeCm } from './shorts';
 import { lengthTargetCm, sleeveTargetCm } from './tops';
 
 export type ZoneId =
@@ -51,9 +53,10 @@ export type ZoneId =
 
 /**
  * Where a worked-out body number was taken: band = the body's girth where a
- * waistband sits; centre_back = a length from the centre of the back neck.
+ * waistband sits; centre_back = a length from the centre of the back neck;
+ * knee = a distance down to the knee (where a hem lands against it).
  */
-export type BodyAt = 'band' | 'centre_back';
+export type BodyAt = 'band' | 'centre_back' | 'knee';
 
 export type Rule = GirthRule | LengthRule | LandingRule;
 
@@ -215,6 +218,23 @@ const PANTS_ZONES: readonly ZoneSpec[] = [
   },
 ];
 
+/**
+ * Shorts: the pants waist, hips, thigh and rise as they are; the inseam says where
+ * the hem lands against the knee (it isn't meant to reach the ankle), and there's
+ * no leg opening zone (pants measure it against the heel).
+ */
+const SHORTS_ZONES: readonly ZoneSpec[] = [
+  ...PANTS_ZONES.filter((z) => z.zone !== 'inseam' && z.zone !== 'legOpening'),
+  {
+    zone: 'inseam',
+    garmentKey: 'inseam',
+    bodyKey: 'inseamCm',
+    rule: SHORTS_INSEAM,
+    bodyTarget: (m) => crotchToKneeCm(m),
+    bodyAt: 'knee',
+  },
+];
+
 const KNIT_ZONES: readonly ZoneSpec[] = [
   { zone: 'chest', garmentKey: 'chest', bodyKey: 'chestCm', rule: { bySizing: KNIT_GIRTH_RULES } },
   {
@@ -256,6 +276,7 @@ export const TEMPLATE_ZONES: Record<TemplateId, TemplateZones> = {
   shirt: { template: 'shirt', zones: TOP_ZONES, personal: TOP_PERSONAL },
   knit: { template: 'knit', zones: KNIT_ZONES, personal: { ...TOP_PERSONAL, easeOffsetCm: KNIT_EASE_OFFSET_CM } },
   pants: { template: 'pants', zones: PANTS_ZONES, personal: null },
+  shorts: { template: 'shorts', zones: SHORTS_ZONES, personal: null },
 };
 
 export const templateZones = (g: Pick<Garment, 'type'>): TemplateZones => TEMPLATE_ZONES[templateOf(g)];

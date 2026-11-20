@@ -20,6 +20,7 @@ export type GarmentType =
   | 'chinos'
   | 'joggers'
   | 'trousers'
+  | 'shorts'
   | 'hoodie'
   | 'sweatshirt'
   | 'sweater'

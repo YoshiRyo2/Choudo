@@ -36,6 +36,7 @@ export const HEM_HALF: Record<GarmentType, number> = {
   chinos: 9,
   joggers: 6.5,
   trousers: 12.5,
+  shorts: 14,
   tee: 9,
   'long-sleeve-tee': 9,
   polo: 9,
