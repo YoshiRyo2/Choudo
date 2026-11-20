@@ -8,6 +8,7 @@ import {
   type BodyType,
 } from '../../domain/body';
 import { cmToIn, kgToLb, round } from '../../domain/units';
+import { AboutSheet } from '../components/AboutSheet';
 import { Mannequin } from '../components/Mannequin/Mannequin';
 import { FieldError, NumberInput } from '../components/NumberInput';
 import { SegmentedControl } from '../components/SegmentedControl';
@@ -115,6 +116,7 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
   );
   const [showTape, setShowTape] = useState(() => Boolean(initial?.overrides));
   const [submitted, setSubmitted] = useState(false);
+  const [about, setAbout] = useState(false);
   const formId = useId();
 
   const input = useMemo(() => formToInput(form), [form]);
@@ -341,8 +343,12 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
         </div>
 
         <p id={`${formId}-privacy`} className="body-screen__privacy">
-          Saved on this device only. No account, no photos, nothing sent anywhere.
+          Saved on this device only. No account, no photos, nothing sent anywhere.{' '}
+          <button type="button" className="body-screen__about" onClick={() => setAbout(true)}>
+            About Choudo
+          </button>
         </p>
+        {about && <AboutSheet onClose={() => setAbout(false)} />}
 
         {/* Dev only: the build drops this switch (see ui/devTools.ts). */}
         {import.meta.env.DEV && testMode && (
