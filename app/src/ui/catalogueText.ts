@@ -15,6 +15,20 @@ export function catalogueOptions(bodyType: BodyType): { value: CatalogueScope; l
   ];
 }
 
+/**
+ * The compact "Show" chip: one button that switches between the two choices.
+ * Its label is the current choice; the accessible name says what it controls.
+ */
+export function catalogueToggle(
+  bodyType: BodyType,
+  scope: CatalogueScope,
+): { label: string; accessibleName: string; next: CatalogueScope } {
+  const options = catalogueOptions(bodyType);
+  const current = options.find((o) => o.value === scope) ?? options[0]!;
+  const next = options.find((o) => o.value !== current.value)!.value;
+  return { label: current.label, accessibleName: `Show: ${current.label}`, next };
+}
+
 const CATEGORY_WORD: Record<GarmentCategory, string> = { top: 'tops', bottom: 'bottoms' };
 
 /** "No women’s or unisex bottoms yet." */

@@ -51,6 +51,7 @@ app/src/
                  FitTestPanel (Test mode), Discover (swipe feed), Closet + closet/ (Liked, Folders, Outfits tabs)
     components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts, photoWarp.ts + SVG),
                  SwipeCard/ (pure swipe.ts),
+                 FitStrip (size row + verdict line under the stage), sizeRow.ts (pure),
                  GarmentCarousel, GarmentBadge, SizePicker, FitReadout, FitSheet, Sheet (<dialog>), TabBar, NameForm,
                  AboutSheet (from the body screen and the Closet header),
                  ConfirmButton, TapeScale, SegmentedControl, NumberInput
