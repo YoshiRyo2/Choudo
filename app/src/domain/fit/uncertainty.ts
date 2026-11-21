@@ -54,6 +54,8 @@ export const ESTIMATED_BODY_SD_CM: Record<BodyType, Record<MeasurementKey, numbe
     waistHeightCm: 3,
     hipHeightCm: 3,
     kneeHeightCm: 2.5,
+    // ASSUMED: the men's ratio, wider than the male regression's 0.49 cm residual.
+    ankleHeightCm: 1.2,
   },
   womens: {
     chestCm: 5,
@@ -71,6 +73,8 @@ export const ESTIMATED_BODY_SD_CM: Record<BodyType, Record<MeasurementKey, numbe
     waistHeightCm: 3,
     hipHeightCm: 3,
     kneeHeightCm: 2,
+    // ANSUR II residual 0.46 cm, rounded up as the other leg heights are.
+    ankleHeightCm: 1,
   },
 };
 
