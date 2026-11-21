@@ -44,6 +44,8 @@ app/src/
                  shorts.ts (crotchToKneeCm), skirt.ts (band / hip-point / hem heights, legGirthAt,
                  strideGirthCm; the drawing reads them too),
                  tops.ts (length / sleeve body targets per definition, centre back included; the drawing reads it too),
+                 layers.ts (what a top under a jacket adds: layerAllowanceCm, layerGrowCm; the drawing reads it too),
+                 outfit.ts (fitOutfit: top and bottom bare, the jacket over the top, layer notes),
                  golden.test.ts + __golden__/ (byte-for-byte snapshot of every garment's fit and odds)
                  preference.ts (anchor tee / fit style -> personal verdict), sampleFit.ts
                  (seeded odds, recommendSize, measurementHint), uncertainty.ts (every spread),
@@ -51,7 +53,7 @@ app/src/
   ui/            React (app icons and favicon: app/public/, made by npm run icons)
     screens/     BodyScreen (input), AnchorScreen (fit reference), FittingRoom (browse + size + fit),
                  FitTestPanel (Test mode), Discover (swipe feed), Closet + closet/ (Liked, Folders, Outfits tabs)
-    components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts + skirt.ts, photoWarp.ts + SVG),
+    components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts + skirt.ts + jacket.ts, photoWarp.ts + SVG),
                  SwipeCard/ (pure swipe.ts),
                  FitStrip (size row + verdict line under the stage), sizeRow.ts (pure),
                  GarmentIcon (card picture: photo or flat drawing; garmentThumb.ts picks, pure),
@@ -141,6 +143,21 @@ inputs/outputs and unit tests. UI only calls their public functions.
   men 5.3 / women 5.5 from ANSUR II spine-to-wrist means). `bodyAt: 'centre_back'` marks those
   targets. Hem band (relaxed rib) vs hips, `HEM_BAND` (assumed); rows give `stretch.hemBand: high`.
   Tees still score only `hps` length and `shoulder_to_cuff` sleeves.
+- Jackets (jacket, coat → template `jacket`, category **`outer`**, worn over the top): chest and a
+  charted waist are `layered` zones; shoulder (optional, `JACKET_SHOULDER` ±1.5 cm fitted); sleeve as
+  knits; length a landing against the hip line (`JACKET_LENGTH`: cropped / hip / thigh /
+  knee-length / calf). Chest = the top chest rule moved out by `JACKET_EASE_OFFSET_CM` (13, assumed
+  from J317's grading); the personal target moves too, no personal length; jackets are never
+  anchors. No bicep zone yet (no chart or body key). All thresholds assumed.
+- Layering (`domain/fit/layers.ts`): charts and bands are bare-body; a jacket assumes something light
+  under it (`OUTER_ASSUMES`). With a top under it (`fitGarment(…, under)`), layered zones compare with
+  the body + `layerAllowanceCm`: `LAYER_BULK_CM[weight] − LAYER_BULK_CM.light` (light 0.5 / mid 2 /
+  heavy 3.5) + `UNDER_EASE_KEPT` (0.25) × the top's chest ease beyond fitted; waist the same. Zones
+  say `bodyAt: 'over_layer'`, the fit `over: { garmentId, type }`. `fitOutfit` adds notes (never
+  labels): hem shows (> 1 cm), cuffs show (> 1 cm), bunches (top's ease > the jacket's over the
+  layer). **Size cards stay bare-body**; only the Fitting room, with a top on, fits over it.
+  `sampleFit(…, { under })` works the layer out from each sample's own body draw (one draw shared
+  by both layers); the top's chart offsets draw from `keyedSeed(seed, 'under:' + key)` streams.
 - Top chest/waist thresholds go by the **garment's** sizing (`TOP_GIRTH_RULES`): women's cuts use
   `WOMENS_TOP_CHEST` (fitted to +1 in, relaxed to +3 in — assumed, not sourced yet); men's and
   unisex keep the men's numbers on any body. Bottoms use one set for everyone.
@@ -172,7 +189,7 @@ inputs/outputs and unit tests. UI only calls their public functions.
   and worked out against the current body; an anchor's ease is turned into its regular-cut
   equivalent. Targets and bands per style / fitIntent are `INTENT_EASE` in `rules.ts`.
 - Relaxed and oversized designs win when their ease is above the user's ("Oversized, as
-  designed"); slim and regular cuts are sized to the user. Pants, shorts and skirts have no personal target yet.
+  designed"); slim and regular cuts are sized to the user. Jackets aim at the tee target + `JACKET_EASE_OFFSET_CM`. Pants, shorts and skirts have no personal target yet.
 - `sampleFit` draws body, garment and preference 500 times (seed fixed) and returns per-size
   label, personal and verdict odds. Every spread is in `uncertainty.ts`, each with its source;
   estimated body spreads are per body type (women's from the ANSUR II residuals).
@@ -202,7 +219,8 @@ inputs/outputs and unit tests. UI only calls their public functions.
   `{ value, origin: chart | estimated | audited, how }`. `normalizeGarment` converts to cm
   and keeps each value's origin, printed number and conversions (`GarmentSize.provenance`).
 - Every row has `sizing: "mens" | "womens" | "unisex"` (who the chart is cut for). Gildan 5000
-  and Knightweave are unisex; the Lands' End A-line skirt is the first women's row. The Fitting room and Discover show the body type's sizing plus
+  and Knightweave are unisex; the Lands' End A-line skirt is the first women's row; Port Authority
+  J317 (men's) and L317 (women's) soft shells are the first jackets (SanMar spec sheets, tier B). The Fitting room and Discover show the body type's sizing plus
   unisex, with a shared "Show: … & unisex | All" toggle (`catalogueFor`); a worn garment
   stays on even when hidden.
 - `checkGarment` (stage 5) returns errors and warnings. Errors leave the garment out of the
@@ -215,6 +233,10 @@ inputs/outputs and unit tests. UI only calls their public functions.
   default: tee/shirt light, knit/pants mid). Knit checks: `KNIT_RANGES`, centre-back sleeve range,
   their own flat-chest limit, `hemBand ≤ chest`; `scoredDefinitions` per template says which
   length / sleeve definitions are scoreable (kept equal to the zones' `needs` by a test).
+- Jacket checks: `JACKET_RANGES` (chest 85–190, shoulder 38–62), `JACKET_SLEEVE_RANGES`,
+  `JACKET_LENGTH_RANGES` (jacket 50–100, coat 70–125), the knit flat-chest limit, no tee chest-ease
+  check; length definition `hps | center_back | unknown`; an outer can't have an ankle zip; no photo
+  landmarks yet (`landmarks: null`).
 - Shorts checks: `SHORTS_RANGES` (inseam 5–35 cm, opening 40–100), `legOpening ≤ thigh`. Skirt
   checks: `SKIRT_RANGES`, `waist ≤ hips`, a length definition from `lengthDefinitions`
   (`waist | unknown`; tops can't use `waist`), `hipsBelowWaist` only on skirts, 5–30 cm and above
@@ -228,6 +250,11 @@ inputs/outputs and unit tests. UI only calls their public functions.
   sweep (A-line or pencil follows); without a sweep, straight from the hips, dashed.
   Framing is camera only: the Fitting room uses `frame="body"` (view ends under the feet, the
   figure fills the stage); elsewhere a fixed 214 cm canvas, so a taller body is drawn taller.
+- Jackets (`templates/jacket.ts`) hang off the top under them: `envelopeGeometry` grows the body
+  to the top's drawn side seam (and a long sleeve's room) plus `layerGrowCm` (bulk / 2π), down to
+  that top's hem; `jacketShape` runs `topShape` on it with chest = body + `layerAllowanceCm` (what the
+  fit compares), plus a placket and stand collar (drawn closed). The Mannequin draws `outer` last;
+  under a jacket the top's arm overlay and pins give way to the jacket's. A longer top shows below.
 - Knits draw with `topShape` plus surface details: a rib hem band gathered to the chart's hem band
   (stretched onto the body where smaller, never wider than the body above; body width without one),
   rib cuffs, and for hoodies a hood behind the neck with drawcords. Length and a centre-back
@@ -287,15 +314,18 @@ CI and cloud sessions install with `npm ci --ignore-scripts` then `npm rebuild e
 Logic that can be pure (geometry, form parsing, wording) lives in its own `.ts` file with
 tests; components stay thin. localStorage keys are versioned (`choudo.body.v2`): bump the
 version when a stored shape changes, and move old data in `ui/state/migrate.ts` (runs once at
-start-up). Keys today: `body` (v2: `bodyType`, optional `braSize`), `units`, `outfit` (fitting
-room), `swipes` (one `{garmentId, sizeShown, liked, at}` per garment), `folders`, `outfits`
-(saved), `anchor` (tee the user likes), `fitStyle`, `catalogue` (`matching` | `all`),
+start-up). Keys today: `body` (v2: `bodyType`, optional `braSize`), `units`, `outfit` (v2, fitting
+room: top, bottom and `outerId/outerSize`, a jacket slot never filled by default), `swipes` (one
+`{garmentId, sizeShown, liked, at}` per garment), `folders`, `outfits` (v2, saved, with the jacket slot), `anchor` (tee the user likes), `fitStyle`, `catalogue` (`matching` | `all`),
 `testMode` (dev only), `fitTests` (v3, Test mode results with a `category`: tops record chest + length,
-bottoms waist, thigh + inseam; the CSV column stays `sizing`, bottoms columns come last). Keys from
+bottoms waist, thigh + inseam, jackets (`outer`) chest + sleeve with `wornOver`; the CSV column stays
+`sizing`, bottoms columns come last, then `worn_over`). Keys from
 before the Choudo rename used the app's old prefix; `migrateAppRename` moves them over
 (when both exist, the `choudo.*` key wins).
 
 ## Discover + Closet
+- The Fitting room browses Top / Bottom / Jacket; a worn jacket's sizes, odds, hint and fit sheet
+  are worked out over the top, and its readout says "With your hoodie under it" plus layer notes.
 - Navigation is a bottom `TabBar` (Fitting room / Discover / Closet) with plain state in
   `App.tsx`; the fitting-room outfit and the closet data live in `App` so any screen can
   put clothes on the mannequin.
