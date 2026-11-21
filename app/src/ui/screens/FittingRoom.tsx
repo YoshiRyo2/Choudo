@@ -104,7 +104,13 @@ export function FittingRoom({
   const top = slot(outfit.topId, outfit.topSize);
   const bottom = slot(outfit.bottomId, outfit.bottomSize);
   // A jacket is fitted over the top under it (domain/fit/layers.ts); its size cards elsewhere stay bare-body.
-  const under: UnderLayer | undefined = top ? { garment: top.garment, sizeLabel: top.size } : undefined;
+  // Memoized on the top and its size, so screens that memo on it (the fit sheet's hint) don't re-sample every render.
+  const topGarment = top?.garment;
+  const topSize = top?.size;
+  const under = useMemo<UnderLayer | undefined>(
+    () => (topGarment && topSize ? { garment: topGarment, sizeLabel: topSize } : undefined),
+    [topGarment, topSize],
+  );
   const outer = slot(outfit.outerId, outfit.outerSize, under);
 
   const active = browsing === 'top' ? top : browsing === 'bottom' ? bottom : outer;
@@ -113,13 +119,10 @@ export function FittingRoom({
   const activeGarment = active?.garment;
   const activeRecommended = active?.recommended ?? null;
   // Re-runs the sampler a few times, so only when the garment, body or preference changes.
-  const underId = activeUnder?.garment.id;
-  const underSize = activeUnder?.sizeLabel;
-  const hint = useMemo(() => {
-    if (!activeGarment) return null;
-    const layer = underId && underSize ? { garment: findGarment(underId)!, sizeLabel: underSize } : undefined;
-    return measurementHint(model, activeGarment, preference, { current: activeRecommended, under: layer });
-  }, [model, activeGarment, preference, activeRecommended, underId, underSize]);
+  const hint = useMemo(
+    () => (activeGarment ? measurementHint(model, activeGarment, preference, { current: activeRecommended, under: activeUnder }) : null),
+    [model, activeGarment, preference, activeRecommended, activeUnder],
+  );
   const layerNotes =
     outer && browsing === 'outer' ? layerNoteLines(model, under, { garment: outer.garment, sizeLabel: outer.size }, units) : [];
 
