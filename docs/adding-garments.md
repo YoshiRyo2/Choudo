@@ -55,7 +55,9 @@ without one the top is drawn in its `color`. Full details are in
    (<http://localhost:5173/dev/landmarks?id=garment-id&side=back>). A top's back has the same
    13 points with **Back neck** (`neckBack`, the bottom of the back neckline) in place of the
    front neck; pants use the same 14. They're saved as the garment's `"backImage"`, which takes
-   the same licence and the same `data:check` rules as the front. Without one, the Fitting
+   the same licence and the same `data:check` rules as the front. If we don't hold the rights
+   to the back photo, list `<garment-id>-back.png` in `app/.gitignore` on its own line (the
+   front's line doesn't cover it, and `data:check` doesn't check `local-only` files). Without one, the Fitting
    room's Back view draws the garment in its flat colour; it never uses the front photo.
    Tops and pants only (jackets, skirts, shorts, dresses and leggings take no photo yet).
 7. **Then the measurements**, below. If the garment isn't in `seed.json` yet, add its

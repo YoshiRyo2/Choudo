@@ -38,6 +38,7 @@ import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { boundingBox, cleanCutOut, largestRegion, medianColour, outputScale, threshold } from './photo-mask.mjs';
 import { ensureModel, segment } from './photo-model.mjs';
+import { overlayOutline } from './photo-overlay.mjs';
 
 const APP = join(dirname(fileURLToPath(import.meta.url)), '..');
 const config = JSON.parse(await readFile(join(APP, 'scripts/garment-photos.json'), 'utf8'));
@@ -295,11 +296,7 @@ async function overlay(photo, file) {
     return;
   }
   const { width, height } = await sharp(file).metadata();
-  const pt = (name) => lm[name];
-  const outline = [
-    'collarRight', 'shoulderRight', 'sleeveOuterRight', 'sleeveInnerRight', 'armpitRight', 'hemRight',
-    'hemLeft', 'armpitLeft', 'sleeveInnerLeft', 'sleeveOuterLeft', 'shoulderLeft', 'collarLeft', 'neckFront',
-  ].map((n) => `${pt(n).x},${pt(n).y}`).join(' ');
+  const outline = overlayOutline(lm);
   const marks = Object.entries(lm).map(([name, { x, y }]) => {
     const right = name.endsWith('Right');
     const centre = !right && !name.endsWith('Left');
