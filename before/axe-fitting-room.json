@@ -1,0 +1,26 @@
+{
+  "violations": [
+    {
+      "id": "landmark-one-main",
+      "impact": "moderate",
+      "nodes": 1,
+      "help": "Document should have one main landmark",
+      "targets": [
+        "html"
+      ]
+    },
+    {
+      "id": "page-has-heading-one",
+      "impact": "moderate",
+      "nodes": 1,
+      "help": "Page should contain a level-one heading",
+      "targets": [
+        "html"
+      ]
+    }
+  ],
+  "landmark-one-main": "FAIL",
+  "page-has-heading-one": "FAIL",
+  "passes": 40,
+  "axeVersion": "4.10.2"
+}
