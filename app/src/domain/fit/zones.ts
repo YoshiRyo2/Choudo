@@ -386,6 +386,8 @@ const DRESS_ZONES: readonly ZoneSpec[] = [
     bodyKey: 'waistCm',
     rule: DRESS_GIRTH_RULES,
     optional: true,
+    // Like a top's waist, only when the chart lists one.
+    applies: (_g, size) => size.waist !== undefined,
     // A natural seam, or a sheath with none, is fitted at the waist: ANSUR II's, at the navel.
     needs: {
       definition: 'waistSeam',
@@ -398,7 +400,7 @@ const DRESS_ZONES: readonly ZoneSpec[] = [
             : `${brand}'s chart doesn’t say where the waist seam is.`,
     },
   },
-  { zone: 'hips', garmentKey: 'hips', bodyKey: 'hipsCm', rule: BOTTOM_HIPS, optional: true },
+  { zone: 'hips', garmentKey: 'hips', bodyKey: 'hipsCm', rule: BOTTOM_HIPS, optional: true, applies: (_g, size) => size.hips !== undefined },
   {
     zone: 'length',
     garmentKey: 'length',

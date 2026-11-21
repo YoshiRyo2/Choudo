@@ -93,6 +93,8 @@ describe('dress zones', () => {
   it('sizes a dress with no waist or hip rows on its bust', () => {
     const g = withDefs({ length: 'hps', waistSeam: 'natural' }, [{ label: 'M', measurements: { chest: m.chestCm + 5, length: 99, hemSweep: 160 } }]);
     expect(fitGarment(model, g, 'M').overall).not.toBe('unknown');
+    // Like a top's waist, a waist or hips the chart doesn't list isn't reported.
+    expect(zones(g).map((z) => z.zone)).toEqual(['chest', 'length', 'walkingRoom']);
   });
 
   it('scores a charted shoulder and a long sleeve', () => {

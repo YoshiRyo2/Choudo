@@ -933,6 +933,81 @@
         { "label": "3XL", "measurements": { "chest": 27, "length": 29.125, "sleeve": 35.25 } },
         { "label": "4XL", "measurements": { "chest": 29, "length": 30.125, "sleeve": 35.625 } }
       ]
+    },
+    {
+      "id": "landsend-sheath-dress",
+      "brand": "Lands' End",
+      "name": "Women's Washable Wool Piped Sheath Dress (Regular)",
+      "category": "onepiece",
+      "type": "dress",
+      "sizing": "womens",
+      "color": "#1f2a44",
+      "sleeve": "short",
+      "stretch": "some",
+      "fitIntent": "regular",
+      "chart": {
+        "unit": "in",
+        "girth": "circumference",
+        "definitions": {
+          "length": "center_back",
+          "sleeve": "top_of_sleeve",
+          "waistSeam": "natural"
+        }
+      },
+      "source": {
+        "placeholder": false,
+        "tier": "B",
+        "url": "https://www.landsend.com/garment_measurements/505999_core_pdp_spec.pdf",
+        "capturedOn": "2026-11-20",
+        "snapshot": "chart-snapshots/landsend-sheath-dress.pdf",
+        "notes": "Regular sizes 4-18 from Lands' End's item-dimensions PDF ('actual garment measurements in inches'); Petite and Plus left out. Rows: Garment chest, Garment length – center back, Garment waist, Garment hip, Garment sleeve length – top of sleeve (a short sleeve, not scored), Garment sweep, all full circumferences (a 38 in chest on the size 4's 34 in body chest). The hip row gives no height, so it is compared at the fullest hips. The sweep is narrower than the hip (a pencil cut) and the PDF lists no vent, so walking room may warn. Product page (https://www.landsend.com/products/school-uniform-womens-washable-wool-piped-sheath-dress/id_358675, item #505999): body 52% polyester / 42% wool / 6% spandex, so stretch some; lined; 'piping at the neckline, waistband and princess seams', so a seamed waist (waistSeam natural). Drawn in True Navy."
+      },
+      "sizes": [
+        { "label": "4", "measurements": { "chest": 38, "length": 38.25, "waist": 31.125, "hips": 39.25, "sleeve": 4.5, "hemSweep": 37.5 } },
+        { "label": "6", "measurements": { "chest": 39, "length": 38.5, "waist": 32.125, "hips": 40.25, "sleeve": 4.625, "hemSweep": 38.5 } },
+        { "label": "8", "measurements": { "chest": 40, "length": 38.75, "waist": 33.125, "hips": 41.25, "sleeve": 4.75, "hemSweep": 39.5 } },
+        { "label": "10", "measurements": { "chest": 41, "length": 39, "waist": 34.125, "hips": 42.25, "sleeve": 4.875, "hemSweep": 40.5 } },
+        { "label": "12", "measurements": { "chest": 43, "length": 39.25, "waist": 36.125, "hips": 43.75, "sleeve": 5, "hemSweep": 42 } },
+        { "label": "14", "measurements": { "chest": 45, "length": 39.5, "waist": 38.125, "hips": 45.25, "sleeve": 5.125, "hemSweep": 43.5 } },
+        { "label": "16", "measurements": { "chest": 47, "length": 39.75, "waist": 40.125, "hips": 46.75, "sleeve": 5.25, "hemSweep": 45 } },
+        { "label": "18", "measurements": { "chest": 49, "length": 40, "waist": 42.125, "hips": 48.75, "sleeve": 5.375, "hemSweep": 47 } }
+      ]
+    },
+    {
+      "id": "landsend-surplice-dress",
+      "brand": "Lands' End",
+      "name": "Women's Pattern Knit Shirred Surplice Dress (Regular)",
+      "category": "onepiece",
+      "type": "dress",
+      "sizing": "womens",
+      "color": "#3f6b7a",
+      "sleeve": "short",
+      "stretch": "some",
+      "fitIntent": "regular",
+      "chart": {
+        "unit": "in",
+        "girth": "circumference",
+        "definitions": {
+          "length": "hps",
+          "sleeve": "top_of_sleeve",
+          "waistSeam": "unknown"
+        }
+      },
+      "source": {
+        "placeholder": false,
+        "tier": "B",
+        "url": "https://www.landsend.com/garment_measurements/441021_core_pdp_spec.pdf",
+        "capturedOn": "2026-11-20",
+        "snapshot": "chart-snapshots/landsend-surplice-dress.pdf",
+        "notes": "Regular sizes XS(2-4) to XL(18) from Lands' End's item-dimensions PDF ('actual garment measurements in inches'); Petite, Tall and Plus left out. Rows: Garment chest, Garment length – high point shoulder, Garment sleeve length – top shoulder (a short sleeve, not scored), Garment sweep, all full circumferences (a 33 in chest on the XS's 33-34 in body chest). No waist or hip row, so neither is scored. The product page wasn't found: stretch some is taken from the name (a knit), and the waist seam is unknown (the name says shirred, not where). Drawn in a teal for the print."
+      },
+      "sizes": [
+        { "label": "XS", "measurements": { "chest": 33, "length": 38.5, "sleeve": 5.75, "hemSweep": 66 } },
+        { "label": "S", "measurements": { "chest": 35, "length": 39, "sleeve": 6, "hemSweep": 68 } },
+        { "label": "M", "measurements": { "chest": 37.5, "length": 39.5, "sleeve": 6.25, "hemSweep": 70.5 } },
+        { "label": "L", "measurements": { "chest": 41, "length": 40, "sleeve": 6.5, "hemSweep": 73.5 } },
+        { "label": "XL", "measurements": { "chest": 43, "length": 40.25, "sleeve": 6.625, "hemSweep": 75.5 } }
+      ]
     }
   ]
 }
