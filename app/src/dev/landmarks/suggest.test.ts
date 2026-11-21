@@ -157,3 +157,19 @@ describe('suggestPantsLandmarks', () => {
     expect(suggestPantsLandmarks(tee, W, H)).toBeNull();
   });
 });
+
+describe('suggestLandmarks for a back photo', () => {
+  it('puts neckBack at the bottom of the neck dip, and no neckFront', () => {
+    const sleeve = [P(62, 52), P(22, 70), P(36, 92), P(62, 82)];
+    const body = [P(60, 52), P(84, 40), P(116, 40), P(140, 52), P(140, 190), P(60, 190)];
+    const tee = draw([body, sleeve, mirror(sleeve)], [neck]);
+    const front = suggestLandmarks(tee, W, H)!;
+    const back = suggestLandmarks(tee, W, H, 'back')!;
+    expect('neckFront' in back).toBe(false);
+    expect(Math.abs(back.neckBack.x - 100)).toBeLessThanOrEqual(2);
+    expect(Math.abs(back.neckBack.y - 48)).toBeLessThanOrEqual(2);
+    const { neckFront: _f, ...frontRest } = front;
+    const { neckBack: _b, ...backRest } = back;
+    expect(backRest).toEqual(frontRest);
+  });
+});

@@ -11,6 +11,24 @@
   gap: 8px 20px;
   margin-bottom: 16px;
 }
+.picker__sides {
+  display: inline-flex;
+  gap: 4px;
+}
+.picker__sides button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line, #c9ced6);
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+.picker__sides button.is-active {
+  background: var(--ink, #1b2433);
+  color: var(--paper, #fff);
+}
+
 .picker__head h1 {
   font-family: var(--font-numeric);
   font-size: var(--step-2);

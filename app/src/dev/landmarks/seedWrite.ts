@@ -6,7 +6,7 @@
  * Pure: text in, text out. Used by the dev server's save endpoint (vite.config.ts).
  */
 
-import { PANTS_LANDMARKS, TOP_LANDMARKS, type GarmentImage, type LandmarkName, type PhotoLicence } from '../../domain/garments/types';
+import { PANTS_LANDMARKS, TOP_BACK_LANDMARKS, TOP_LANDMARKS, type GarmentImage, type LandmarkName, type PhotoLicence, type PhotoSide } from '../../domain/garments/types';
 
 /** Where a JSON value sits in the text: [start, end). Objects also list their members. */
 interface Span {
@@ -104,8 +104,9 @@ function indentAt(text: string, offset: number): string {
 export function formatImage(image: GarmentImage, indent: string, step = '  '): string {
   const a = indent + step;
   const b = a + step;
-  // A pants photo's points in PANTS_LANDMARKS order, a top's in TOP_LANDMARKS order.
-  const names: readonly LandmarkName[] = 'crotch' in image.landmarks ? PANTS_LANDMARKS : TOP_LANDMARKS;
+  // A pants photo's points in PANTS_LANDMARKS order, a top's in TOP_LANDMARKS (or, from the back, TOP_BACK_LANDMARKS) order.
+  const names: readonly LandmarkName[] =
+    'crotch' in image.landmarks ? PANTS_LANDMARKS : 'neckBack' in image.landmarks ? TOP_BACK_LANDMARKS : TOP_LANDMARKS;
   const points = names.map((name) => {
     const p = image.landmarks[name]!;
     return `${b}${JSON.stringify(name)}: { "x": ${Math.round(p.x)}, "y": ${Math.round(p.y)} }`;
@@ -135,10 +136,12 @@ export function licenceForSave(saved: GarmentImage | undefined, file: string): P
 const INSERT_AFTER = ['color', 'sizing', 'type', 'category', 'name', 'id'];
 
 /**
- * seed.json text with garment `id`'s "image" set to `image`. Everything outside
- * that value is left byte for byte. Throws if the garment isn't there.
+ * seed.json text with garment `id`'s "image" (or, for the back, "backImage") set
+ * to `image`. Everything outside that value is left byte for byte. A new
+ * "backImage" goes right after the "image". Throws if the garment isn't there.
  */
-export function writeGarmentImage(text: string, id: string, image: GarmentImage): string {
+export function writeGarmentImage(text: string, id: string, image: GarmentImage, side: PhotoSide = 'front'): string {
+  const key = side === 'back' ? 'backImage' : 'image';
   const root = locate(text);
   const garments = root.members?.find((m) => m.key === 'garments')?.value.items;
   if (!garments) throw new Error('seed.json: no "garments" array');
@@ -147,15 +150,16 @@ export function writeGarmentImage(text: string, id: string, image: GarmentImage)
   );
   if (!garment?.members) throw new Error(`seed.json: no garment with id "${id}"`);
 
-  const existing = garment.members.find((m) => m.key === 'image');
+  const existing = garment.members.find((m) => m.key === key);
   if (existing) {
     const formatted = formatImage(image, indentAt(text, existing.keyStart));
     return text.slice(0, existing.value.start) + formatted + text.slice(existing.value.end);
   }
   const after =
-    INSERT_AFTER.map((k) => garment.members!.find((m) => m.key === k)).find(Boolean) ?? garment.members[0];
+    (side === 'back' ? ['image', ...INSERT_AFTER] : INSERT_AFTER).map((k) => garment.members!.find((m) => m.key === k)).find(Boolean) ??
+    garment.members[0];
   if (!after) throw new Error(`seed.json: garment "${id}" is empty`);
   const indent = indentAt(text, after.keyStart);
-  const insert = `,\n${indent}"image": ${formatImage(image, indent)}`;
+  const insert = `,\n${indent}${JSON.stringify(key)}: ${formatImage(image, indent)}`;
   return text.slice(0, after.value.end) + insert + text.slice(after.value.end);
 }

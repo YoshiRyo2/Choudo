@@ -100,3 +100,22 @@ describe('the pants kit', () => {
     expect(w).toMatch(/Knee, right, inner/);
   });
 });
+
+describe('the back kits', () => {
+  const tee = findGarment('gildan-5000')!;
+  const jeans = findGarment('corvo-slim-jean')!;
+  it('a back top kit places neckBack, not neckFront, with words and a diagram spot', () => {
+    const kit = kitFor(tee, 'back');
+    expect(kit.order).toHaveLength(13);
+    expect(kit.order).toContain('neckBack');
+    expect(kit.order).not.toContain('neckFront');
+    expect(kit.labels.neckBack).toBe('Back neck: bottom of the back neckline');
+    expect(kit.short.neckBack).toBe('Back neck');
+    expect(kit.diagram.neckBack).toEqual({ x: 60, y: 15 });
+    expect(kitFor(tee, 'front')).toBe(kitFor(tee));
+  });
+
+  it('a back pants kit is the front one', () => {
+    expect(kitFor(jeans, 'back')).toBe(kitFor(jeans));
+  });
+});
