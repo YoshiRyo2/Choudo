@@ -26,10 +26,10 @@ describe('catalogueFor', () => {
     expect(catalogueFor(list, 'mens', 'all', 'top').map((x) => x.id)).toEqual(['m-tee', 'w-tee', 'u-tee']);
   });
 
-  it('gives a women’s body the unisex garments and the one women’s row in today’s seed (the A-line skirt)', () => {
+  it('gives a women’s body the unisex garments and the women’s bottoms (the A-line skirt and the Sport-Tek leggings)', () => {
     const tops = catalogueFor(GARMENTS, 'womens', 'matching', 'top').map((x) => x.id);
     expect(tops).toEqual(['gildan-5000', 'knightweave-tee', 'gildan-18500', 'comfort-colors-1566']);
-    expect(catalogueFor(GARMENTS, 'womens', 'matching', 'bottom').map((x) => x.id)).toEqual(['fieldline-jogger', 'landsend-a-line-skirt']);
+    expect(catalogueFor(GARMENTS, 'womens', 'matching', 'bottom').map((x) => x.id)).toEqual(['fieldline-jogger', 'landsend-a-line-skirt', 'sporttek-lpst890', 'sporttek-lpst880']);
     expect(catalogueFor(GARMENTS, 'womens', 'matching').every((x) => x.sizing !== 'mens')).toBe(true);
   });
 });

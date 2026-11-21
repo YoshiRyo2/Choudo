@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody, type BodyMeasurements, type BodyModel } from '../body';
-import { normalizeGarment, type SeedGarment, type Stretch, type StretchByKey } from '../garments';
+import { checkGarment, GARMENTS, normalizeGarment, type SeedGarment, type Stretch, type StretchByKey } from '../garments';
+import { SEED_GARMENTS } from '../garments/garments';
 import { fitGarment } from './fitEngine';
 import { crotchToAnkleCm, leggingsHemHeight } from './leggings';
 import { preferenceSpec } from './preference';
@@ -76,9 +77,10 @@ describe('leggings zones', () => {
     expect(calf.label).toBe('fitted'); // −11 %
   });
 
-  it('give the waistband less to squeeze than the leg', () => {
-    expect(zone({ waist: 78 }, 'waist').label).toBe('fitted'); // −2.5 %
-    expect(zone({ waist: 70 }, 'waist').label).toBe('tight'); // −12.5 %
+  it('read the waistband against the navel waist, a little under it', () => {
+    expect(zone({ waist: 74 }, 'waist').label).toBe('fitted'); // −7.5 %
+    expect(zone({ waist: 82 }, 'waist').label).toBe('relaxed'); // +2.5 %
+    expect(zone({ waist: 66 }, 'waist').label).toBe('tight'); // −17.5 %
   });
 
   it('leave a thigh or calf off the chart unscored without making the size unknown', () => {
@@ -92,9 +94,9 @@ describe('leggings zones', () => {
     const g = normalizeGarment({
       ...leggingsSeed(),
       sizes: [
-        { label: 'S', measurements: { waist: 70, inseam: 63.5 } },
-        { label: 'M', measurements: { waist: 80, inseam: 63.5 } },
-        { label: 'L', measurements: { waist: 90, inseam: 63.5 } },
+        { label: 'S', measurements: { waist: 66, inseam: 63.5 } },
+        { label: 'M', measurements: { waist: 74, inseam: 63.5 } },
+        { label: 'L', measurements: { waist: 84, inseam: 63.5 } },
       ],
     });
     expect(fitGarment(body, g, 'M').overall).toBe('unknown');
@@ -125,5 +127,31 @@ describe('leggings length', () => {
 
   it('says where it was measured to', () => {
     expect(landing(63.5)).toMatchObject({ bodyAt: 'ankle', bodyCm: expect.closeTo(71.7) });
+  });
+});
+
+describe('Sport-Tek leggings in the seed', () => {
+  const women = estimateBody({ heightCm: 163, weightKg: 68, bodyType: 'womens' });
+  const byId = (id: string) => GARMENTS.find((g) => g.id === id)!;
+  const zoneOn = (id: string, size: string, name: string) => fitGarment(women, byId(id), size).zones.find((z) => z.zone === name)!;
+
+  it('are in the catalogue, charted, with the stretch marked assumed', () => {
+    for (const id of ['sporttek-lpst890', 'sporttek-lpst880']) {
+      const g = byId(id);
+      expect(g.grade).toBe('charted');
+      expect(g.stretch).toBe('compression');
+      expect(g.stretchAssumed).toBe(true);
+      expect(checkGarment(SEED_GARMENTS.find((s) => s.id === id)!).errors).toEqual([]);
+    }
+  });
+
+  it('LPST880 M sits under a 163 / 68 body at the hips and runs past the ankle', () => {
+    expect(zoneOn('sporttek-lpst880', 'M', 'hips').label).toBe('fitted');
+    expect(zoneOn('sporttek-lpst880', 'M', 'inseam').landing).toBe('stacked');
+  });
+
+  it('LPST890 M is a 7/8 length, but without a hip on the chart its size is unknown', () => {
+    expect(zoneOn('sporttek-lpst890', 'M', 'inseam').landing).toBe('7/8');
+    expect(fitGarment(women, byId('sporttek-lpst890'), 'M').overall).toBe('unknown');
   });
 });

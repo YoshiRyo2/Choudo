@@ -1008,6 +1008,68 @@
         { "label": "L", "measurements": { "chest": 41, "length": 40, "sleeve": 6.5, "hemSweep": 73.5 } },
         { "label": "XL", "measurements": { "chest": 43, "length": 40.25, "sleeve": 6.625, "hemSweep": 75.5 } }
       ]
+    },
+    {
+      "id": "sporttek-lpst890",
+      "brand": "Sport-Tek",
+      "name": "Women's 7/8 Legging (LPST890)",
+      "category": "bottom",
+      "type": "leggings",
+      "sizing": "womens",
+      "color": "#1f2024",
+      "stretch": "compression",
+      "stretchAssumed": true,
+      "fitIntent": "slim",
+      "chart": { "unit": "in", "girth": "flat" },
+      "source": {
+        "placeholder": false,
+        "tier": "B",
+        "url": "https://www.sanmar.com/p/8702/specSheetMeasurements",
+        "capturedOn": "2026-11-21",
+        "snapshot": "chart-snapshots/sporttek-lpst890.html",
+        "notes": "SanMar's 'Product Measurements' table (garment, no unit printed: inches, against the inch body chart beside it), XS to 4XL. Waist is 'measured point to point across the waistband when laid flat' (12 1/2 in flat, 25 in round, on an XS's 24-26 in waist); inseam is 'measured from crotch seam to hem', 25 in every size (a 7/8 length). No hip, thigh, calf or rise row, so the hips can't be scored and every size reads unknown. 8.3-ounce 87/13 poly/spandex jersey, 'plenty of stretch'; no stretch figure is printed, so compression is assumed. The body Size Chart (hip 34-57 in, inseam 30 1/2-33 in) isn't used."
+      },
+      "sizes": [
+        { "label": "XS", "measurements": { "waist": 12.5, "inseam": 25 } },
+        { "label": "S", "measurements": { "waist": 13.5, "inseam": 25 } },
+        { "label": "M", "measurements": { "waist": 14.5, "inseam": 25 } },
+        { "label": "L", "measurements": { "waist": 16, "inseam": 25 } },
+        { "label": "XL", "measurements": { "waist": 17.5, "inseam": 25 } },
+        { "label": "XXL", "measurements": { "waist": 19, "inseam": 25 } },
+        { "label": "3XL", "measurements": { "waist": 20.75, "inseam": 25 } },
+        { "label": "4XL", "measurements": { "waist": 22.75, "inseam": 25 } }
+      ]
+    },
+    {
+      "id": "sporttek-lpst880",
+      "brand": "Sport-Tek",
+      "name": "Women's NRG Fitness Pant (LPST880)",
+      "category": "bottom",
+      "type": "leggings",
+      "sizing": "womens",
+      "color": "#2a2f3b",
+      "stretch": "compression",
+      "stretchAssumed": true,
+      "fitIntent": "slim",
+      "chart": { "unit": "in", "girth": "flat" },
+      "source": {
+        "placeholder": false,
+        "tier": "B",
+        "url": "https://sanmar.com/p/4320_Black/specSheetMeasurements",
+        "capturedOn": "2026-11-21",
+        "snapshot": "chart-snapshots/sporttek-lpst880.html",
+        "notes": "SanMar names it a fitness pant; it's an 88/12 poly/spandex pull-on with a wide waistband, cut under the body like a legging, so it's typed leggings. 'Product Measurements' table (garment, inches), XS to 4XL. Waist is 'measured point to point across the waistband when laid flat'. Hip has no method printed: read as flat like the waist in the same table, since 14 3/4 in can't go round an XS's 34-36 in hips (29 1/2 in round is about 15 % under them, as a compression legging is cut). Inseam is 'measured from crotch seam to hem'. No thigh, calf or rise row. No stretch figure is printed, so compression is assumed. The body Size Chart (its XS waist prints '24-36', likely 24-26) isn't used."
+      },
+      "sizes": [
+        { "label": "XS", "measurements": { "waist": 13, "hips": 14.75, "inseam": 30 } },
+        { "label": "S", "measurements": { "waist": 14, "hips": 15.75, "inseam": 30 } },
+        { "label": "M", "measurements": { "waist": 15, "hips": 16.75, "inseam": 31 } },
+        { "label": "L", "measurements": { "waist": 16, "hips": 17.75, "inseam": 31.5 } },
+        { "label": "XL", "measurements": { "waist": 17.5, "hips": 19.25, "inseam": 31.5 } },
+        { "label": "XXL", "measurements": { "waist": 19, "hips": 20.75, "inseam": 31.5 } },
+        { "label": "3XL", "measurements": { "waist": 20.5, "hips": 22.25, "inseam": 31.5 } },
+        { "label": "4XL", "measurements": { "waist": 22.5, "hips": 24.25, "inseam": 31.5 } }
+      ]
     }
   ]
 }

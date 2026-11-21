@@ -332,19 +332,21 @@ export const LEGGINGS_GIRTH: GirthRule = {
 };
 
 /**
- * A leggings waistband, as a share of the body where it sits. ASSUMED: both
- * Sport-Tek charts cut the relaxed band at about the body's waist (LPST890 M
- * 29 in round on a 29–30 in waist): a band holds the leggings up rather than
- * compressing like the leg. Tight below −4 % with no stretch, −10 % at compression.
+ * A leggings waistband, as a share of the body's waist where it sits (the navel,
+ * where ANSUR II measures it). ASSUMED from Sport-Tek's charts: both cut the
+ * relaxed band at about their body chart's natural (smallest) waist in every size
+ * (LPST890 M 29 in round on a 29–30 in waist), and a navel waist runs larger than
+ * that, so the band sits about 8 % under it. Tight below −8 % with no stretch,
+ * −16 % at compression; fitted up to the body's own waist; relaxed to +4 %.
  */
 export const LEGGINGS_WAIST: GirthRule = {
   kind: 'girth',
   scale: 'fraction',
-  tightBelow: -0.04,
-  fittedMax: 0.04,
-  relaxedMax: 0.08,
-  ideal: 0,
-  stretch: { none: 0, some: 0.02, high: 0.04, compression: 0.06 },
+  tightBelow: -0.08,
+  fittedMax: 0,
+  relaxedMax: 0.04,
+  ideal: -0.08,
+  stretch: { none: 0, some: 0.02, high: 0.05, compression: 0.08 },
 };
 
 /**
