@@ -21,6 +21,11 @@ export const LEGACY_KEYS = {
   outfitV1Old: 'nimbus.outfit.v1',
   outfitsV1: 'choudo.outfits.v1',
   outfitsV1Old: 'nimbus.outfits.v1',
+  /** Outfits before the dress slot, under both app names. */
+  outfitV2: 'choudo.outfit.v2',
+  outfitV2Old: 'nimbus.outfit.v2',
+  outfitsV2: 'choudo.outfits.v2',
+  outfitsV2Old: 'nimbus.outfits.v2',
 } as const;
 
 /** The app was called Nimbus; its keys started with this prefix before the rename to Choudo. */
@@ -68,23 +73,38 @@ export function migrateFitTestsV2(v: unknown): FitTestRecord[] {
   return out;
 }
 
-/** A v1 outfit (top and bottom) as v2, with an empty jacket slot. Null when it isn't an outfit. */
-export function migrateOutfitV1(v: unknown): Outfit | null {
+const NO_JACKET = { outerId: null, outerSize: null } as const;
+const NO_DRESS = { onepieceId: null, onepieceSize: null } as const;
+
+/** An older outfit with empty slots added. Null when it isn't an outfit. */
+function withSlots(v: unknown, slots: object): Outfit | null {
   if (!isRecord(v)) return null;
-  const next = { ...v, outerId: null, outerSize: null };
+  const next = { ...v, ...slots };
   return isOutfit(next) ? next : null;
 }
 
-/** v1 saved outfits as v2 (an empty jacket slot each). Entries that don't fit are dropped. */
-export function migrateSavedOutfitsV1(v: unknown): SavedOutfit[] {
+/** Older saved outfits with empty slots added. Entries that don't fit are dropped. */
+function savedWithSlots(v: unknown, slots: object): SavedOutfit[] {
   if (!Array.isArray(v)) return [];
   const out: SavedOutfit[] = [];
   for (const o of v) {
-    const next = [isRecord(o) ? { ...o, outerId: null, outerSize: null } : o];
+    const next = [isRecord(o) ? { ...o, ...slots } : o];
     if (isSavedOutfitList(next)) out.push(...next);
   }
   return out;
 }
+
+/** A v1 outfit (top and bottom) as v3, with empty jacket and dress slots. Null when it isn't an outfit. */
+export const migrateOutfitV1 = (v: unknown): Outfit | null => withSlots(v, { ...NO_JACKET, ...NO_DRESS });
+
+/** v1 saved outfits as v3 (empty jacket and dress slots each). Entries that don't fit are dropped. */
+export const migrateSavedOutfitsV1 = (v: unknown): SavedOutfit[] => savedWithSlots(v, { ...NO_JACKET, ...NO_DRESS });
+
+/** A v2 outfit (top, bottom, jacket) as v3, with an empty dress slot. Null when it isn't an outfit. */
+export const migrateOutfitV2 = (v: unknown): Outfit | null => withSlots(v, NO_DRESS);
+
+/** v2 saved outfits as v3 (an empty dress slot each). Entries that don't fit are dropped. */
+export const migrateSavedOutfitsV2 = (v: unknown): SavedOutfit[] => savedWithSlots(v, NO_DRESS);
 
 function readJson(storage: StorageLike, key: string): unknown {
   const raw = storage.getItem(key);
@@ -133,6 +153,10 @@ export function migrateStorage(given?: StorageLike): void {
     move(storage, LEGACY_KEYS.fitTestsV2, STORAGE_KEYS.fitTests, migrateFitTestsV2);
     move(storage, LEGACY_KEYS.fitTestsV2Old, STORAGE_KEYS.fitTests, migrateFitTestsV2);
     move(storage, LEGACY_KEYS.fitTestsV1, STORAGE_KEYS.fitTests, migrateFitTestsV1);
+    move(storage, LEGACY_KEYS.outfitV2, STORAGE_KEYS.outfit, migrateOutfitV2);
+    move(storage, LEGACY_KEYS.outfitV2Old, STORAGE_KEYS.outfit, migrateOutfitV2);
+    move(storage, LEGACY_KEYS.outfitsV2, STORAGE_KEYS.outfits, migrateSavedOutfitsV2);
+    move(storage, LEGACY_KEYS.outfitsV2Old, STORAGE_KEYS.outfits, migrateSavedOutfitsV2);
     move(storage, LEGACY_KEYS.outfitV1, STORAGE_KEYS.outfit, migrateOutfitV1);
     move(storage, LEGACY_KEYS.outfitV1Old, STORAGE_KEYS.outfit, migrateOutfitV1);
     move(storage, LEGACY_KEYS.outfitsV1, STORAGE_KEYS.outfits, migrateSavedOutfitsV1);

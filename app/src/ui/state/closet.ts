@@ -94,7 +94,7 @@ export function nextOutfitName(outfits: SavedOutfit[]): string {
 
 /** Save an outfit at the front of the list. A blank name falls back to the next "Outfit N". */
 export function saveOutfit(outfits: SavedOutfit[], outfit: Outfit, id: string, name: string, at: string): SavedOutfit[] {
-  const { topId, topSize, bottomId, bottomSize, outerId, outerSize } = outfit;
+  const { topId, topSize, bottomId, bottomSize, outerId, outerSize, onepieceId, onepieceSize } = outfit;
   const saved: SavedOutfit = {
     id,
     name: cleanName(name) ?? nextOutfitName(outfits),
@@ -105,6 +105,8 @@ export function saveOutfit(outfits: SavedOutfit[], outfit: Outfit, id: string, n
     bottomSize,
     outerId,
     outerSize,
+    onepieceId,
+    onepieceSize,
   };
   return [saved, ...outfits];
 }
@@ -115,6 +117,6 @@ export function deleteOutfit(outfits: SavedOutfit[], id: string): SavedOutfit[] 
 
 /** The plain outfit part, for loading into the fitting room. */
 export function outfitOf(saved: SavedOutfit): Outfit {
-  const { topId, topSize, bottomId, bottomSize, outerId, outerSize } = saved;
-  return { topId, topSize, bottomId, bottomSize, outerId, outerSize };
+  const { topId, topSize, bottomId, bottomSize, outerId, outerSize, onepieceId, onepieceSize } = saved;
+  return { topId, topSize, bottomId, bottomSize, outerId, outerSize, onepieceId, onepieceSize };
 }

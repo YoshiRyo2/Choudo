@@ -44,18 +44,30 @@ function layerNotes(body: BodyMeasurements, top: UnderLayer, outer: UnderLayer):
 export interface OutfitFit {
   top?: GarmentFit;
   bottom?: GarmentFit;
-  /** Fitted over the top, when there is one. */
+  /** A dress, in place of the top and the bottom. */
+  onepiece?: GarmentFit;
+  /** Fitted over the top (or the dress), when there is one. */
   outer?: GarmentFit;
   notes: LayerNote[];
 }
 
-/** Every worn garment's fit: the top and bottom on the bare body, the outer layer over the top. */
-export function fitOutfit(body: BodyModel, worn: { top?: UnderLayer; bottom?: UnderLayer; outer?: UnderLayer }): OutfitFit {
+/**
+ * Every worn garment's fit: the top, bottom and dress on the bare body, the outer
+ * layer over the top or the dress. A dress always reaches below a jacket, so its
+ * hem gets no note.
+ */
+export function fitOutfit(
+  body: BodyModel,
+  worn: { top?: UnderLayer; bottom?: UnderLayer; onepiece?: UnderLayer; outer?: UnderLayer },
+): OutfitFit {
   const fit = (l: UnderLayer, under?: UnderLayer) => fitGarment(body, l.garment, l.sizeLabel, under);
+  const under = worn.top ?? worn.onepiece;
+  const notes = under && worn.outer ? layerNotes(body.measurements, under, worn.outer) : [];
   return {
     ...(worn.top ? { top: fit(worn.top) } : {}),
     ...(worn.bottom ? { bottom: fit(worn.bottom) } : {}),
-    ...(worn.outer ? { outer: fit(worn.outer, worn.top) } : {}),
-    notes: worn.top && worn.outer ? layerNotes(body.measurements, worn.top, worn.outer) : [],
+    ...(worn.onepiece ? { onepiece: fit(worn.onepiece) } : {}),
+    ...(worn.outer ? { outer: fit(worn.outer, under) } : {}),
+    notes: worn.top ? notes : notes.filter((n) => n.kind !== 'hem-shows'),
   };
 }

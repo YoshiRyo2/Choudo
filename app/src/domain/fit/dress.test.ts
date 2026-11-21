@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../body';
-import { DRESS, DRESS_SEED } from '../garments/testFixtures';
+import { DRESS, DRESS_SEED, JACKET_SEED } from '../garments/testFixtures';
 import { normalizeGarment, type SeedGarment } from '../garments';
 import { dressHemHeight, dressSeamHeight, hpsToKneeCm } from './dress';
 import { fitGarment } from './fitEngine';
+import { layerAllowanceCm } from './layers';
+import { fitOutfit } from './outfit';
 import { preferenceSpec } from './preference';
 import { recommendSize, sampleFit } from './sampleFit';
 import { hpsHeightCm } from './tops';
@@ -121,5 +123,28 @@ describe('dress zones', () => {
       const total = Object.values(s.verdicts).reduce((a, b) => a + b, 0);
       expect(total).toBeCloseTo(1, 6);
     }
+  });
+});
+
+describe('a jacket over a dress', () => {
+  const model = estimateBody({ heightCm: 163, weightKg: 68, bodyType: 'womens' });
+  const jacket = normalizeGarment({ ...JACKET_SEED, sizing: 'womens' });
+  /** DRESS in XL: its bust well past fitted, so some of that room stays under a jacket. */
+  const dressXL = { garment: DRESS, sizeLabel: 'XL' };
+
+  it('fits the dress bare and the jacket over it', () => {
+    const out = fitOutfit(model, { onepiece: dressXL, outer: { garment: jacket, sizeLabel: 'L' } });
+    expect(out.onepiece).toEqual(fitGarment(model, DRESS, 'XL'));
+    expect(out.outer).toEqual(fitGarment(model, jacket, 'L', dressXL));
+    expect(out.outer!.over).toEqual({ garmentId: DRESS.id, type: 'dress' });
+  });
+
+  it('never notes the dress hem showing below the jacket', () => {
+    const notes = fitOutfit(model, { onepiece: dressXL, outer: { garment: jacket, sizeLabel: 'S' } }).notes;
+    expect(notes.some((n) => n.kind === 'hem-shows')).toBe(false);
+  });
+
+  it('counts the dress’s spare bust room under the jacket', () => {
+    expect(layerAllowanceCm(model.measurements, dressXL).chestCm).toBeGreaterThan(0);
   });
 });
