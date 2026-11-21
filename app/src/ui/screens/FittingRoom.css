@@ -177,3 +177,7 @@
 .fitting__empty p {
   margin: 0;
 }
+
+.fitting__take-off {
+  justify-self: start;
+}

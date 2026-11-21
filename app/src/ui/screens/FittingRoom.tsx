@@ -172,7 +172,7 @@ export function FittingRoom({
       </header>
 
       <section className="fitting__stage" aria-label="Mannequin">
-        <Mannequin body={model.measurements} top={worn(top)} bottom={worn(bottom)} frame="body" />
+        <Mannequin body={model.measurements} top={worn(top)} bottom={worn(bottom)} outer={worn(outer)} frame="body" />
         <button type="button" className="fitting__save" aria-label="Save outfit" title="Save outfit" onClick={() => setSaving('naming')}>
           {/* A bookmark with a plus: keep this outfit. */}
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -236,30 +236,23 @@ export function FittingRoom({
             selectedId={active?.garment.id ?? null}
             onSelect={chooseGarment}
             headerAction={
-              <>
-                {browsing === 'outer' && outer && (
-                  <button type="button" className="fitting__show" onClick={takeOffJacket}>
-                    Take off
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="fitting__show"
-                  aria-label={show.accessibleName}
-                  ref={(el) => {
-                    if (el && refocusShow.current) {
-                      refocus(el, refocusShow.current === 'pointer');
-                      refocusShow.current = null;
-                    }
-                  }}
-                  onClick={(e) => {
-                    refocusShow.current = clickedByPointer(e) ? 'pointer' : 'keyboard';
-                    onCatalogueChange(show.next);
-                  }}
-                >
-                  {show.label}
-                </button>
-              </>
+              <button
+                type="button"
+                className="fitting__show"
+                aria-label={show.accessibleName}
+                ref={(el) => {
+                  if (el && refocusShow.current) {
+                    refocus(el, refocusShow.current === 'pointer');
+                    refocusShow.current = null;
+                  }
+                }}
+                onClick={(e) => {
+                  refocusShow.current = clickedByPointer(e) ? 'pointer' : 'keyboard';
+                  onCatalogueChange(show.next);
+                }}
+              >
+                {show.label}
+              </button>
             }
           />
         ) : (
@@ -269,6 +262,12 @@ export function FittingRoom({
               Show all
             </button>
           </div>
+        )}
+
+        {browsing === 'outer' && outer && (
+          <button type="button" className="button button--outline button--small fitting__take-off" onClick={takeOffJacket}>
+            Take off the jacket
+          </button>
         )}
 
         {active && (

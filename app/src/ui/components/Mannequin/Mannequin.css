@@ -71,6 +71,11 @@
   stroke: color-mix(in srgb, var(--ink) 18%, transparent);
   stroke-width: 0.18;
 }
+.mannequin__placket {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 45%, transparent);
+  stroke-width: 0.35;
+}
 .mannequin__hood-edge {
   stroke: color-mix(in srgb, var(--ink) 40%, transparent);
   stroke-width: 0.3;

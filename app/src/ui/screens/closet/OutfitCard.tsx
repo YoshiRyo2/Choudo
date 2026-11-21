@@ -28,6 +28,7 @@ export function OutfitFigure({ body, outfit }: { body: BodyMeasurements; outfit:
         body={body}
         top={worn(outfit.topId, outfit.topSize)}
         bottom={worn(outfit.bottomId, outfit.bottomSize)}
+        outer={worn(outfit.outerId, outfit.outerSize)}
         showFit={false}
       />
     </div>
