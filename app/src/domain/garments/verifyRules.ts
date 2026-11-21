@@ -29,6 +29,8 @@ export const GIRTH_METHOD_LIMITS: Record<GirthKey, { flatMax: number; circumfere
   hemBand: { flatMax: 75, circumferenceMin: 55 },
   // A skirt's hem sweep, ASSUMED: a pencil skirt is about 90 cm round, so 45 flat; a full skirt runs to 300+.
   hemSweep: { flatMax: 120, circumferenceMin: 70 },
+  // Leggings calf, ASSUMED: a compression calf is about 25–40 cm round, so 12–20 flat.
+  calf: { flatMax: 30, circumferenceMin: 18 },
 };
 
 /**
@@ -164,6 +166,19 @@ export const DRESS_LENGTH_RANGES: Range = { min: 70, max: 160 };
 
 /** Dress long sleeves, by where they're measured from. ASSUMED: as a jacket's. */
 export const DRESS_SLEEVE_RANGES: Partial<Record<SleeveDefinition, Range>> = JACKET_SLEEVE_RANGES;
+
+/**
+ * Plausible leggings measurements, cm, full circumferences. ASSUMED: cut under
+ * the body (Sport-Tek's XS hips 75 cm round, 4XL 123), so lower than pants;
+ * a capri's inseam from about 30 cm to a long legging's 85.
+ */
+export const LEGGINGS_RANGES: Partial<Record<MeasurementKey, Range>> = {
+  waist: { min: 45, max: 140 },
+  hips: { min: 55, max: 150 },
+  thigh: { min: 30, max: 80 },
+  calf: { min: 20, max: 55 },
+  inseam: { min: 30, max: 85 },
+};
 
 /** A skirt chart's hip point, cm below the top of the waistband. ASSUMED (charts print 6–9 in). */
 export const SKIRT_HIP_DROP_RANGE: Range = { min: 5, max: 30 };

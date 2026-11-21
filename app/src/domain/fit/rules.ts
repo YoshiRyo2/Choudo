@@ -311,6 +311,61 @@ export const SHORTS_INSEAM: LandingRule = {
 };
 
 /**
+ * Leggings hips, thigh and calf, as a share of the body (garment − body) / body.
+ * ASSUMED from the design doc's starting point (ideal about −8 %, tight below about
+ * −18 % for compression) and Sport-Tek's charts (LPST880 is cut about 15 % under
+ * its own body chart at the hip). Tune with Test mode.
+ *  - tightBelow −5 % with no stretch; the stretch allowance moves it down per level,
+ *    so −13 % for high stretch and −18 % for compression.
+ *  - fitted up to −2 %: anything under the body still hugs it.
+ *  - relaxed to +3 %: about the body's own size, a loose legging.
+ *  - loose beyond: baggy.
+ */
+export const LEGGINGS_GIRTH: GirthRule = {
+  kind: 'girth',
+  scale: 'fraction',
+  tightBelow: -0.05,
+  fittedMax: -0.02,
+  relaxedMax: 0.03,
+  ideal: -0.08,
+  stretch: { none: 0, some: 0.04, high: 0.08, compression: 0.13 },
+};
+
+/**
+ * A leggings waistband, as a share of the body where it sits. ASSUMED: both
+ * Sport-Tek charts cut the relaxed band at about the body's waist (LPST890 M
+ * 29 in round on a 29–30 in waist): a band holds the leggings up rather than
+ * compressing like the leg. Tight below −4 % with no stretch, −10 % at compression.
+ */
+export const LEGGINGS_WAIST: GirthRule = {
+  kind: 'girth',
+  scale: 'fraction',
+  tightBelow: -0.04,
+  fittedMax: 0.04,
+  relaxedMax: 0.08,
+  ideal: 0,
+  stretch: { none: 0, some: 0.02, high: 0.04, compression: 0.06 },
+};
+
+/**
+ * Where a leggings hem lands, by inseam − the body's crotch-to-ankle-bone
+ * distance (cm; 0 = the hem at the ankle bone). ASSUMED marks: ankle within 5 cm
+ * above it; 7/8 from 16 cm above (brands' 7/8 inseams run about 25 in against
+ * 28–29 in full lengths); capri above that (mid-calf, about 19–21 in). More than
+ * 4 cm past the ankle bone it stacks at the ankle, worth a warning. Descriptive
+ * only: where leggings end is a style, never a fit problem.
+ */
+export const LEGGINGS_LENGTH: LandingRule = {
+  kind: 'landing',
+  marks: [
+    { label: 'capri', atCm: -Infinity },
+    { label: '7/8', atCm: -16 },
+    { label: 'ankle', atCm: -5 },
+    { label: 'stacked', atCm: 4, tone: 'warn' },
+  ],
+};
+
+/**
  * How far below the navel a skirt's waistband sits, by the chart's
  * `definitions.waist` (cm, straight down). ASSUMED, to match the pants rise
  * marks: a natural waist at the navel (where ANSUR II measures the waist; the

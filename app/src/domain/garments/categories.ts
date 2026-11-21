@@ -30,6 +30,7 @@ import {
   JACKET_LENGTH_RANGES,
   JACKET_RANGES,
   JACKET_SLEEVE_RANGES,
+  LEGGINGS_RANGES,
   KNIT_GIRTH_METHOD_LIMITS,
   KNIT_LENGTH_RANGES,
   KNIT_RANGES,
@@ -53,7 +54,7 @@ export interface Relation {
 }
 
 /** The template a garment type is fitted, checked and drawn with. */
-export type TemplateId = 'tee' | 'shirt' | 'knit' | 'pants' | 'shorts' | 'skirt' | 'jacket' | 'dress';
+export type TemplateId = 'tee' | 'shirt' | 'knit' | 'pants' | 'shorts' | 'skirt' | 'jacket' | 'dress' | 'leggings';
 
 export const TYPE_TEMPLATE: Record<GarmentType, TemplateId> = {
   tee: 'tee',
@@ -73,6 +74,7 @@ export const TYPE_TEMPLATE: Record<GarmentType, TemplateId> = {
   jacket: 'jacket',
   coat: 'jacket',
   dress: 'dress',
+  leggings: 'leggings',
 };
 
 export const GARMENT_TYPES = Object.keys(TYPE_TEMPLATE) as GarmentType[];
@@ -128,6 +130,16 @@ const SKIRT_RELATIONS: readonly Relation[] = [
     holds: (m) => m.waist <= m.hips,
     message: (label, a, b) => `waist in ${label} (${a}) is wider than its hips (${b})`,
   },
+];
+
+const LEGGINGS_RELATIONS: readonly Relation[] = [
+  {
+    keys: ['calf', 'thigh'],
+    holds: (m) => m.calf <= m.thigh,
+    message: (label, a, b) => `calf in ${label} (${a}) is wider than its thigh (${b})`,
+  },
+  PANTS_RELATIONS[2]!,
+  SKIRT_RELATIONS[0]!,
 ];
 
 export interface CategorySpec {
@@ -281,6 +293,16 @@ export const CATEGORY_SPECS: Record<TemplateId, CategorySpec> = {
     scoredDefinitions: { length: ['hps', 'center_back'], sleeve: ['shoulder_to_cuff', 'center_back_to_cuff'] },
   },
   dress: DRESS_SPEC,
+  leggings: {
+    template: 'leggings',
+    category: 'bottom',
+    sleeve: 'forbidden',
+    lengthDefinition: 'forbidden',
+    // No product photos yet.
+    landmarks: null,
+    checks: { required: ['waist', 'inseam'], ranges: LEGGINGS_RANGES, labelEase: null, relations: LEGGINGS_RELATIONS },
+    defaultWeight: 'light',
+  },
 };
 
 export const isGarmentType = (type: unknown): type is GarmentType =>

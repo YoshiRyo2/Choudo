@@ -42,6 +42,7 @@ export const ZONE_NAME: Record<ZoneId, string> = {
   hemBand: 'Hem band',
   walkingRoom: 'Walking room',
   shoulder: 'Shoulders',
+  calf: 'Calf',
 };
 
 export const LABEL_TEXT: Record<FitLabel, string> = {
@@ -71,6 +72,7 @@ const ZONE_PLACE: Record<ZoneId, string> = {
   hemBand: 'at the hem band',
   walkingRoom: 'at the hem',
   shoulder: 'at the shoulders',
+  calf: 'at the calf',
 };
 
 /**
@@ -129,6 +131,7 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
     case 'waist':
     case 'hips':
     case 'thigh':
+    case 'calf':
       if (over) return `${d} of room at your ${part}.`;
       if (!under) return `Matches your ${part} exactly.`;
       return z.label === 'tight'
@@ -216,6 +219,7 @@ const TYPE_NOUN: Record<GarmentType, string> = {
   jacket: 'jacket',
   coat: 'coat',
   dress: 'dress',
+  leggings: 'leggings',
 };
 
 /** A fit worked out over a layer says so: "With your hoodie under it". null for a bare-body fit. */

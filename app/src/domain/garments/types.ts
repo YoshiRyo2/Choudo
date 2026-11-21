@@ -32,7 +32,8 @@ export type GarmentType =
   | 'cardigan'
   | 'jacket'
   | 'coat'
-  | 'dress';
+  | 'dress'
+  | 'leggings';
 
 /** Who the size chart is cut for. */
 export type GarmentSizing = 'mens' | 'womens' | 'unisex';
@@ -48,7 +49,7 @@ export type GirthMethod = 'flat' | 'circumference' | 'unknown';
 export const GIRTH_METHODS: readonly GirthMethod[] = ['flat', 'circumference', 'unknown'];
 
 /** The measurements that are girths (doubled when printed flat). */
-export type GirthKey = 'chest' | 'waist' | 'hips' | 'thigh' | 'knee' | 'legOpening' | 'hemBand' | 'hemSweep';
+export type GirthKey = 'chest' | 'waist' | 'hips' | 'thigh' | 'knee' | 'legOpening' | 'hemBand' | 'hemSweep' | 'calf';
 
 /**
  * A girth method per measurement, for charts that mix them (pants often print the
@@ -189,6 +190,8 @@ export interface SizeMeasurements {
   hemBand?: number;
   /** Skirts: the hem's circumference (the "sweep"), what a stride has to fit through. */
   hemSweep?: number;
+  /** Leggings: girth at the fullest calf. */
+  calf?: number;
 }
 
 export type MeasurementKey = keyof SizeMeasurements;
@@ -366,6 +369,11 @@ interface GarmentBase {
   /** Tops only. */
   sleeve?: 'short' | 'long';
   stretch: Stretch;
+  /**
+   * The chart gives no stretch data, so the stretch level is ours (a spandex legging
+   * read as compression). Shown in the readout and the data report.
+   */
+  stretchAssumed?: true;
   /** Fabric bulk, for layering. Leave out for the template's default; read it with weightOf(). */
   weight?: GarmentWeight;
   /** Pants only: the hem opens with a zip, so a narrow opening still gets over the heel. */
