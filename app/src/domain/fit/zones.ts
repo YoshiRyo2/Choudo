@@ -68,9 +68,10 @@ export type ZoneId =
  * knee = a distance down to the knee (where a hem lands against it);
  * hip_point = the body's girth where a skirt chart measures its hips;
  * stride = the girth round both legs mid-stride, at the hem;
+ * shoulder_knee = from the high point of the shoulder down to the knee (a dress hem);
  * over_layer = the body plus what is worn under the garment (layers.ts).
  */
-export type BodyAt = 'band' | 'centre_back' | 'knee' | 'hip_point' | 'stride' | 'over_layer';
+export type BodyAt = 'band' | 'centre_back' | 'knee' | 'hip_point' | 'stride' | 'over_layer' | 'shoulder_knee';
 
 export type Rule = GirthRule | LengthRule | LandingRule;
 
@@ -409,7 +410,7 @@ const DRESS_ZONES: readonly ZoneSpec[] = [
     // Shoulder to knee: a dress this long (from the high point of the shoulder) ends at the
     // middle of the kneecap. A centre-back length is compared less the back-neck drop.
     bodyTarget: (m, g, s) => hpsToKneeCm(m) - ((hpsLengthCm(g, s) ?? s.length ?? 0) - (s.length ?? 0)),
-    bodyAt: 'knee',
+    bodyAt: 'shoulder_knee',
     needs: {
       definition: 'length',
       accepts: ['hps', 'center_back'],

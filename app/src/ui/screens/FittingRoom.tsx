@@ -66,6 +66,8 @@ interface Slot {
   recommended: string | null;
 }
 
+const CAROUSEL_LABEL: Record<GarmentCategory, string> = { top: 'Tops', bottom: 'Bottoms', onepiece: 'Dresses', outer: 'Jackets' };
+
 export function FittingRoom({
   body,
   preference,
@@ -103,18 +105,22 @@ export function FittingRoom({
   // A handful of sizes per garment — cheap enough to recompute every render.
   const top = slot(outfit.topId, outfit.topSize);
   const bottom = slot(outfit.bottomId, outfit.bottomSize);
-  // A jacket is fitted over the top under it (domain/fit/layers.ts); its size cards elsewhere stay bare-body.
-  // Memoized on the top and its size, so screens that memo on it (the fit sheet's hint) don't re-sample every render.
-  const topGarment = top?.garment;
-  const topSize = top?.size;
+  const onepiece = slot(outfit.onepieceId, outfit.onepieceSize);
+  // A jacket is fitted over the top (or the dress) under it (domain/fit/layers.ts); its size cards elsewhere stay bare-body.
+  // Memoized on that garment and its size, so screens that memo on it (the fit sheet's hint) don't re-sample every render.
+  const topGarment = (top ?? onepiece)?.garment;
+  const topSize = (top ?? onepiece)?.size;
   const under = useMemo<UnderLayer | undefined>(
     () => (topGarment && topSize ? { garment: topGarment, sizeLabel: topSize } : undefined),
     [topGarment, topSize],
   );
   const outer = slot(outfit.outerId, outfit.outerSize, under);
 
-  const active = browsing === 'top' ? top : browsing === 'bottom' ? bottom : outer;
-  const activeUnder = browsing === 'outer' ? under : undefined;
+  // The Dress tab shows when there's a dress on show or one is worn (none for a men's body on its own sizing).
+  const hasDresses = onepiece !== null || shown.some((g) => g.category === 'onepiece');
+  const tab: GarmentCategory = browsing === 'onepiece' && !hasDresses ? 'top' : browsing;
+  const active = { top, bottom, outer, onepiece }[tab];
+  const activeUnder = tab === 'outer' ? under : undefined;
   const [showDetails, setShowDetails] = useState(false);
   const activeGarment = active?.garment;
   const activeRecommended = active?.recommended ?? null;
@@ -124,7 +130,7 @@ export function FittingRoom({
     [model, activeGarment, preference, activeRecommended, activeUnder],
   );
   const layerNotes =
-    outer && browsing === 'outer' ? layerNoteLines(model, under, { garment: outer.garment, sizeLabel: outer.size }, units) : [];
+    outer && tab === 'outer' ? layerNoteLines(model, under, { garment: outer.garment, sizeLabel: outer.size }, units) : [];
 
   function chooseGarment(id: string) {
     const garment = findGarment(id);
@@ -135,15 +141,16 @@ export function FittingRoom({
   }
 
   function chooseSize(size: string) {
-    if (browsing === 'top') setSaved({ ...outfit, topSize: size });
-    else if (browsing === 'bottom') setSaved({ ...outfit, bottomSize: size });
+    if (tab === 'top') setSaved({ ...outfit, topSize: size });
+    else if (tab === 'bottom') setSaved({ ...outfit, bottomSize: size });
+    else if (tab === 'onepiece') setSaved({ ...outfit, onepieceSize: size });
     else setSaved({ ...outfit, outerSize: size });
   }
 
   const takeOffJacket = () => setSaved({ ...outfit, outerId: null, outerSize: null });
 
   // The carousel: what's on show in this category, plus the worn garment if the filter hides it.
-  const inCategory = shown.filter((g) => g.category === browsing);
+  const inCategory = shown.filter((g) => g.category === tab);
   const carousel = active && !inCategory.includes(active.garment) ? [active.garment, ...inCategory] : inCategory;
 
   // The Show chip lives in the carousel, which remounts when the scope changes;
@@ -176,7 +183,14 @@ export function FittingRoom({
       </header>
 
       <section className="fitting__stage" aria-label="Mannequin">
-        <Mannequin body={model.measurements} top={worn(top)} bottom={worn(bottom)} outer={worn(outer)} frame="body" />
+        <Mannequin
+          body={model.measurements}
+          top={worn(top)}
+          bottom={worn(bottom)}
+          onepiece={worn(onepiece)}
+          outer={worn(outer)}
+          frame="body"
+        />
         <button type="button" className="fitting__save" aria-label="Save outfit" title="Save outfit" onClick={() => setSaving('naming')}>
           {/* A bookmark with a plus: keep this outfit. */}
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -223,10 +237,11 @@ export function FittingRoom({
         <SegmentedControl
           label="Browsing"
           hideLabel
-          value={browsing}
+          value={tab}
           options={[
             { value: 'top', label: 'Top' },
             { value: 'bottom', label: 'Bottom' },
+            ...(hasDresses ? [{ value: 'onepiece' as const, label: 'Dress' }] : []),
             { value: 'outer', label: 'Jacket' },
           ]}
           onChange={setBrowsing}
@@ -234,8 +249,8 @@ export function FittingRoom({
 
         {carousel.length > 0 ? (
           <GarmentCarousel
-            key={`${browsing}-${catalogue}`}
-            label={browsing === 'top' ? 'Tops' : browsing === 'bottom' ? 'Bottoms' : 'Jackets'}
+            key={`${tab}-${catalogue}`}
+            label={CAROUSEL_LABEL[tab]}
             garments={carousel}
             selectedId={active?.garment.id ?? null}
             onSelect={chooseGarment}
@@ -261,14 +276,14 @@ export function FittingRoom({
           />
         ) : (
           <div className="fitting__empty">
-            <p>{emptyCategoryText(body.bodyType, browsing)}</p>
+            <p>{emptyCategoryText(body.bodyType, tab)}</p>
             <button type="button" className="button button--outline button--small" onClick={() => onCatalogueChange('all')}>
               Show all
             </button>
           </div>
         )}
 
-        {browsing === 'outer' && outer && (
+        {tab === 'outer' && outer && (
           <button type="button" className="button button--outline button--small fitting__take-off" onClick={takeOffJacket}>
             Take off the jacket
           </button>

@@ -93,6 +93,7 @@ export function SwipeCard({ garment, body, fit, recommended, verdict, leaving, i
           body={body}
           top={garment.category === 'top' ? worn : undefined}
           bottom={garment.category === 'bottom' ? worn : undefined}
+          onepiece={garment.category === 'onepiece' ? worn : undefined}
           outer={garment.category === 'outer' ? worn : undefined}
           showFit={false}
         />

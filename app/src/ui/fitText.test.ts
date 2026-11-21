@@ -26,6 +26,7 @@ import {
   layerNoteLines,
   layerNoteText,
   wornOverText,
+  objectiveOnly,
 } from './fitText';
 
 const zone = (patch: Partial<ZoneFit>): ZoneFit => ({
@@ -564,5 +565,52 @@ describe('layerNoteLines', () => {
     expect(lines.length).toBeGreaterThan(0);
     expect(lines.every((l) => l.startsWith('Your hoodie'))).toBe(true);
     expect(layerNoteLines(body, undefined, jacket, 'metric')).toEqual([]);
+  });
+
+  it('never says a dress shows below the jacket', () => {
+    const body = estimateBody({ heightCm: 163, weightKg: 68, bodyType: 'womens' });
+    const dress = { garment: findGarment('landsend-sheath-dress')!, sizeLabel: '10' };
+    const jacket = { garment: findGarment('port-authority-l317')!, sizeLabel: 'S' };
+    expect(layerNoteLines(body, dress, jacket, 'metric').some((l) => l.includes('below'))).toBe(false);
+  });
+});
+
+describe('dress wording', () => {
+  const odds: GarmentOdds = {
+    garmentId: 'd',
+    recommended: '10',
+    samples: 500,
+    sizes: [{ sizeLabel: '10', zones: [], verdicts: { ...Object.fromEntries(VERDICTS.map((v) => [v, 0])), fits: 0.8 } as Record<Verdict, number>, likes: 0.8, meanGirthMissCm: 1 }],
+  };
+  const dress = { category: 'onepiece' as const, fitIntent: 'regular' as const };
+
+  it('words a dress as fitting well, with no personal target (as a bottom)', () => {
+    expect(verdictLine(odds, '10', dress).detail).toBe('80% chance it fits well.');
+    expect(objectiveOnly(dress)).toBe(true);
+    expect(objectiveOnly({ category: 'bottom' })).toBe(true);
+    expect(objectiveOnly({ category: 'top' })).toBe(false);
+    expect(objectiveOnly({ category: 'outer' })).toBe(false);
+    const chest: ZoneOdds = { zone: 'chest', kind: 'girth', labels: {}, personal: { under: 0.1, right: 0.8, over: 0.1, unknown: 0 } };
+    expect(personalOddsText(chest, dress, false)).toBeNull();
+  });
+
+  it('says a jacket goes over your dress', () => {
+    expect(wornOverText({ over: { garmentId: 'x', type: 'dress' } })).toBe('With your dress under it');
+  });
+
+  it('measures a dress hem from the shoulder to the knee', () => {
+    const hem = zone({ zone: 'length', kind: 'landing', label: 'noted', diffCm: 8, landing: 'midi', bodyAt: 'shoulder_knee' });
+    expect(bodyPlaceText(hem)).toBe(' from your shoulder to your knee');
+    expect(describeZone(hem, 'metric')).toBe('Midi: the hem ends 8.0 cm below your knee.');
+  });
+
+  it('calls the chest Bust on a women’s body, Chest on a men’s', () => {
+    const woman = estimateBody({ heightCm: 163, weightKg: 68, bodyType: 'womens' });
+    const man = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
+    const sheath = findGarment('landsend-sheath-dress')!;
+    const chestOf = (b: typeof woman) => fitGarment(b, sheath, '10').zones.find((z) => z.zone === 'chest')!;
+    expect(zoneName('chest', fitGarment(woman, sheath, '10').bodyType)).toBe('Bust');
+    expect(zoneName('chest', fitGarment(man, sheath, '10').bodyType)).toBe('Chest');
+    expect(chestOf(woman).label).not.toBe('unknown');
   });
 });

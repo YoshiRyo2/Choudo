@@ -40,6 +40,9 @@ function GarmentDrawing({ garment }: { garment: Garment }) {
   } else if (garment.category === 'bottom') {
     const wide = garment.type === 'trousers' ? 4 : garment.type === 'joggers' ? -2 : 0;
     d = `M14 6 H46 L${50 + wide} 58 H${34} L30 24 L26 58 H${10 - wide} Z`;
+  } else if (garment.category === 'onepiece') {
+    // A dress: short sleeves, a fitted waist and a skirt to the knee.
+    d = 'M22 4 Q30 10 38 4 L50 8 L56 20 L47 23 L43 18 L41 30 L52 60 H8 L19 30 L17 18 L13 23 L4 20 L10 8 Z';
   } else if (garment.category === 'outer') {
     // A jacket: long sleeves, a stand collar, and a little longer than a top.
     d = 'M21 4 L30 9 L39 4 L51 9 L59 52 L51 54 L45 24 L45 60 H15 L15 24 L9 54 L1 52 L9 9 Z';

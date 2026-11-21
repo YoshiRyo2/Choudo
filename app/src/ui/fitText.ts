@@ -191,6 +191,7 @@ export function bodyPlaceText(z: ZoneFit, over?: WornOver): string {
   if (z.bodyAt === 'band') return ' where the waistband sits';
   if (z.bodyAt === 'centre_back') return z.zone === 'sleeve' ? ' from the centre of your back to the wrist' : ' from the back of your neck';
   if (z.bodyAt === 'knee') return z.zone === 'inseam' ? ' from your crotch to your knee' : ' from the waistband to your knee';
+  if (z.bodyAt === 'shoulder_knee') return ' from your shoulder to your knee';
   if (z.bodyAt === 'stride') return ' round both legs mid-stride, at the hem';
   if (z.bodyAt === 'hip_point') return ' where the chart measures the hips';
   return '';
@@ -239,7 +240,8 @@ export function layerNoteText(note: LayerNote, under: GarmentType, outer: Garmen
 /** Every note on how a jacket sits over the top under it, worded. Empty without a layer. */
 export function layerNoteLines(body: BodyModel, under: UnderLayer | undefined, outer: UnderLayer, units: UnitSystem): string[] {
   if (!under) return [];
-  return fitOutfit(body, { top: under, outer }).notes.map((n) => layerNoteText(n, under.garment.type, outer.garment.type, units));
+  const worn = under.garment.category === 'onepiece' ? { onepiece: under, outer } : { top: under, outer };
+  return fitOutfit(body, worn).notes.map((n) => layerNoteText(n, under.garment.type, outer.garment.type, units));
 }
 
 /** How a landing zone's mark reads on its own: "Mid rise", "Straight leg". */
@@ -452,13 +454,21 @@ const BOTTOM_PHRASE: Record<Exclude<Verdict, 'unknown' | 'as-designed'>, Phrase>
 
 const INTENT_WORD: Record<FitIntent, string> = { slim: 'slim', regular: 'regular', relaxed: 'relaxed', oversized: 'oversized' };
 
+/**
+ * Whether a garment is worded without the user's preference ("fits well"):
+ * bottoms and dresses have no personal target yet (templateZones' `personal`
+ * is null for exactly these). Tops and jackets carry it.
+ */
+export const objectiveOnly = (garment: Pick<Garment, 'category'>): boolean =>
+  garment.category === 'bottom' || garment.category === 'onepiece';
+
 function phraseFor(verdict: Exclude<Verdict, 'unknown'>, garment: Pick<Garment, 'category' | 'fitIntent'>): Phrase {
   if (verdict === 'as-designed') {
     const word = INTENT_WORD[garment.fitIntent];
     return { plain: `${word}, as designed`, might: `Might be ${word}, as designed` };
   }
-  // Tops and jackets carry the user's preference; bottoms don't yet.
-  return (garment.category === 'bottom' ? BOTTOM_PHRASE : TOP_PHRASE)[verdict];
+  // Tops and jackets carry the user's preference; bottoms and dresses don't yet.
+  return (objectiveOnly(garment) ? BOTTOM_PHRASE : TOP_PHRASE)[verdict];
 }
 
 const VERDICT_TONE: Record<Verdict, FitTone> = {
@@ -522,7 +532,7 @@ export function verdictLine(odds: GarmentOdds, sizeLabel: string, garment: Pick<
     return { headline: 'Can’t check this fit', detail: null, tone: 'unknown', verdict: 'unknown' };
   }
   const { size, modal } = likeliest;
-  const liked = garment.category === 'bottom' ? 'fits well' : 'fits how you like';
+  const liked = objectiveOnly(garment) ? 'fits well' : 'fits how you like';
   const detail = `${formatPercent(size.likes)} chance it ${liked}.`;
 
   const ranked = [...odds.sizes].sort((a, b) => b.likes - a.likes);
@@ -596,7 +606,7 @@ const PERSONAL_WORDS: Partial<Record<ZoneId, Record<'under' | 'right' | 'over', 
  */
 export function personalOddsText(z: ZoneOdds, garment: Pick<Garment, 'category'>, hasLengthPreference: boolean): string | null {
   const words = PERSONAL_WORDS[z.zone];
-  if (!words || garment.category === 'bottom' || z.kind === 'landing') return null;
+  if (!words || objectiveOnly(garment) || z.kind === 'landing') return null;
   if (z.zone === 'length' && !hasLengthPreference) return null;
   return (['under', 'right', 'over'] as const)
     .map((k) => [words[k], z.personal[k]] as const)

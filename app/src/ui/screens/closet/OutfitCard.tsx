@@ -15,6 +15,7 @@ export function outfitLine(outfit: Outfit): string {
   const parts = [
     part(worn(outfit.topId, outfit.topSize)),
     part(worn(outfit.bottomId, outfit.bottomSize)),
+    part(worn(outfit.onepieceId, outfit.onepieceSize)),
     part(worn(outfit.outerId, outfit.outerSize)),
   ].filter(Boolean);
   return parts.length > 0 ? parts.join(' · ') : 'These garments are no longer available';
@@ -28,6 +29,7 @@ export function OutfitFigure({ body, outfit }: { body: BodyMeasurements; outfit:
         body={body}
         top={worn(outfit.topId, outfit.topSize)}
         bottom={worn(outfit.bottomId, outfit.bottomSize)}
+        onepiece={worn(outfit.onepieceId, outfit.onepieceSize)}
         outer={worn(outfit.outerId, outfit.outerSize)}
         showFit={false}
       />
