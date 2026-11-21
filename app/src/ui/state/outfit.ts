@@ -34,6 +34,8 @@ export function firstGarment(shown: readonly Garment[], category: GarmentCategor
  * already worn stays on even when `shown` leaves it out. A category with nothing
  * to show is left empty. The jacket slot is never filled by default: only a
  * jacket that is worn stays (in a known size), anything else there is taken off.
+ * The dress slot is the same, and a worn dress takes the place of the top and
+ * the bottom (both come back empty).
  */
 export function resolveOutfit(
   outfit: Outfit,
@@ -48,22 +50,43 @@ export function resolveOutfit(
     const sizeOk = size !== null && garment.sizes.some((s) => s.label === size);
     return { id: garment.id, size: sizeOk ? size : defaultSize(body, garment, preference) };
   };
-  const top = pick('top', outfit.topId, outfit.topSize);
-  const bottom = pick('bottom', outfit.bottomId, outfit.bottomSize);
-  const jacket = outfit.outerId ? findGarment(outfit.outerId) : undefined;
-  const jacketSizeOk = jacket !== undefined && jacket.sizes.some((s) => s.label === outfit.outerSize);
-  const outer =
-    jacket?.category === 'outer'
-      ? { id: jacket.id, size: jacketSizeOk ? outfit.outerSize : defaultSize(body, jacket, preference) }
-      : { id: null, size: null };
-  return { topId: top.id, topSize: top.size, bottomId: bottom.id, bottomSize: bottom.size, outerId: outer.id, outerSize: outer.size };
+  // Slots that are never filled by default: kept only when what's there belongs (in a known size).
+  const keep = (category: GarmentCategory, id: string | null, size: string | null) => {
+    const garment = id ? findGarment(id) : undefined;
+    if (garment?.category !== category) return { id: null, size: null };
+    const sizeOk = garment.sizes.some((s) => s.label === size);
+    return { id: garment.id, size: sizeOk ? size : defaultSize(body, garment, preference) };
+  };
+  const outer = keep('outer', outfit.outerId, outfit.outerSize);
+  const onepiece = keep('onepiece', outfit.onepieceId, outfit.onepieceSize);
+  const dressed = onepiece.id !== null;
+  const top = dressed ? { id: null, size: null } : pick('top', outfit.topId, outfit.topSize);
+  const bottom = dressed ? { id: null, size: null } : pick('bottom', outfit.bottomId, outfit.bottomSize);
+  return {
+    topId: top.id,
+    topSize: top.size,
+    bottomId: bottom.id,
+    bottomSize: bottom.size,
+    outerId: outer.id,
+    outerSize: outer.size,
+    onepieceId: onepiece.id,
+    onepieceSize: onepiece.size,
+  };
 }
 
-/** Put one garment on, in a size, keeping whatever is in the other slot. */
+/**
+ * Put one garment on, in a size, keeping whatever is in the other slots. A dress
+ * takes the place of the top and the bottom; a top or a bottom takes the dress off
+ * (resolveOutfit then fills the other one again).
+ */
 export function wearGarment(outfit: Outfit, garment: Garment, size: string): Outfit {
-  if (garment.category === 'top') return { ...outfit, topId: garment.id, topSize: size };
+  const noDress = { onepieceId: null, onepieceSize: null };
+  if (garment.category === 'onepiece') {
+    return { ...outfit, onepieceId: garment.id, onepieceSize: size, topId: null, topSize: null, bottomId: null, bottomSize: null };
+  }
+  if (garment.category === 'top') return { ...outfit, ...noDress, topId: garment.id, topSize: size };
   if (garment.category === 'outer') return { ...outfit, outerId: garment.id, outerSize: size };
-  return { ...outfit, bottomId: garment.id, bottomSize: size };
+  return { ...outfit, ...noDress, bottomId: garment.id, bottomSize: size };
 }
 
 /** The size we'd show a garment in, and how it fits. `recommended` is false for the middle-size fallback. */

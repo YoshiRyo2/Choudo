@@ -2,6 +2,7 @@
 
 Status: proposal, written 2026-11-19 against `main` @ `0060dee` (after PRs #27–#32). Decisions on the open
 questions are at the end (2026-11-20). PR 1a (registry + rules, commits 1–2 of §6) is built; see "PR 1a as built".
+PRs 1b–5 are built too; each has its own "as built" note in §6.
 Order asked for: pants/jeans → hoodies/sweaters → skirts/shorts → jackets/coats → dresses → bras → leggings
 (the PR plan in §6 puts bras before leggings, as requested for the PRs).
 
@@ -806,6 +807,39 @@ Split into 1a (commits 1–2, Medium, no visible change) and 1b (3–8).
   column `worn_over` last.
 - **Not built**: bicep; a `mid` slot (tee + hoodie + jacket); open jackets; jacket photo landmarks
   and warp; under-layer sleeve clipping beyond draw order (a longer cuff shows, as the note says).
+
+#### PR 5 as built (dresses)
+
+- **Template** `dress` (type `dress`), category **`onepiece`**. Zones, in order: bust (required,
+  `DRESS_GIRTH_RULES` = `TOP_CHEST` −1 / +2 / +4 in for every sizing, assumed: Lands' End's sheath
+  is cut 4 in over its own body chest, which the women's tee bands would call loose), shoulder
+  (optional, `JACKET_SHOULDER`, when charted), sleeve (as knits), waist (optional, when charted;
+  the tee waist band, at the navel, scored only for `definitions.waistSeam` `natural` or `none`;
+  empire, drop and unknown say why), hips (optional, when charted, `BOTTOM_HIPS`, the fullest),
+  length (the skirt marks, against HPS → mid-knee, `bodyAt: 'shoulder_knee'`; a centre-back length
+  is moved by `BACK_NECK_DROP_CM`), walking room (as skirts, at the dress's hem).
+  **Objective only** (`personal: null`), as bottoms: the verdict says "fits well".
+- **Heights** in `domain/fit/dress.ts`: seam = navel for every seam (the drawing's join; scoring
+  is the zone's call), hem = HPS height − HPS length, `hpsToKneeCm`. The HPS height moved into
+  domain as `HPS_BELOW_TOP_RATIO` 0.165 (the mannequin's own, assumed; between ANSUR II acromial
+  and cervicale heights), so no drawing moved. Lengths hang straight (no bust drape).
+- **Outfit v3** (flat, as v2): `onepieceId/onepieceSize`. A dress empties top and bottom; a top or
+  bottom takes it off (the other slot refills by default). A jacket goes over the dress
+  (`fitOutfit({ onepiece, outer })`, the dress as `under`; no hem-shows note). Fitting room tabs
+  Top / Bottom / Dress / Jacket (Dress only when one is on show or worn; it opens there when a
+  dress is worn).
+- **Drawing**: `templates/dress.ts`. `topShape` gained `hemAt` (end the bodice at the seam, at the
+  chart waist's width), `skirtShape`'s outline is `skirtOutline` (band width from the bodice).
+  Order bodice → skirt → arms → sleeves, so the skirt's top edge reads as the seam. `asUnder`
+  carries the side seam down the skirt for a jacket. Snapshots guard every tee/shirt and skirt.
+- **Data**: Lands' End item-dimension PDFs, tier B, Regular sizes: Washable Wool Piped Sheath
+  505999 (bust, waist, hip, CB length, sweep; waistband piping → `natural`; 6% spandex → `some`;
+  pencil, so walking room warns on small sizes) and Pattern Knit Shirred Surplice 441021 (bust,
+  HPS length, sweep; product page not found: stretch `some` from "knit", seam `unknown`).
+- **Test mode**: a dress asks bust, waist (when scored) and length; report rows count as tops and
+  bottoms.
+- **Not built**: sleeveless dresses (`topShape` always draws sleeves); empire waists (need an
+  underbust, PR 6); drop waists; a slit/vent field; dress photo landmarks and warp.
 
 ### PR 2 — hoodies / sweaters (Medium)
 - `knit` zones: chest (personal, tee `INTENT_EASE` plus a knit offset), length (`hps` or `center_back` against

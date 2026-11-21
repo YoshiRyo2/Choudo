@@ -117,6 +117,7 @@ Never guess. An unknown definition means that zone can't be scored, and the fit 
 | `stretch` | `none`, `some`, `high`, `compression` | How much the fabric gives. Elastic waistbands are `high`; `compression` is for leggings. Knits: `{ "default": "none", "hemBand": "high" }` for a rib hem. |
 | `hemBand` (a size measurement) | number | Knits: the rib hem band, relaxed (a girth, so flat or full as `girth` says). Few charts print it; an estimate needs `origin: "estimated"` and a `how`. |
 | `weight` | `light`, `mid`, `heavy` | Optional fabric bulk: what a garment adds under a jacket (`domain/fit/layers.ts`). Leave out for the template's default: tees light, knits and jackets mid. A heavy fleece (9 oz and up) is `heavy`. |
+| `category` for dresses | `onepiece` | Dresses (`type` `dress`) take the place of the top and the bottom. They need a sleeve (`short` or `long`; sleeveless isn't supported yet) and a length definition (`hps` or `center_back`). |
 | `category` for jackets | `outer` | Jackets and coats (`type` `jacket` or `coat`) go in the `outer` slot and need a length definition (`hps` or `center_back`). A shoulder row is scored when printed; a sleeve from the centre back is `center_back_to_cuff`. |
 
 When a chart mixes methods, or a garment stretches in one place only, give the field per
@@ -133,6 +134,7 @@ measurement with a `default` for the rest. Definitions can also go in one
 | `length`, `sleeve` | as `lengthDefinition`, `sleeveDefinition` above | Either spelling works. |
 | `rise` | `front`, `back`, `total`, `unknown` | Pants. "Front rise" means waistband top to crotch seam, at the front. |
 | `thigh` | `at_crotch`, `below_crotch_2_5cm`, `unknown` | Pants. Many charts measure 1 in (2.5 cm) below the crotch. |
+| `waistSeam` | `natural`, `empire`, `drop`, `none`, `unknown` | Dresses only: where the waist seam sits. A sheath shaped by darts, with no seam, is `none`. The waist is scored at `natural` and `none` (at the navel); empire, drop and unknown leave it unscored. Product copy ("seamed waist", "empire waist", "waistband") usually says. |
 | `waist` | `natural`, `mid`, `low`, `unknown` | Skirts: where the band sits. Charts rarely say; the product copy often does ("sits at the natural waist", "mid-rise"). Without it the band sits at the navel. |
 
 Pants measurements: `waist`, `hips`, `inseam`, `rise`, and, when the chart lists them,
@@ -153,6 +155,13 @@ says where it measures the hips ("hip 7 in below the waist"), give
 `"chart": { …, "hipsBelowWaist": 7 }` in the chart's unit; without it the hips are compared
 at the fullest. The sweep is checked against a full stride at the hem ("walking room");
 without one that zone is left unscored.
+
+Dresses (`"type": "dress"`, `"category": "onepiece"`) give `chest` (the bust) and `length`
+(from the high point of the shoulder, or the centre back), and, when the chart lists them,
+`waist`, `hips`, `hemSweep`, `shoulder` and `sleeve`. The waist is compared at the seam
+(`definitions.waistSeam`), the hips at the fullest, the hem lands against the knee (mini to
+maxi, as a skirt's) and the sweep is checked for walking room. A "back only" chest (half the
+back, not the full bust) can't be turned into a girth: leave that dress out.
 
 ## 5. Copy the numbers exactly as printed
 

@@ -129,6 +129,15 @@ export interface TopShape {
   approximate: boolean;
 }
 
+export interface TopShapeOptions {
+  /**
+   * End the body here rather than at the chart's length: a dress's bodice meeting
+   * its skirt at the waist seam. y from the top of the head; half = the half width
+   * there (the chart's waist), or leave it out for the side seam's own width.
+   */
+  hemAt?: { y: number; half?: number };
+}
+
 export function topShape(
   g: BodyGeometry,
   garment: Garment,
@@ -136,7 +145,9 @@ export function topShape(
   bodyChestCm: number,
   /** Needed to place a centre-back sleeve (the engine's conversion); without it the sleeve is drawn to the wrist. */
   bodyM?: Pick<BodyMeasurements, 'shoulderWidthCm' | 'bodyType'>,
+  options: TopShapeOptions = {},
 ): TopShape {
+  const { hemAt } = options;
   const knit = templateOf(garment) === 'knit';
   const approximate = !garment.girthVerified || size.chest === undefined;
   const chestCirc = approximate ? bodyChestCm * 1.08 : size.chest!;
@@ -241,9 +252,9 @@ export function topShape(
   // ----- body outline (right side, top to bottom) -----
   // A centre-back length is hung from the high shoulder point, as the fit engine compares it.
   const lengthCm = hpsLengthCm(garment, size) ?? size.length ?? g.y.hip - g.y.hps;
-  const hemY = g.y.hps + lengthCm * DRAPE;
-  // The hem curves up a little at the side seams; a rib band runs straight.
-  const hemLift = knit ? 0 : 0.8 + room * 0.01;
+  const hemY = hemAt ? hemAt.y : g.y.hps + lengthCm * DRAPE;
+  // The hem curves up a little at the side seams; a rib band (or a seam) runs straight.
+  const hemLift = knit || hemAt ? 0 : 0.8 + room * 0.01;
   const bandTopY = hemY - RIB_HEM_CM;
   const sideAt = (y: number, extra: number) => Math.max(sideHalf + extra, bodyHalfAt(g, y) + 0.6);
   const waistHalf =
@@ -263,7 +274,7 @@ export function topShape(
   const bandHalf = Math.min(Math.max(chartBand ?? sideHalf, hug), Math.max(sideHalf, hug));
   const hem: Pt = knit
     ? { x: bandHalf, y: hemY, corner: true }
-    : { x: sideAt(hemY, flare) + 0.2, y: hemY - hemLift, corner: true };
+    : { x: hemAt?.half ?? sideAt(hemY, flare) + 0.2, y: hemY - hemLift, corner: true };
   const right: Pt[] = [
     collar,
     // Just outside the body's shoulder curve, so the shoulder line never dips into it.

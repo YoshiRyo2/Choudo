@@ -129,3 +129,18 @@ describe('jacket rows', () => {
     expect(r.agreement.length.total).toBe(1);
   });
 });
+
+describe('a dress row', () => {
+  it('counts for the chest and the waist', () => {
+    const dress = row({
+      category: 'onepiece',
+      p_waist_too_tight: '0.1',
+      p_waist_just_right: '0.8',
+      p_waist_too_loose: '0.1',
+      actual_waist: 'just-right',
+    });
+    const r = buildFitTestReport([dress]);
+    expect(r.agreement.chest.total).toBe(1);
+    expect(r.agreement.waist).toMatchObject({ total: 1, agree: 1 });
+  });
+});

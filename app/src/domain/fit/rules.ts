@@ -134,6 +134,16 @@ export const TOP_GIRTH_RULES: Record<GarmentSizing, { chest: GirthRule; waist: G
 };
 
 /**
+ * A dress's bust and waist (a fitted bodice), for every garment sizing. ASSUMED:
+ * the top chest bands, −1 / +2 / +4 in, not the women's tee bands. Lands' End's
+ * sheath dress is cut 4 in over the body chest its own chart gives for each size;
+ * the women's tee bands (relaxed to +3 in) would call every size loose on the body
+ * it's made for. A woven bodice needs more wearing ease than a knit tee.
+ * Tune with Test mode.
+ */
+export const DRESS_GIRTH_RULES: GirthRule = TOP_CHEST;
+
+/**
  * How much roomier a knit (hoodie, sweatshirt) is cut than a tee, chest ease in
  * cm. ASSUMED from one brand's grading, not from fit tests: Gildan's 18500
  * hoodie is 2 in wider laid flat than its 5000 tee in every size (S 20 vs 18 in),

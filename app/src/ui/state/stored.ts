@@ -11,12 +11,12 @@ export const STORAGE_KEYS = {
   /** v2: `sizing` became `bodyType`, plus an optional bra size (migrate.ts moves v1 over). */
   body: 'choudo.body.v2',
   units: 'choudo.units.v1',
-  /** v2: a jacket slot (outerId, outerSize); migrate.ts moves v1 over. */
-  outfit: 'choudo.outfit.v2',
+  /** v3: a dress slot (onepieceId, onepieceSize); v2 added the jacket slot. migrate.ts moves older ones over. */
+  outfit: 'choudo.outfit.v3',
   swipes: 'choudo.swipes.v1',
   folders: 'choudo.folders.v1',
-  /** v2: each saved outfit has a jacket slot too. */
-  outfits: 'choudo.outfits.v2',
+  /** v3: each saved outfit has a dress slot too (v2: a jacket slot). */
+  outfits: 'choudo.outfits.v3',
   /** A tee the user owns and likes the fit of (or null). */
   anchor: 'choudo.anchor.v1',
   /** The answer to "How do you like tees to fit?" (or null). */
@@ -40,6 +40,9 @@ export interface Outfit {
   /** A jacket or coat over the top, or null. */
   outerId: string | null;
   outerSize: string | null;
+  /** A dress, in place of the top and the bottom (both null while it's worn), or null. */
+  onepieceId: string | null;
+  onepieceSize: string | null;
 }
 
 /** One like or pass in Discover. `at` is an ISO timestamp. */
@@ -80,7 +83,7 @@ export const CHEST_ANSWERS: readonly ChestAnswer[] = ['too-tight', 'just-right',
 export const LENGTH_ANSWERS: readonly LengthAnswer[] = ['too-short', 'just-right', 'too-long'];
 
 /** What a Test-mode result is about: a top, a bottom or an outer layer (a jacket). */
-export type FitTestCategory = 'top' | 'bottom' | 'outer';
+export type FitTestCategory = 'top' | 'bottom' | 'outer' | 'onepiece';
 
 /** Chance of under / right / over for one zone. */
 export interface ZoneChances {
@@ -156,7 +159,16 @@ export interface FitTestRecord {
   prediction: FitTestPrediction;
 }
 
-export const EMPTY_OUTFIT: Outfit = { topId: null, topSize: null, bottomId: null, bottomSize: null, outerId: null, outerSize: null };
+export const EMPTY_OUTFIT: Outfit = {
+  topId: null,
+  topSize: null,
+  bottomId: null,
+  bottomSize: null,
+  outerId: null,
+  outerSize: null,
+  onepieceId: null,
+  onepieceSize: null,
+};
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 const isStringOrNull = (v: unknown) => v === null || typeof v === 'string';
@@ -185,7 +197,9 @@ export function isOutfit(v: unknown): v is Outfit {
     isStringOrNull(v.bottomId) &&
     isStringOrNull(v.bottomSize) &&
     isStringOrNull(v.outerId) &&
-    isStringOrNull(v.outerSize)
+    isStringOrNull(v.outerSize) &&
+    isStringOrNull(v.onepieceId) &&
+    isStringOrNull(v.onepieceSize)
   );
 }
 
@@ -245,8 +259,8 @@ function isZoneChances(v: unknown): v is ZoneChances {
   return isRecord(v) && isNumber(v.under) && isNumber(v.right) && isNumber(v.over);
 }
 
-// Widened with jackets ('outer'); every older record still reads, so the key stays v3.
-const isCategory = (v: unknown): v is FitTestCategory => v === 'top' || v === 'bottom' || v === 'outer';
+// Widened with jackets ('outer') and dresses ('onepiece'); every older record still reads, so the key stays v3.
+const isCategory = (v: unknown): v is FitTestCategory => v === 'top' || v === 'bottom' || v === 'outer' || v === 'onepiece';
 const optional = <T>(guard: (x: unknown) => x is T) => (x: unknown) => x === undefined || guard(x);
 const isGirthAnswer = (v: unknown): v is GirthAnswer => (CHEST_ANSWERS as readonly unknown[]).includes(v);
 

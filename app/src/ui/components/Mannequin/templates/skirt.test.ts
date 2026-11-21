@@ -53,3 +53,17 @@ describe('skirtShape', () => {
     expect(shape.hemY).toBeCloseTo(g.y.floor - 0.5);
   });
 });
+
+/** Every skirt size on two bodies, before skirtOutline was factored out for dresses (PR 5). */
+describe('skirt drawings stay as they were', () => {
+  for (const input of [
+    { heightCm: 163, weightKg: 68, bodyType: 'womens' as const },
+    { heightCm: 176, weightKg: 85, bodyType: 'mens' as const },
+  ]) {
+    const bm = estimateBody(input).measurements;
+    const bg = bodyGeometry(bm);
+    it(`landsend-a-line-skirt on ${bm.bodyType} ${bm.heightCm}/${bm.weightKg}`, () => {
+      expect(JSON.stringify(skirt.sizes.map((s) => skirtShape(bg, bm, skirt, s.measurements)))).toMatchSnapshot();
+    });
+  }
+});

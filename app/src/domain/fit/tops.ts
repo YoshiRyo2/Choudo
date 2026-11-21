@@ -16,6 +16,21 @@ import { BACK_NECK_DROP_CM } from './rules';
 
 type DefinitionHolder = Pick<Garment, 'lengthDefinition' | 'sleeveDefinition' | 'definitions'>;
 
+/**
+ * How far the high point of the shoulder (by the neck) sits below the top of the
+ * head, as a share of stature. ASSUMED: the mannequin's own HPS, moved here so a
+ * dress's hem is placed and drawn from the same number. It puts the HPS at 0.835
+ * of stature above the floor, between ANSUR II's acromial (≈ 0.82) and cervicale
+ * (≈ 0.86) heights; HPS itself isn't in the survey.
+ */
+export const HPS_BELOW_TOP_RATIO = 0.165;
+
+/** Top of the head down to the high point of the shoulder (cm). */
+export const hpsBelowTopCm = (m: Pick<BodyMeasurements, 'heightCm'>): number => HPS_BELOW_TOP_RATIO * m.heightCm;
+
+/** Floor to the high point of the shoulder (cm). */
+export const hpsHeightCm = (m: Pick<BodyMeasurements, 'heightCm'>): number => m.heightCm - hpsBelowTopCm(m);
+
 /** The body length a top's printed length is compared with, or null when the definition can't be compared. */
 export function lengthTargetCm(m: Pick<BodyMeasurements, 'torsoLengthCm'>, definition: LengthDefinition | undefined): number | null {
   if (definition === 'hps') return m.torsoLengthCm;

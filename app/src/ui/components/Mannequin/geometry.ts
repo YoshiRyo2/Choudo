@@ -9,6 +9,7 @@
  */
 
 import type { BodyMeasurements, BodyType } from '../../../domain/body';
+import { hpsBelowTopCm } from '../../../domain/fit/tops';
 
 export interface Pt {
   x: number;
@@ -159,7 +160,8 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
   const y = {
     chin: 0.125 * H,
     neckBase: 0.155 * H,
-    hps: 0.165 * H,
+    // The engine's HPS height (domain/fit/tops.ts), where dress hems hang from.
+    hps: hpsBelowTopCm(m),
     shoulder: 0.19 * H,
     armpit: 0.235 * H,
     chest: shape.chestY * H,

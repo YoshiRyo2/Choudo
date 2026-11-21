@@ -22,7 +22,10 @@ export const CALIBRATION_BINS = 5;
 
 const GIRTH_ANSWERS = ['too-tight', 'just-right', 'too-loose'] as const;
 
-/** Each zone the testers answer, and which rows ask it: tops, bottoms (the category column; blank = top) or both. */
+/**
+ * Each zone the testers answer, and which rows ask it: tops, bottoms (the category
+ * column; blank = top) or both. A dress row (onepiece) is asked as both a top and a bottom.
+ */
 const ZONES = {
   chest: {
     for: 'top',
@@ -59,8 +62,9 @@ const REPORT_ZONES = Object.keys(ZONES) as (keyof typeof ZONES)[];
 /** Whether this row was asked about this zone: by category, and not when the zone was never asked (all blank). */
 function asks(row: Row, zone: keyof typeof ZONES): boolean {
   const spec = ZONES[zone];
-  const category = row.category.trim() === 'bottom' ? 'bottom' : 'top';
-  if (spec.for !== 'both' && spec.for !== category) return false;
+  const category = row.category.trim();
+  const as = category === 'onepiece' ? ['top', 'bottom'] : [category === 'bottom' ? 'bottom' : 'top'];
+  if (spec.for !== 'both' && !as.includes(spec.for)) return false;
   return row[spec.actual].trim() !== '' || spec.p.some((c) => row[c].trim() !== '');
 }
 

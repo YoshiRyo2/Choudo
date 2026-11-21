@@ -18,6 +18,7 @@ import {
   verdictLine,
   zoneLabelText,
   zoneName,
+  objectiveOnly,
 } from '../fitText';
 import { GarmentBadge } from './GarmentBadge';
 import type { UnitSystem } from '../state/stored';
@@ -65,7 +66,7 @@ export function FitReadout({
   const verdict = verdictLine(odds, fit.sizeLabel, garment);
   const sizeOdds = odds.sizes.find((s) => s.sizeLabel === fit.sizeLabel);
   const hasLengthPreference = preference.anchor?.lengthCm != null;
-  const prefNote = garment.category !== 'bottom' && verdict.verdict !== 'unknown' ? preferenceNote(preference) : null;
+  const prefNote = !objectiveOnly(garment) && verdict.verdict !== 'unknown' ? preferenceNote(preference) : null;
   const over = wornOverText(fit);
   return (
     <section className="readout" aria-labelledby={showSummary ? 'readout-title' : undefined}>
@@ -151,7 +152,7 @@ export function FitReadout({
       </ul>
 
       {/* With an anchor tee, a top's chest estimate cancels out, so measuring wouldn't help. */}
-      {!hint && summary.usesEstimates && !(garment.category !== 'bottom' && preference.source === 'anchor') && (
+      {!hint && summary.usesEstimates && !(!objectiveOnly(garment) && preference.source === 'anchor') && (
         <p className="readout__estimates">
           Some of your numbers are estimates from height and weight.{' '}
           <button type="button" className="link-button" onClick={onEditBody}>

@@ -91,3 +91,31 @@ export const JACKET_SEED: SeedGarment = {
 };
 
 export const JACKET: Garment = normalizeGarment(JACKET_SEED);
+
+/**
+ * A women's dress on the dress template (onepiece slot): bust, waist at a natural
+ * seam, hips, length from the high point of the shoulder, hem sweep, short
+ * sleeves. In cm, round numbers, not a real chart.
+ */
+export const DRESS_SEED: SeedGarment = {
+  id: 'test-dress',
+  brand: 'Test',
+  name: 'Test dress',
+  category: 'onepiece',
+  type: 'dress',
+  sizing: 'womens',
+  color: '#2f4a6b',
+  sleeve: 'short',
+  stretch: 'none',
+  fitIntent: 'regular',
+  chart: { unit: 'cm', girth: 'circumference', definitions: { length: 'hps', sleeve: 'top_of_sleeve', waistSeam: 'natural' } },
+  source: { placeholder: false, tier: 'B', url: 'https://example.com/dress', capturedOn: '2026-11-20' },
+  sizes: [
+    { label: 'S', measurements: { chest: 88, waist: 72, hips: 96, length: 97, sleeve: 12, hemSweep: 150 } },
+    { label: 'M', measurements: { chest: 94, waist: 78, hips: 102, length: 99, sleeve: 12.5, hemSweep: 156 } },
+    { label: 'L', measurements: { chest: 100, waist: 84, hips: 108, length: 101, sleeve: 13, hemSweep: 162 } },
+    { label: 'XL', measurements: { chest: 108, waist: 92, hips: 116, length: 103, sleeve: 13.5, hemSweep: 170 } },
+  ],
+};
+
+export const DRESS: Garment = normalizeGarment(DRESS_SEED);

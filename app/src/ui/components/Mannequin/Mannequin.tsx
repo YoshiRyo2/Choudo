@@ -4,6 +4,7 @@ import type { GarmentFit, ZoneFit } from '../../../domain/fit';
 import { canWarp, pantsLandmarks, templateOf, topLandmarks, type Garment, type GarmentImage } from '../../../domain/garments';
 import { bodyGeometry, type Marker } from './geometry';
 import { affineToSvg, warpPantsPieces, warpPieces, type WarpPiece, type WarpRegion } from './photoWarp';
+import { dressShape } from './templates/dress';
 import { jacketShape } from './templates/jacket';
 import { pantsShape } from './templates/pants';
 import { skirtShape } from './templates/skirt';
@@ -21,7 +22,9 @@ interface MannequinProps {
   body: BodyMeasurements;
   top?: WornGarment;
   bottom?: WornGarment;
-  /** A jacket or coat, drawn over the top (hanging off it when there is one). */
+  /** A dress, in place of the top and the bottom (pass neither with it). */
+  onepiece?: WornGarment;
+  /** A jacket or coat, drawn over the top or the dress (hanging off it when there is one). */
   outer?: WornGarment;
   /** Show coloured fit pins on each zone. */
   showFit?: boolean;
@@ -41,27 +44,37 @@ interface MannequinProps {
   className?: string;
 }
 
+/** A dress's zones on its skirt: pinned on the left, as a bottom's are. */
+const DRESS_LOWER_ZONES: readonly string[] = ['waist', 'hips', 'length', 'walkingRoom'];
+
 /** Fixed canvas so taller bodies are drawn taller. Units are cm. */
 const VIEW = { left: -62, right: 62, top: -6 };
 
 /**
- * A 2D dress-form mannequin scaled to the body, optionally wearing a top, a
- * bottom and a jacket over the top. Swap this component out to move to a 3D
- * renderer later.
+ * A 2D dress-form mannequin scaled to the body, optionally wearing a top and a
+ * bottom (or a dress), and a jacket over them. Swap this component out to move
+ * to a 3D renderer later.
  */
-export function Mannequin({ body, top, bottom, outer, showFit = true, photos = 'licensed', frame = 'canvas', className }: MannequinProps) {
+export function Mannequin({ body, top: shirt, bottom, onepiece, outer, showFit = true, photos = 'licensed', frame = 'canvas', className }: MannequinProps) {
   const g = useMemo(() => bodyGeometry(body), [body]);
 
-  const topSize = top?.garment.sizes.find((s) => s.label === top.sizeLabel);
+  // A dress is drawn as its bodice (in the top's place) and a skirt from the seam (templates/dress.ts).
+  const dressSize = onepiece?.garment.sizes.find((s) => s.label === onepiece.sizeLabel);
+  const dressDraw = onepiece && dressSize ? dressShape(g, body, onepiece.garment, dressSize.measurements) : null;
+  const top = shirt ?? (dressDraw ? onepiece : undefined);
+  const topSize = shirt?.garment.sizes.find((s) => s.label === shirt.sizeLabel);
   const bottomSize = bottom?.garment.sizes.find((s) => s.label === bottom.sizeLabel);
-  const topDraw = top && topSize ? topShape(g, top.garment, topSize.measurements, body.chestCm, body) : null;
+  const topDraw = shirt && topSize ? topShape(g, shirt.garment, topSize.measurements, body.chestCm, body) : (dressDraw?.bodice ?? null);
   // Skirts have their own template; pants and shorts share the pants one.
   const isSkirt = bottom ? templateOf(bottom.garment) === 'skirt' : false;
   const skirtDraw = bottom && bottomSize && isSkirt ? skirtShape(g, body, bottom.garment, bottomSize.measurements) : null;
   const bottomDraw = bottom && bottomSize && !isSkirt ? pantsShape(g, body, bottom.garment, bottomSize.measurements) : null;
+  // A dress is dashed as a whole when any of its widths is a fallback.
+  const topApproximate = dressDraw?.approximate ?? topDraw?.approximate ?? false;
   // A jacket hangs off the top drawn under it (templates/jacket.ts), with the room the fit gives that top.
   const outerSize = outer?.garment.sizes.find((s) => s.label === outer.sizeLabel);
-  const underTop = topDraw && top ? { shape: topDraw, layer: { garment: top.garment, sizeLabel: top.sizeLabel } } : null;
+  const underTop =
+    topDraw && top ? { shape: dressDraw?.asUnder ?? topDraw, layer: { garment: top.garment, sizeLabel: top.sizeLabel } } : null;
   const outerDraw = outer && outerSize ? jacketShape(g, body, outer.garment, outerSize.measurements, underTop) : null;
 
   // A product photo, when the garment has one, its licence allows warping and the
@@ -107,10 +120,18 @@ export function Mannequin({ body, top, bottom, outer, showFit = true, photos = '
   const pins: { key: string; at: Marker; side: 1 | -1; zone: ZoneFit }[] = [];
   if (showFit) {
     // Under a jacket the top's pins would sit inside it: the jacket's take the right edge instead.
-    const torso = outerDraw && outer ? { key: 'outer', draw: outerDraw, fit: outer.fit } : { key: 'top', draw: topDraw, fit: top?.fit };
+    const torso = outerDraw && outer ? { key: 'outer', draw: outerDraw, fit: outer.fit } : { key: 'top', draw: topDraw, fit: shirt?.fit };
     for (const z of torso.fit?.zones ?? []) {
       const at = torso.draw?.markers[z.zone as keyof NonNullable<typeof torso.draw>['markers']];
       if (at) pins.push({ key: `${torso.key}-${z.zone}`, at, side: 1, zone: z });
+    }
+    // A dress: its top half's pins on the right (unless a jacket's are there), its skirt's on the left.
+    if (dressDraw && onepiece) {
+      for (const z of onepiece.fit?.zones ?? []) {
+        const lower = DRESS_LOWER_ZONES.includes(z.zone);
+        const at = dressDraw.markers[z.zone as keyof typeof dressDraw.markers];
+        if (at && (lower || !outerDraw)) pins.push({ key: `dress-${z.zone}`, at, side: lower ? -1 : 1, zone: z });
+      }
     }
     for (const z of bottom?.fit?.zones ?? []) {
       const at = skirtDraw
@@ -142,7 +163,7 @@ export function Mannequin({ body, top, bottom, outer, showFit = true, photos = '
 
       {/* A hood lying down sits behind the neck: drawn first, so the neck and head hide its middle. */}
       {topDraw?.hood && top && (
-        <g className={garmentClass(topDraw.approximate, top.garment)} style={{ fill: top.garment.color }}>
+        <g className={garmentClass(topApproximate, top.garment)} style={{ fill: top.garment.color }}>
           <path d={topDraw.hood.back} />
         </g>
       )}
@@ -178,7 +199,7 @@ export function Mannequin({ body, top, bottom, outer, showFit = true, photos = '
       )}
       {topDraw && top && (
         <g>
-          <g className={garmentClass(topDraw.approximate, top.garment)} style={{ fill: top.garment.color }}>
+          <g className={garmentClass(topApproximate, top.garment)} style={{ fill: top.garment.color }}>
             <path d={topDraw.body} />
           </g>
           {texture('body', topDraw.body)}
@@ -190,6 +211,8 @@ export function Mannequin({ body, top, bottom, outer, showFit = true, photos = '
               <path key={`strain-${i}`} className="mannequin__strain" d={d} />
             ))}
           </g>
+          {/* A dress's skirt over the bodice's lower edge, which reads as the waist seam; the arms hang over both. */}
+          {dressDraw && <path className={garmentClass(dressDraw.approximate, top.garment)} d={dressDraw.skirt} style={{ fill: top.garment.color }} />}
           {/* Relaxed arms hang in front of the shirt's sides; the sleeves then cover their tops.
               Under a jacket only the outermost layer draws the arms. */}
           {!outerDraw && (
@@ -198,7 +221,7 @@ export function Mannequin({ body, top, bottom, outer, showFit = true, photos = '
               <path className="mannequin__arm" d={topDraw.arms[1]} />
             </g>
           )}
-          <g className={garmentClass(topDraw.approximate, top.garment)} style={{ fill: top.garment.color }}>
+          <g className={garmentClass(topApproximate, top.garment)} style={{ fill: top.garment.color }}>
             <path d={topDraw.sleeves[0]} />
             <path d={topDraw.sleeves[1]} />
           </g>
