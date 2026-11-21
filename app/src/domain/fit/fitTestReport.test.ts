@@ -121,3 +121,11 @@ describe('bottoms in the report', () => {
     expect(text).toMatch(/thigh +0%/);
   });
 });
+
+describe('jacket rows', () => {
+  it('count towards the chest and length, as tops do', () => {
+    const r = buildFitTestReport([row({ category: 'outer', worn_over: 'gildan-18500 L' })]);
+    expect(r.agreement.chest.total).toBe(1);
+    expect(r.agreement.length.total).toBe(1);
+  });
+});

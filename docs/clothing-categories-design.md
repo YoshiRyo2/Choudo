@@ -776,6 +776,37 @@ Split into 1a (commits 1–2, Medium, no visible change) and 1b (3–8).
   waists — a relaxed elastic waist reads "fitted" well under the body on stretch alone (Easy Shorts M
   on a men's 176/85: −12.7 cm), so smaller sizes look right more often than they should.
 
+#### PR 4 as built (jackets / coats + layering)
+
+- **Template** `jacket` (jacket, coat), category **`outer`** (a third outfit slot, not §2.1's full
+  `Slot` list). The layer under a jacket is whatever is in `top`; no `mid` slot yet.
+- **Zones**: chest and a charted waist (`layered`), shoulder (optional, girth-kind `JACKET_SHOULDER`
+  ±1.5 cm fitted, so a narrow shoulder reads "too tight" with no new verdict), sleeve (as knits),
+  length a landing against the hip line (`JACKET_LENGTH`: cropped / hip / thigh / knee-length / calf;
+  "knee-length", not "knee", because landing wording is keyed by mark and skirts use "knee").
+  `JACKET_EASE_OFFSET_CM` 13 (J317: 17.8 cm over its size chart's chest vs a regular tee's +5).
+  **No bicep zone**: no chart we have prints one and the body has no bicep key (needs the ANSUR fit).
+- **Layering** as §3.1 (`LAYER_BULK_CM`, `UNDER_EASE_KEPT`, the jacket assumes light). Built as
+  `fitGarment(body, g, size, under)` rather than an `effectiveBody()` BodyModel: layered zones add
+  `layerAllowanceCm` and say `bodyAt: 'over_layer'`; the fit carries `over`. `fitOutfit` and its
+  notes live in `domain/fit/outfit.ts` (layers.ts is imported by the engine, so not there). The
+  "bunches" note fires on any excess; hem and cuff notes need more than 1 cm.
+- **Sampler**: `SampleOptions.under`; the layer is worked out from each sample's body draw, the top's
+  offsets come from their own streams after every existing draw, so bare odds and every golden line
+  are unchanged (two jackets add 14 lines).
+- **Storage**: §3.2's outfit v2, kept flat (`outerId`, `outerSize` beside the top and bottom) rather
+  than a `{ [slot]: … }` map; `outfits` v2 the same. The jacket slot is never filled by default.
+- **Drawing**: §3.2's envelope as a `BodyGeometry` (`envelopeGeometry`), so `topShape` is unchanged
+  and hangs the jacket off the top's drawn outline + bulk / 2π. Closed only (placket, stand collar).
+  The Mannequin takes `outer` as a third prop rather than `worn[]`.
+- **Data**: Port Authority J317 (men's) and L317 (women's) soft shells from SanMar's spec sheets
+  (tier B, chest flat, length HPS at the back, sleeve centre back; no shoulder). L317's 3XL→4XL
+  length step is uneven as printed (one grading warning). Both grade charted.
+- **Test mode**: a jacket asks chest and sleeve (its length only lands), records `wornOver`, CSV
+  column `worn_over` last.
+- **Not built**: bicep; a `mid` slot (tee + hoodie + jacket); open jackets; jacket photo landmarks
+  and warp; under-layer sleeve clipping beyond draw order (a longer cuff shows, as the note says).
+
 ### PR 2 — hoodies / sweaters (Medium)
 - `knit` zones: chest (personal, tee `INTENT_EASE` plus a knit offset), length (`hps` or `center_back` against
   `cervicaleHeightCm`), sleeve (`shoulder_to_cuff` or `center_back_to_cuff` against `sleevelengthspinewrist`),

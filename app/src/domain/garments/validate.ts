@@ -36,13 +36,14 @@ export function validateGarment(g: SeedGarment): string[] {
   // Everything below reads the type's template, so an unknown type stops here.
   if (!isGarmentType(g.type)) return [`type must be one of ${GARMENT_TYPES.join(', ')}`];
   const spec = categorySpec(g);
-  if (g.category !== spec.category) problems.push(`a ${g.type} is a ${spec.category}, not a ${g.category}`);
+  if (g.category !== spec.category) problems.push(`a ${g.type} is ${spec.category === 'outer' ? 'an' : 'a'} ${spec.category}, not a ${g.category}`);
   if (!g.brand || !g.name) problems.push('missing brand or name');
   if (!/^#[0-9a-f]{6}$/i.test(g.color)) problems.push('color must be #rrggbb');
   if (!GARMENT_SIZINGS.includes(g.sizing)) problems.push('sizing must be "mens", "womens" or "unisex"');
   if (spec.sleeve === 'required' && !g.sleeve) problems.push('tops need a sleeve type');
   if (spec.sleeve === 'forbidden' && g.sleeve) problems.push("bottoms can't have a sleeve");
   if (spec.category === 'top' && g.ankleZip !== undefined) problems.push("tops can't have an ankle zip");
+  if (spec.category === 'outer' && g.ankleZip !== undefined) problems.push(`a ${g.type} can't have an ankle zip`);
   problems.push(...validateStretch(g.stretch));
   if (g.weight !== undefined && !GARMENT_WEIGHTS.includes(g.weight)) {
     problems.push(`weight must be one of ${GARMENT_WEIGHTS.join(', ')}`);
@@ -231,7 +232,7 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' |
   const pants = pantsLandmarks(image);
   if (spec.template === 'pants' && pants) problems.push(...pantsOrder(pants));
   const top = topLandmarks(image);
-  if (spec.category === 'top' && top) problems.push(...topOrder(top));
+  if (spec.category !== 'bottom' && top) problems.push(...topOrder(top));
   const hood = lm?.hoodTop;
   if (hood && top && optional.includes('hoodTop') && !(hood.y < Math.min(top.collarLeft.y, top.collarRight.y))) {
     problems.push('hoodTop must sit above the collar points');

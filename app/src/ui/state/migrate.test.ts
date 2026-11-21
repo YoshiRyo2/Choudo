@@ -5,6 +5,8 @@ import {
   migrateBodyV1,
   migrateFitTestsV1,
   migrateFitTestsV2,
+  migrateOutfitV1,
+  migrateSavedOutfitsV1,
   migrateStorage,
   oldNameOf,
   type StorageLike,
@@ -194,5 +196,32 @@ describe('migrateFitTestsV2', () => {
     migrateStorage(s);
     expect(JSON.parse(s.data.get(STORAGE_KEYS.fitTests)!)).toHaveLength(1);
     expect(s.data.has('nimbus.fitTests.v2')).toBe(false);
+  });
+});
+
+describe('outfits v1 -> v2 (a jacket slot)', () => {
+  const v1 = { topId: 'gildan-5000', topSize: 'M', bottomId: 'corvo-slim-jean', bottomSize: '32x32' };
+  const savedV1 = [{ ...v1, id: 'o1', name: 'Friday', savedAt: '2026-11-18T10:00:00Z' }];
+
+  it('adds an empty jacket slot to the outfit and to every saved outfit', () => {
+    expect(migrateOutfitV1(v1)).toEqual({ ...v1, outerId: null, outerSize: null });
+    expect(migrateOutfitV1({ topId: 3 })).toBeNull();
+    expect(migrateSavedOutfitsV1(savedV1)).toEqual([{ ...savedV1[0], outerId: null, outerSize: null }]);
+    expect(migrateSavedOutfitsV1([{ junk: true }, ...savedV1])).toHaveLength(1);
+  });
+
+  it('moves the v1 keys, under either app name, and never overwrites v2', () => {
+    const s = memoryStorage({ [LEGACY_KEYS.outfitV1]: v1, ['nimbus.outfits.v1']: savedV1 });
+    migrateStorage(s);
+    expect(JSON.parse(s.data.get(STORAGE_KEYS.outfit)!)).toEqual({ ...v1, outerId: null, outerSize: null });
+    expect(JSON.parse(s.data.get(STORAGE_KEYS.outfits)!)[0].outerId).toBeNull();
+    expect([...s.data.keys()].sort()).toEqual([STORAGE_KEYS.outfit, STORAGE_KEYS.outfits].sort());
+    expect(STORAGE_KEYS.outfit).toBe('choudo.outfit.v2');
+    expect(STORAGE_KEYS.outfits).toBe('choudo.outfits.v2');
+
+    const v2 = { ...v1, outerId: 'port-authority-j317', outerSize: 'L' };
+    const t = memoryStorage({ [STORAGE_KEYS.outfit]: v2, [LEGACY_KEYS.outfitV1]: v1 });
+    migrateStorage(t);
+    expect(JSON.parse(t.data.get(STORAGE_KEYS.outfit)!)).toEqual(v2);
   });
 });

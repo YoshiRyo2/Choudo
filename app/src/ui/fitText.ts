@@ -4,6 +4,7 @@
  */
 
 import {
+  fitOutfit,
   VERDICTS,
   type Anchor,
   type FitLabel,
@@ -11,16 +12,19 @@ import {
   type FitTone,
   type GarmentFit,
   type GarmentOdds,
+  type LayerNote,
   type MeasurableKey,
   type MeasureHint,
   type PreferenceSpec,
   type Verdict,
   type ZoneFit,
   type ZoneId,
+  type UnderLayer,
+  type WornOver,
   type ZoneOdds,
 } from '../domain/fit';
-import { RISE_VERTICAL_RATIO, type BodyType } from '../domain/body';
-import type { ConfidenceGrade, FitIntent, Garment, SourceTier } from '../domain/garments';
+import { RISE_VERTICAL_RATIO, type BodyModel, type BodyType } from '../domain/body';
+import type { ConfidenceGrade, FitIntent, Garment, GarmentType, SourceTier } from '../domain/garments';
 import { cmToIn } from '../domain/units';
 import type { UnitSystem } from './state/stored';
 
@@ -36,6 +40,7 @@ export const ZONE_NAME: Record<ZoneId, string> = {
   legOpening: 'Leg opening',
   hemBand: 'Hem band',
   walkingRoom: 'Walking room',
+  shoulder: 'Shoulders',
 };
 
 export const LABEL_TEXT: Record<FitLabel, string> = {
@@ -64,6 +69,7 @@ const ZONE_PLACE: Record<ZoneId, string> = {
   legOpening: 'at the hem',
   hemBand: 'at the hem band',
   walkingRoom: 'at the hem',
+  shoulder: 'at the shoulders',
 };
 
 /**
@@ -98,6 +104,9 @@ export function formatDiff(cm: number, units: UnitSystem): string {
 /** Under this many cm we say "matches" instead of quoting a tiny number. */
 const MATCH_CM = 0.5;
 
+/** Jacket length marks: these hems land against the hip line, not the knee. */
+const HIP_LINE_LANDINGS: readonly string[] = ['cropped', 'hip', 'thigh', 'knee-length', 'calf'];
+
 /** One plain sentence about a zone. */
 export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType = 'mens'): string {
   if (z.diffCm === null) return z.note ?? 'The size chart doesn’t give us enough to compare.';
@@ -109,7 +118,7 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
   // A blocked landing (won't go on, won't stay up): the engine says why.
   if (z.kind === 'landing' && z.tone === 'bad' && z.note) return z.note;
   // A hem landing against the knee: shorts (inseam) and skirts (length).
-  if (z.kind === 'landing' && (z.zone === 'inseam' || z.zone === 'length')) {
+  if (z.kind === 'landing' && (z.zone === 'inseam' || z.zone === 'length') && !HIP_LINE_LANDINGS.includes(z.landing ?? '')) {
     const where = !over && !under ? 'at your knee' : `${d} ${over ? 'below' : 'above'} your knee`;
     return `${LANDING_TEXT[z.landing ?? ''] ?? 'Here'}: the hem ends ${where}.`;
   }
@@ -125,6 +134,11 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
         ? `${d} smaller than your ${part}.`
         : `${d} smaller than your ${part}, but the fabric stretches.`;
     case 'length':
+      // A jacket's hem lands against the hip line, where a top's length is scored to end.
+      if (z.kind === 'landing') {
+        const where = !over && !under ? 'at your hip line' : `${d} ${over ? 'below' : 'above'} your hip line`;
+        return `${LANDING_TEXT[z.landing ?? ''] ?? 'Here'}: the hem ends ${where}.`;
+      }
       if (over) return `Ends ${d} lower than a regular-length top would on you.`;
       if (under) return `Ends ${d} higher than a regular-length top would on you.`;
       return 'A regular length on you.';
@@ -157,6 +171,10 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
       return z.label === 'tight'
         ? `${d} smaller than your hips: more than the rib can stretch.`
         : `${d} smaller than your hips, relaxed; the rib stretches to gather there.`;
+    case 'shoulder':
+      if (over) return `Shoulder seams sit ${d} wider than your shoulders.`;
+      if (under) return `Shoulder seams sit ${d} narrower than your shoulders.`;
+      return 'Shoulder seams sit right on your shoulders.';
     case 'walkingRoom':
       if (z.diffCm < 0) return `${d} short of a full stride at the hem: expect shorter steps, or look for a slit.`;
       return `Room for a full stride, with ${d} to spare at the hem.`;
@@ -167,13 +185,59 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
  * Where a worked-out body number was taken, after "You 84.1 cm": the waist of a
  * jean is where its band sits; a knit's centre-back length and sleeve start at the back neck.
  */
-export function bodyPlaceText(z: ZoneFit): string {
+export function bodyPlaceText(z: ZoneFit, over?: WornOver): string {
+  if (z.bodyAt === 'over_layer') return over ? ` with your ${TYPE_NOUN[over.type]} under it` : ' with what’s under it';
   if (z.bodyAt === 'band') return ' where the waistband sits';
   if (z.bodyAt === 'centre_back') return z.zone === 'sleeve' ? ' from the centre of your back to the wrist' : ' from the back of your neck';
   if (z.bodyAt === 'knee') return z.zone === 'inseam' ? ' from your crotch to your knee' : ' from the waistband to your knee';
   if (z.bodyAt === 'stride') return ' round both legs mid-stride, at the hem';
   if (z.bodyAt === 'hip_point') return ' where the chart measures the hips';
   return '';
+}
+
+/** What to call a garment of each type in a sentence: "your hoodie", "the jacket". */
+const TYPE_NOUN: Record<GarmentType, string> = {
+  tee: 'tee',
+  'long-sleeve-tee': 'long-sleeve tee',
+  polo: 'polo',
+  'button-up': 'shirt',
+  hoodie: 'hoodie',
+  sweatshirt: 'sweatshirt',
+  sweater: 'sweater',
+  cardigan: 'cardigan',
+  jeans: 'jeans',
+  chinos: 'chinos',
+  joggers: 'joggers',
+  trousers: 'trousers',
+  shorts: 'shorts',
+  skirt: 'skirt',
+  jacket: 'jacket',
+  coat: 'coat',
+};
+
+/** A fit worked out over a layer says so: "With your hoodie under it". null for a bare-body fit. */
+export function wornOverText(fit: Pick<GarmentFit, 'over'>): string | null {
+  return fit.over ? `With your ${TYPE_NOUN[fit.over.type]} under it` : null;
+}
+
+/** One note on how two layers sit together. */
+export function layerNoteText(note: LayerNote, under: GarmentType, outer: GarmentType, units: UnitSystem): string {
+  const u = TYPE_NOUN[under];
+  const o = TYPE_NOUN[outer];
+  switch (note.kind) {
+    case 'hem-shows':
+      return `Your ${u} shows ${formatLength(note.cm, units)} below the ${o}’s hem.`;
+    case 'cuffs-show':
+      return `Your ${u}’s cuffs show past the ${o}’s sleeves.`;
+    case 'bunches':
+      return `Your ${u} is roomier than the ${o} leaves room for: expect it to bunch up underneath.`;
+  }
+}
+
+/** Every note on how a jacket sits over the top under it, worded. Empty without a layer. */
+export function layerNoteLines(body: BodyModel, under: UnderLayer | undefined, outer: UnderLayer, units: UnitSystem): string[] {
+  if (!under) return [];
+  return fitOutfit(body, { top: under, outer }).notes.map((n) => layerNoteText(n, under.garment.type, outer.garment.type, units));
 }
 
 /** How a landing zone's mark reads on its own: "Mid rise", "Straight leg". */
@@ -193,6 +257,11 @@ const LANDING_TEXT: Record<string, string> = {
   maxi: 'Maxi',
   restricted: 'Short steps',
   free: 'Full stride',
+  cropped: 'Cropped',
+  hip: 'Hip length',
+  thigh: 'Thigh length',
+  'knee-length': 'Knee length',
+  calf: 'Calf length',
 };
 
 /**
@@ -386,7 +455,8 @@ function phraseFor(verdict: Exclude<Verdict, 'unknown'>, garment: Pick<Garment, 
     const word = INTENT_WORD[garment.fitIntent];
     return { plain: `${word}, as designed`, might: `Might be ${word}, as designed` };
   }
-  return (garment.category === 'top' ? TOP_PHRASE : BOTTOM_PHRASE)[verdict];
+  // Tops and jackets carry the user's preference; bottoms don't yet.
+  return (garment.category === 'bottom' ? BOTTOM_PHRASE : TOP_PHRASE)[verdict];
 }
 
 const VERDICT_TONE: Record<Verdict, FitTone> = {
@@ -429,7 +499,7 @@ export function verdictLine(odds: GarmentOdds, sizeLabel: string, garment: Pick<
   if (!size || size.verdicts.unknown >= 0.5) {
     return { headline: 'Can’t check this fit', detail: null, tone: 'unknown', verdict: 'unknown' };
   }
-  const liked = garment.category === 'top' ? 'fits how you like' : 'fits well';
+  const liked = garment.category === 'bottom' ? 'fits well' : 'fits how you like';
   const detail = `${formatPercent(size.likes)} chance it ${liked}.`;
 
   const known = VERDICTS.filter((v): v is Exclude<Verdict, 'unknown'> => v !== 'unknown');
@@ -497,7 +567,7 @@ const PERSONAL_WORDS: Partial<Record<ZoneId, Record<'under' | 'right' | 'over', 
  */
 export function personalOddsText(z: ZoneOdds, garment: Pick<Garment, 'category'>, hasLengthPreference: boolean): string | null {
   const words = PERSONAL_WORDS[z.zone];
-  if (!words || garment.category !== 'top') return null;
+  if (!words || garment.category === 'bottom' || z.kind === 'landing') return null;
   if (z.zone === 'length' && !hasLengthPreference) return null;
   return (['under', 'right', 'over'] as const)
     .map((k) => [words[k], z.personal[k]] as const)

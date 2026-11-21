@@ -32,7 +32,8 @@ export function firstGarment(shown: readonly Garment[], category: GarmentCategor
  * back to `firstGarment` in that category from `shown` (the garments on show,
  * the whole catalogue by default), unknown sizes to the default size. A garment
  * already worn stays on even when `shown` leaves it out. A category with nothing
- * to show is left empty.
+ * to show is left empty. The jacket slot is never filled by default: only a
+ * jacket that is worn stays (in a known size), anything else there is taken off.
  */
 export function resolveOutfit(
   outfit: Outfit,
@@ -49,14 +50,20 @@ export function resolveOutfit(
   };
   const top = pick('top', outfit.topId, outfit.topSize);
   const bottom = pick('bottom', outfit.bottomId, outfit.bottomSize);
-  return { topId: top.id, topSize: top.size, bottomId: bottom.id, bottomSize: bottom.size };
+  const jacket = outfit.outerId ? findGarment(outfit.outerId) : undefined;
+  const jacketSizeOk = jacket !== undefined && jacket.sizes.some((s) => s.label === outfit.outerSize);
+  const outer =
+    jacket?.category === 'outer'
+      ? { id: jacket.id, size: jacketSizeOk ? outfit.outerSize : defaultSize(body, jacket, preference) }
+      : { id: null, size: null };
+  return { topId: top.id, topSize: top.size, bottomId: bottom.id, bottomSize: bottom.size, outerId: outer.id, outerSize: outer.size };
 }
 
 /** Put one garment on, in a size, keeping whatever is in the other slot. */
 export function wearGarment(outfit: Outfit, garment: Garment, size: string): Outfit {
-  return garment.category === 'top'
-    ? { ...outfit, topId: garment.id, topSize: size }
-    : { ...outfit, bottomId: garment.id, bottomSize: size };
+  if (garment.category === 'top') return { ...outfit, topId: garment.id, topSize: size };
+  if (garment.category === 'outer') return { ...outfit, outerId: garment.id, outerSize: size };
+  return { ...outfit, bottomId: garment.id, bottomSize: size };
 }
 
 /** The size we'd show a garment in, and how it fits. `recommended` is false for the middle-size fallback. */

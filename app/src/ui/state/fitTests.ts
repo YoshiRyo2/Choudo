@@ -16,6 +16,7 @@ import {
   type GarmentFit,
   type GarmentOdds,
   type PreferenceSpec,
+  type UnderLayer,
   type ZoneOdds,
 } from '../../domain/fit';
 import type { Garment } from '../../domain/garments';
@@ -40,22 +41,26 @@ export function predictionFor(args: {
   size: string;
   preference: PreferenceSpec;
   anchor: Anchor | null;
+  /** The odds the tester saw: over `under` when a jacket was tried on over a top. */
   odds: GarmentOdds;
+  under?: UnderLayer;
 }): FitTestPrediction {
-  const { body, model, garment, size, preference, anchor, odds } = args;
+  const { body, model, garment, size, preference, anchor, odds, under } = args;
   const sizeOdds = odds.sizes.find((s) => s.sizeLabel === size);
   if (!sizeOdds) throw new Error(`${garment.id} has no size "${size}"`);
-  const fit = fitGarment(model, garment, size);
+  const fit = fitGarment(model, garment, size, under);
   const pref = resolvePreference(preference, model.measurements);
   const zoneFit = (zone: string) => fit.zones.find((z) => z.zone === zone);
   const labelOf = (zone: string) => zoneFit(zone)?.label ?? 'unknown';
   const oddsOf = (zone: string) => chances(sizeOdds.zones.find((z) => z.zone === zone));
   const verdict = VERDICTS.reduce((best, v) => (sizeOdds.verdicts[v] > sizeOdds.verdicts[best] ? v : best), VERDICTS[0]!);
-  const top = garment.category === 'top';
-  // A bottom's length question is about the inseam; a skirt has a length instead.
-  const lengthZone = top || !fit.zones.some((z) => z.zone === 'inseam') ? 'length' : 'inseam';
+  // Tops and jackets are asked about the chest; a jacket's length question is its sleeve
+  // (its hem only lands), a bottom's the inseam (a skirt has a length instead).
+  const top = garment.category !== 'bottom';
+  const outer = garment.category === 'outer';
+  const lengthZone = outer ? 'sleeve' : top || !fit.zones.some((z) => z.zone === 'inseam') ? 'length' : 'inseam';
   const prediction: FitTestPrediction = {
-    category: top ? 'top' : 'bottom',
+    category: garment.category,
     body,
     chestCm: model.measurements.chestCm,
     chestSource: model.sources.chestCm,
@@ -73,6 +78,7 @@ export function predictionFor(args: {
     chest: oddsOf('chest'),
     length: oddsOf(lengthZone),
   };
+  if (outer) return under ? { ...prediction, wornOver: `${under.garment.id} ${under.sizeLabel}` } : prediction;
   if (top) return prediction;
   return {
     ...prediction,
@@ -111,7 +117,7 @@ export type TestQuestion = 'chest' | 'waist' | 'thigh' | 'length';
  * (nothing to compare the answer with).
  */
 export function testQuestions(fit: GarmentFit, garment: Pick<Garment, 'category'>): TestQuestion[] {
-  if (garment.category === 'top') return ['chest', 'length'];
+  if (garment.category !== 'bottom') return ['chest', 'length'];
   const thigh = fit.zones.find((z) => z.zone === 'thigh');
   return thigh && thigh.label !== 'unknown' ? ['waist', 'thigh', 'length'] : ['waist', 'length'];
 }
@@ -139,7 +145,7 @@ const p = (v: number) => v.toFixed(3);
 /** One CSV row's values, by column. */
 export function fitTestRow(r: FitTestRecord): Record<FitTestColumn, string> {
   const x = r.prediction;
-  const top = r.category === 'top';
+  const top = r.category !== 'bottom';
   // Chances for a zone the row asked about, blank for one it didn't (so the report leaves it out).
   const pz = (z: ZoneChances | undefined, k: keyof ZoneChances, asked: boolean) => (asked && z ? p(z[k]) : '');
   const opt = (v: number | undefined) => (v === undefined ? '' : cm(v));
@@ -187,6 +193,7 @@ export function fitTestRow(r: FitTestRecord): Record<FitTestColumn, string> {
     p_thigh_too_loose: pz(x.thigh, 'over', r.thigh !== undefined),
     actual_waist: r.waist ?? '',
     actual_thigh: r.thigh ?? '',
+    worn_over: x.wornOver ?? '',
   };
 }
 

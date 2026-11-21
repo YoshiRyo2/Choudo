@@ -4,6 +4,7 @@ import type { GarmentFit, ZoneFit } from '../../../domain/fit';
 import { canWarp, pantsLandmarks, templateOf, topLandmarks, type Garment, type GarmentImage } from '../../../domain/garments';
 import { bodyGeometry, type Marker } from './geometry';
 import { affineToSvg, warpPantsPieces, warpPieces, type WarpPiece, type WarpRegion } from './photoWarp';
+import { jacketShape } from './templates/jacket';
 import { pantsShape } from './templates/pants';
 import { skirtShape } from './templates/skirt';
 import { topShape } from './topShape';
@@ -20,6 +21,8 @@ interface MannequinProps {
   body: BodyMeasurements;
   top?: WornGarment;
   bottom?: WornGarment;
+  /** A jacket or coat, drawn over the top (hanging off it when there is one). */
+  outer?: WornGarment;
   /** Show coloured fit pins on each zone. */
   showFit?: boolean;
   /**
@@ -42,10 +45,11 @@ interface MannequinProps {
 const VIEW = { left: -62, right: 62, top: -6 };
 
 /**
- * A 2D dress-form mannequin scaled to the body, optionally wearing a top and a
- * bottom. Swap this component out to move to a 3D renderer later.
+ * A 2D dress-form mannequin scaled to the body, optionally wearing a top, a
+ * bottom and a jacket over the top. Swap this component out to move to a 3D
+ * renderer later.
  */
-export function Mannequin({ body, top, bottom, showFit = true, photos = 'licensed', frame = 'canvas', className }: MannequinProps) {
+export function Mannequin({ body, top, bottom, outer, showFit = true, photos = 'licensed', frame = 'canvas', className }: MannequinProps) {
   const g = useMemo(() => bodyGeometry(body), [body]);
 
   const topSize = top?.garment.sizes.find((s) => s.label === top.sizeLabel);
@@ -55,6 +59,10 @@ export function Mannequin({ body, top, bottom, showFit = true, photos = 'license
   const isSkirt = bottom ? templateOf(bottom.garment) === 'skirt' : false;
   const skirtDraw = bottom && bottomSize && isSkirt ? skirtShape(g, body, bottom.garment, bottomSize.measurements) : null;
   const bottomDraw = bottom && bottomSize && !isSkirt ? pantsShape(g, body, bottom.garment, bottomSize.measurements) : null;
+  // A jacket hangs off the top drawn under it (templates/jacket.ts), with the room the fit gives that top.
+  const outerSize = outer?.garment.sizes.find((s) => s.label === outer.sizeLabel);
+  const underTop = topDraw && top ? { shape: topDraw, layer: { garment: top.garment, sizeLabel: top.sizeLabel } } : null;
+  const outerDraw = outer && outerSize ? jacketShape(g, body, outer.garment, outerSize.measurements, underTop) : null;
 
   // A product photo, when the garment has one, its licence allows warping and the
   // file is present, is warped onto this size's outline over the flat colour.
@@ -98,9 +106,11 @@ export function Mannequin({ body, top, bottom, showFit = true, photos = 'license
   // waist pin never looks like it belongs to the shirt covering it.
   const pins: { key: string; at: Marker; side: 1 | -1; zone: ZoneFit }[] = [];
   if (showFit) {
-    for (const z of top?.fit?.zones ?? []) {
-      const at = topDraw?.markers[z.zone as keyof typeof topDraw.markers];
-      if (at) pins.push({ key: `top-${z.zone}`, at, side: 1, zone: z });
+    // Under a jacket the top's pins would sit inside it: the jacket's take the right edge instead.
+    const torso = outerDraw && outer ? { key: 'outer', draw: outerDraw, fit: outer.fit } : { key: 'top', draw: topDraw, fit: top?.fit };
+    for (const z of torso.fit?.zones ?? []) {
+      const at = torso.draw?.markers[z.zone as keyof NonNullable<typeof torso.draw>['markers']];
+      if (at) pins.push({ key: `${torso.key}-${z.zone}`, at, side: 1, zone: z });
     }
     for (const z of bottom?.fit?.zones ?? []) {
       const at = skirtDraw
@@ -114,6 +124,7 @@ export function Mannequin({ body, top, bottom, showFit = true, photos = 'license
     `Mannequin, ${Math.round(body.heightCm)} cm tall`,
     top ? `wearing ${top.garment.brand} ${top.garment.name} in ${top.sizeLabel}` : null,
     bottom ? `and ${bottom.garment.brand} ${bottom.garment.name} in ${bottom.sizeLabel}` : null,
+    outer ? `with ${outer.garment.brand} ${outer.garment.name} in ${outer.sizeLabel} over ${top ? 'it' : 'the body'}` : null,
   ]
     .filter(Boolean)
     .join(' ');
@@ -179,11 +190,14 @@ export function Mannequin({ body, top, bottom, showFit = true, photos = 'license
               <path key={`strain-${i}`} className="mannequin__strain" d={d} />
             ))}
           </g>
-          {/* Relaxed arms hang in front of the shirt's sides; the sleeves then cover their tops. */}
-          <g className="mannequin__form">
-            <path className="mannequin__arm" d={topDraw.arms[0]} />
-            <path className="mannequin__arm" d={topDraw.arms[1]} />
-          </g>
+          {/* Relaxed arms hang in front of the shirt's sides; the sleeves then cover their tops.
+              Under a jacket only the outermost layer draws the arms. */}
+          {!outerDraw && (
+            <g className="mannequin__form">
+              <path className="mannequin__arm" d={topDraw.arms[0]} />
+              <path className="mannequin__arm" d={topDraw.arms[1]} />
+            </g>
+          )}
           <g className={garmentClass(topDraw.approximate, top.garment)} style={{ fill: top.garment.color }}>
             <path d={topDraw.sleeves[0]} />
             <path d={topDraw.sleeves[1]} />
@@ -210,6 +224,32 @@ export function Mannequin({ body, top, bottom, showFit = true, photos = 'license
               ))}
             </g>
           )}
+        </g>
+      )}
+
+      {outerDraw && outer && (
+        <g>
+          <g className={garmentClass(outerDraw.approximate, outer.garment)} style={{ fill: outer.garment.color }}>
+            <path d={outerDraw.body} />
+          </g>
+          <g className="mannequin__creases" aria-hidden="true">
+            {outerDraw.folds.map((d, i) => (
+              <path key={`ofold-${i}`} className="mannequin__fold" d={d} />
+            ))}
+            {outerDraw.strain.map((d, i) => (
+              <path key={`ostrain-${i}`} className="mannequin__strain" d={d} />
+            ))}
+          </g>
+          <g className="mannequin__form">
+            <path className="mannequin__arm" d={outerDraw.arms[0]} />
+            <path className="mannequin__arm" d={outerDraw.arms[1]} />
+          </g>
+          <g className={garmentClass(outerDraw.approximate, outer.garment)} style={{ fill: outer.garment.color }}>
+            <path d={outerDraw.sleeves[0]} />
+            <path d={outerDraw.sleeves[1]} />
+            <path d={outerDraw.collar} />
+          </g>
+          <path className="mannequin__placket" d={outerDraw.placket} aria-hidden="true" />
         </g>
       )}
 

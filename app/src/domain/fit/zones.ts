@@ -22,6 +22,10 @@ import {
   BOTTOM_WAIST,
   HEM_BAND,
   INSEAM,
+  JACKET_EASE_OFFSET_CM,
+  JACKET_GIRTH_RULES,
+  JACKET_LENGTH,
+  JACKET_SHOULDER,
   KNIT_EASE_OFFSET_CM,
   KNIT_GIRTH_RULES,
   LEG_OPENING,
@@ -53,16 +57,18 @@ export type ZoneId =
   | 'rise'
   | 'legOpening'
   | 'hemBand'
-  | 'walkingRoom';
+  | 'walkingRoom'
+  | 'shoulder';
 
 /**
  * Where a worked-out body number was taken: band = the body's girth where a
  * waistband sits; centre_back = a length from the centre of the back neck;
  * knee = a distance down to the knee (where a hem lands against it);
  * hip_point = the body's girth where a skirt chart measures its hips;
- * stride = the girth round both legs mid-stride, at the hem.
+ * stride = the girth round both legs mid-stride, at the hem;
+ * over_layer = the body plus what is worn under the garment (layers.ts).
  */
-export type BodyAt = 'band' | 'centre_back' | 'knee' | 'hip_point' | 'stride';
+export type BodyAt = 'band' | 'centre_back' | 'knee' | 'hip_point' | 'stride' | 'over_layer';
 
 export type Rule = GirthRule | LengthRule | LandingRule;
 
@@ -99,6 +105,11 @@ export interface ZoneSpec {
   /** When the zone is scored at all. Leave out for "always". */
   applies?: (garment: Garment, size: SizeMeasurements) => boolean;
   needs?: ZoneNeeds;
+  /**
+   * Compared over whatever is worn under the garment (a jacket's chest over a
+   * hoodie): the body plus the layer's room (layers.ts). Bare body without one.
+   */
+  layered?: true;
 }
 
 export interface TemplateZones {
@@ -107,10 +118,11 @@ export interface TemplateZones {
   zones: readonly ZoneSpec[];
   /**
    * The zones the user's preference speaks to: a girth (target ease) and a length
-   * (an anchor's length). null = objective labels only (pants have no personal target yet).
-   * easeOffsetCm: how much roomier than a tee this template's chest is aimed (knits).
+   * (an anchor's length; null when the template has none to compare, as a jacket's
+   * length only lands). null = objective labels only (pants have no personal target yet).
+   * easeOffsetCm: how much roomier than a tee this template's chest is aimed (knits, jackets).
    */
-  personal: { girth: ZoneId; length: ZoneId; easeOffsetCm?: number } | null;
+  personal: { girth: ZoneId; length: ZoneId | null; easeOffsetCm?: number } | null;
 }
 
 /** Body measurements a user can type in on the body screen. */
@@ -323,6 +335,38 @@ const KNIT_ZONES: readonly ZoneSpec[] = [
   { zone: 'hemBand', garmentKey: 'hemBand', bodyKey: 'hipsCm', rule: HEM_BAND, optional: true },
 ];
 
+/**
+ * Jackets and coats: chest (and a charted waist) over whatever is worn under
+ * them, the shoulder seam when charted, the sleeve, and where the hem lands.
+ */
+const JACKET_ZONES: readonly ZoneSpec[] = [
+  { zone: 'chest', garmentKey: 'chest', bodyKey: 'chestCm', rule: { bySizing: JACKET_GIRTH_RULES }, layered: true },
+  {
+    zone: 'waist',
+    garmentKey: 'waist',
+    bodyKey: 'waistCm',
+    rule: { bySizing: JACKET_GIRTH_RULES },
+    applies: (_g, size) => size.waist !== undefined,
+    layered: true,
+  },
+  // Few charts list the shoulder; when they do, the seam should sit on the shoulder point.
+  { zone: 'shoulder', garmentKey: 'shoulder', bodyKey: 'shoulderWidthCm', rule: JACKET_SHOULDER, optional: true },
+  KNIT_ZONES.find((z) => z.zone === 'sleeve')!,
+  {
+    zone: 'length',
+    garmentKey: 'length',
+    bodyKey: 'torsoLengthCm',
+    rule: JACKET_LENGTH,
+    bodyTarget: (m, g) => lengthTargetCm(m, definitionOf(g, 'length')) ?? m.torsoLengthCm,
+    bodyAt: 'centre_back',
+    needs: {
+      definition: 'length',
+      accepts: ['hps', 'center_back'],
+      reason: (brand) => `${brand}'s chart doesn't say where length is measured from.`,
+    },
+  },
+];
+
 const TOP_PERSONAL = { girth: 'chest', length: 'length' } as const;
 
 export const TEMPLATE_ZONES: Record<TemplateId, TemplateZones> = {
@@ -332,6 +376,7 @@ export const TEMPLATE_ZONES: Record<TemplateId, TemplateZones> = {
   pants: { template: 'pants', zones: PANTS_ZONES, personal: null },
   shorts: { template: 'shorts', zones: SHORTS_ZONES, personal: null },
   skirt: { template: 'skirt', zones: SKIRT_ZONES, personal: null },
+  jacket: { template: 'jacket', zones: JACKET_ZONES, personal: { girth: 'chest', length: null, easeOffsetCm: JACKET_EASE_OFFSET_CM } },
 };
 
 export const templateZones = (g: Pick<Garment, 'type'>): TemplateZones => TEMPLATE_ZONES[templateOf(g)];

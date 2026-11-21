@@ -35,6 +35,7 @@ import {
   type Verdict,
 } from './preference';
 import { keyedSeed, normal, seededRng } from './random';
+import type { UnderLayer } from './layers';
 import { girthRuleInCm } from './rules';
 import { measurableKeys, templateZones, zoneRule, type MeasurableKey } from './zones';
 import {
@@ -85,6 +86,12 @@ export interface GarmentOdds {
 export interface SampleOptions {
   samples?: number;
   seed?: number;
+  /**
+   * A layer worn under the garment (a top under a jacket). Each sample fits over
+   * it, worked out from that sample's own body draw, so an estimated chest moves
+   * both layers together. Its chart offsets draw from their own streams.
+   */
+  under?: UnderLayer;
 }
 
 // Every key in the schema is drawn, whatever the template, so a new measurement is
@@ -184,9 +191,16 @@ export function sampleFit(
   body: BodyModel,
   garment: Garment,
   spec: PreferenceSpec,
-  { samples = SAMPLE_COUNT, seed = SAMPLER_SEED }: SampleOptions = {},
+  { samples = SAMPLE_COUNT, seed = SAMPLER_SEED, under }: SampleOptions = {},
 ): GarmentOdds {
   const rng = seededRng(seed);
+  const underSize = under?.garment.sizes.find((s) => s.label === under.sizeLabel);
+  const underGaps = under ? auditGapsCm(under.garment) : {};
+  const underStreams = underSize
+    ? GARMENT_KEYS.filter((k) => underSize.measurements[k] !== undefined).map(
+        (k) => [k, seededRng(keyedSeed(seed, `under:${k}`)), garmentSdCm(under!.garment, underSize, k, underGaps)] as const,
+      )
+    : [];
   const bodyStreams = OWN_STREAM_BODY_KEYS.map((k) => [k, seededRng(keyedSeed(seed, k))] as const);
   const garmentStreams = OWN_STREAM_GARMENT_KEYS.map((k) => [k, seededRng(keyedSeed(seed, k))] as const);
   const gaps = auditGapsCm(garment);
@@ -233,8 +247,19 @@ export function sampleFit(
       lengthDiffCm: anchor ? prefLengthZ * PREFERENCE_SD_CM.anchorLength : 0,
     });
 
+    // The layer underneath, drawn once per sample after everything else (its own streams).
+    let drawnUnder: UnderLayer | undefined;
+    if (under && underSize) {
+      const um = { ...underSize.measurements };
+      for (const [key, own, sd] of underStreams) um[key] = um[key]! + normal(own) * sd;
+      drawnUnder = {
+        sizeLabel: under.sizeLabel,
+        garment: { ...under.garment, sizes: under.garment.sizes.map((u) => (u === underSize ? { ...u, measurements: um } : u)) },
+      };
+    }
+
     garment.sizes.forEach((s, si) => {
-      const fit = fitGarment(drawnBody, drawnGarment, s.label);
+      const fit = fitGarment(drawnBody, drawnGarment, s.label, drawnUnder);
       const personal = personalFit(fit, drawnGarment, pref);
       const t = tallies[si]!;
       t.verdicts[personal.verdict] += 1;

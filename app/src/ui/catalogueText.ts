@@ -29,7 +29,7 @@ export function catalogueToggle(
   return { label: current.label, accessibleName: `Show: ${current.label}`, next };
 }
 
-const CATEGORY_WORD: Record<GarmentCategory, string> = { top: 'tops', bottom: 'bottoms' };
+const CATEGORY_WORD: Record<GarmentCategory, string> = { top: 'tops', bottom: 'bottoms', outer: 'jackets' };
 
 /** "No women’s or unisex bottoms yet." */
 export function emptyCategoryText(bodyType: BodyType, category: GarmentCategory): string {

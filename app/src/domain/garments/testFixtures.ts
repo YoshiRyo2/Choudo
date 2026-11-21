@@ -62,3 +62,32 @@ export const KNIT_HOODIE_SEED: SeedGarment = {
 };
 
 export const KNIT_HOODIE: Garment = normalizeGarment(KNIT_HOODIE_SEED);
+
+/**
+ * A jacket on the jacket template (outer slot): chest flat, length from the high
+ * point of the shoulder, sleeve from the centre back. In cm, with lengths chosen
+ * to land on each length mark on a men's 176 cm body (torso 72.16 cm).
+ */
+export const JACKET_SEED: SeedGarment = {
+  id: 'test-jacket',
+  brand: 'Test',
+  name: 'Test jacket',
+  category: 'outer',
+  type: 'jacket',
+  sizing: 'mens',
+  color: '#334455',
+  sleeve: 'long',
+  stretch: 'none',
+  fitIntent: 'regular',
+  chart: { unit: 'cm', girth: 'flat', definitions: { length: 'hps', sleeve: 'center_back_to_cuff' } },
+  source: { placeholder: false, tier: 'B', url: 'https://example.com/jacket', capturedOn: '2026-11-20' },
+  sizes: [
+    { label: 'S', measurements: { chest: 55, length: 60, sleeve: 85 } },
+    { label: 'M', measurements: { chest: 61, length: 72.66, sleeve: 88 } },
+    { label: 'L', measurements: { chest: 63, length: 84.2, sleeve: 90 } },
+    { label: 'XL', measurements: { chest: 65, length: 104.2, sleeve: 92 } },
+    { label: 'XXL', measurements: { chest: 67, length: 117.2, sleeve: 94 } },
+  ],
+};
+
+export const JACKET: Garment = normalizeGarment(JACKET_SEED);

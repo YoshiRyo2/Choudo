@@ -853,6 +853,86 @@
         { "label": "XL", "measurements": { "waist": 40, "hips": 52.25, "inseam": 5.5, "rise": 12, "legOpening": 30 } },
         { "label": "XXL", "measurements": { "waist": 44, "hips": 55.25, "inseam": 5.5, "rise": 12.375, "legOpening": 31.5 } }
       ]
+    },
+    {
+      "id": "port-authority-j317",
+      "brand": "Port Authority",
+      "name": "Core Soft Shell Jacket (J317)",
+      "category": "outer",
+      "type": "jacket",
+      "sizing": "mens",
+      "color": "#7d8590",
+      "sleeve": "long",
+      "stretch": "some",
+      "weight": "mid",
+      "fitIntent": "regular",
+      "chart": {
+        "unit": "in",
+        "girth": "flat",
+        "definitions": {
+          "length": "hps",
+          "sleeve": "center_back_to_cuff"
+        }
+      },
+      "source": {
+        "placeholder": false,
+        "tier": "B",
+        "url": "https://www.sanmar.com/p/5503/specSheetMeasurements",
+        "capturedOn": "2026-11-20",
+        "snapshot": "chart-snapshots/port-authority-j317.html",
+        "notes": "SanMar's spec sheet (Port Authority is SanMar's own brand). The page prints no unit: inches, by its size chart. Chest measured across the chest 1 in below the armhole, laid flat; body length from the high point of the shoulder to the hem at the back; sleeve from the centre back of the neck, over the shoulder point, to the hem. No shoulder or bicep on the chart. Woven shell (100% polyester; 92/8 poly/spandex in the heathers, so stretch some) bonded to a water-resistant film, microfleece lining (weight mid). Size chart: body chest XS 32–34 to 6XL 61–63 in (men's chests; L317 is the women's cut), so sizing mens. The page has no date. Drawn in a grey."
+      },
+      "sizes": [
+        { "label": "XS", "measurements": { "chest": 20, "length": 27, "sleeve": 34.25 } },
+        { "label": "S", "measurements": { "chest": 21.5, "length": 27.75, "sleeve": 35 } },
+        { "label": "M", "measurements": { "chest": 23, "length": 28.625, "sleeve": 35.75 } },
+        { "label": "L", "measurements": { "chest": 24.5, "length": 29.5, "sleeve": 36.5 } },
+        { "label": "XL", "measurements": { "chest": 26, "length": 30.375, "sleeve": 37.25 } },
+        { "label": "2XL", "measurements": { "chest": 27.5, "length": 31.25, "sleeve": 38 } },
+        { "label": "3XL", "measurements": { "chest": 29.5, "length": 31.875, "sleeve": 38.75 } },
+        { "label": "4XL", "measurements": { "chest": 31.5, "length": 32.5, "sleeve": 39.5 } },
+        { "label": "5XL", "measurements": { "chest": 33.5, "length": 33.125, "sleeve": 40 } },
+        { "label": "6XL", "measurements": { "chest": 35.5, "length": 33.5, "sleeve": 40.5 } }
+      ]
+    },
+    {
+      "id": "port-authority-l317",
+      "brand": "Port Authority",
+      "name": "Ladies Core Soft Shell Jacket (L317)",
+      "category": "outer",
+      "type": "jacket",
+      "sizing": "womens",
+      "color": "#6b2d3a",
+      "sleeve": "long",
+      "stretch": "some",
+      "weight": "mid",
+      "fitIntent": "regular",
+      "chart": {
+        "unit": "in",
+        "girth": "flat",
+        "definitions": {
+          "length": "hps",
+          "sleeve": "center_back_to_cuff"
+        }
+      },
+      "source": {
+        "placeholder": false,
+        "tier": "B",
+        "url": "https://www.sanmar.com/p/5504/specSheetMeasurements",
+        "capturedOn": "2026-11-20",
+        "snapshot": "chart-snapshots/port-authority-l317.html",
+        "notes": "SanMar's spec sheet (Port Authority is SanMar's own brand). The page prints no unit: inches, by its size chart. Bust measured across the chest 1 in below the armhole, laid flat; body length from the high point of the shoulder to the hem at the back; sleeve from the centre back of the neck, over the shoulder point, to the hem. No shoulder or bicep on the chart. Woven shell (100% polyester; 92/8 poly/spandex in the heathers, so stretch some) bonded to a water-resistant film, microfleece lining (weight mid). Size chart: bust XS 32–34 to 4XL 52–55 in, dress sizes 2 to 28/30. The 3XL to 4XL length step (1 in, against ¼–⅝ in elsewhere) is as printed. The page has no date. Drawn in a burgundy."
+      },
+      "sizes": [
+        { "label": "XS", "measurements": { "chest": 18.5, "length": 25.75, "sleeve": 32 } },
+        { "label": "S", "measurements": { "chest": 19.5, "length": 26.375, "sleeve": 32.5 } },
+        { "label": "M", "measurements": { "chest": 20.5, "length": 27, "sleeve": 33 } },
+        { "label": "L", "measurements": { "chest": 22, "length": 27.625, "sleeve": 33.625 } },
+        { "label": "XL", "measurements": { "chest": 23.5, "length": 28.25, "sleeve": 34.25 } },
+        { "label": "XXL", "measurements": { "chest": 25, "length": 28.875, "sleeve": 34.875 } },
+        { "label": "3XL", "measurements": { "chest": 27, "length": 29.125, "sleeve": 35.25 } },
+        { "label": "4XL", "measurements": { "chest": 29, "length": 30.125, "sleeve": 35.625 } }
+      ]
     }
   ]
 }

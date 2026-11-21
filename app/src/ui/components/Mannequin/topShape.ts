@@ -47,7 +47,7 @@ import {
 /** Short sleeve length from the shoulder seam, for a size with no extra chest room. */
 const SHORT_SLEEVE_CM = 19;
 /** Garment length is measured over the body, so it hangs a little shorter. */
-const DRAPE = 0.97;
+export const DRAPE = 0.97;
 /** Chest ease (cm of circumference) a tee carries before its shoulder seam starts to drop. */
 const DROP_START_CM = 10;
 /** How far the seam slides down the arm per cm of chest ease beyond that. */
@@ -287,7 +287,7 @@ export function topShape(
   right.push(hem, { x: hem.x * 0.55, y: hemY - hemLift * 0.15 });
 
   const left = [...right].reverse().map((p) => ({ ...p, x: -p.x }));
-  const necklineDip = garment.type === 'button-up' || garment.type === 'polo' ? 1.5 : 3.5;
+  const necklineDip = ['button-up', 'polo', 'jacket', 'coat'].includes(garment.type) ? 1.5 : 3.5;
   const body = smoothPath(
     [...right, { x: 0, y: hemY }, ...left, { x: 0, y: g.y.neckBase + necklineDip }],
     true,

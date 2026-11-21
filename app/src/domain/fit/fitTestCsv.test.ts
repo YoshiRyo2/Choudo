@@ -57,6 +57,7 @@ describe('bottoms columns', () => {
       'p_thigh_too_loose',
       'actual_waist',
       'actual_thigh',
+      'worn_over',
     ]);
   });
 

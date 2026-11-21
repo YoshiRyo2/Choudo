@@ -205,3 +205,22 @@ abbr.zone__est {
   margin: 0;
   font-size: var(--step-0);
 }
+
+/* A jacket fitted over the top under it: say so, then how the layers sit together. */
+.readout__layer {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+}
+
+.readout__over {
+  margin: 0;
+  font-weight: 600;
+}
+
+.readout__notes {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: var(--step--1);
+  color: var(--muted);
+}

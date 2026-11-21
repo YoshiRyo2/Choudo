@@ -69,3 +69,18 @@ export function sleeveFromShoulderPointCm(
   if (size.sleeve === undefined) return undefined;
   return definitionOf(garment, 'sleeve') === 'center_back_to_cuff' ? size.sleeve - backToShoulderPointCm(m) : undefined;
 }
+
+/**
+ * How far a long sleeve reaches down the arm from the body's shoulder point (cm),
+ * or undefined for a short sleeve or one we can't place. A shoulder-to-cuff
+ * sleeve starts at the garment's seam, taken here as the shoulder point.
+ */
+export function sleeveReachCm(
+  garment: DefinitionHolder & Pick<Garment, 'sleeve'>,
+  size: SizeMeasurements,
+  m: Pick<BodyMeasurements, 'shoulderWidthCm' | 'bodyType'>,
+): number | undefined {
+  if (garment.sleeve !== 'long' || size.sleeve === undefined) return undefined;
+  if (definitionOf(garment, 'sleeve') === 'shoulder_to_cuff') return size.sleeve;
+  return sleeveFromShoulderPointCm(garment, size, m);
+}

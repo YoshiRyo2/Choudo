@@ -82,7 +82,7 @@ describe('folderSummary', () => {
 });
 
 describe('outfits', () => {
-  const current = { topId: 'tee', topSize: 'M', bottomId: 'jeans', bottomSize: '32x32' };
+  const current = { topId: 'tee', topSize: 'M', bottomId: 'jeans', bottomSize: '32x32', outerId: null, outerSize: null };
 
   it('saves the current outfit at the front with its sizes', () => {
     const outfits = saveOutfit([], current, 'o1', 'Friday', '2026-11-18T10:00:00Z');
@@ -102,5 +102,14 @@ describe('outfits', () => {
   it('deletes by id', () => {
     const outfits = saveOutfit(saveOutfit([], current, 'o1', 'A', ''), current, 'o2', 'B', '');
     expect(deleteOutfit(outfits, 'o1').map((o) => o.id)).toEqual(['o2']);
+  });
+});
+
+describe('outfits with a jacket', () => {
+  it('saves and loads the jacket and its size', () => {
+    const withJacket = { topId: 'tee', topSize: 'M', bottomId: null, bottomSize: null, outerId: 'port-authority-j317', outerSize: 'L' };
+    const saved = saveOutfit([], withJacket, 'o1', 'Cold day', '')[0]!;
+    expect(saved.outerId).toBe('port-authority-j317');
+    expect(outfitOf(saved)).toEqual(withJacket);
   });
 });

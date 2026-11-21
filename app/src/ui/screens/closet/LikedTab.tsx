@@ -24,7 +24,7 @@ interface LikedTabProps {
   onOpenDiscover: () => void;
 }
 
-/** Everything you've liked, newest first, filterable by tops and bottoms. */
+/** Everything you've liked, newest first, filterable by tops, bottoms and jackets. */
 export function LikedTab({ model, preference, likedIds, onOpen, onUnlike, folderCount, onFolders, onOpenDiscover }: LikedTabProps) {
   const [filter, setFilter] = useState<Filter>('all');
   // Likes for garments no longer in the catalogue are skipped.
@@ -53,11 +53,12 @@ export function LikedTab({ model, preference, likedIds, onOpen, onUnlike, folder
           { value: 'all', label: `All ${liked.length}` },
           { value: 'top', label: 'Tops' },
           { value: 'bottom', label: 'Bottoms' },
+          { value: 'outer', label: 'Jackets' },
         ]}
         onChange={setFilter}
       />
       {shown.length === 0 ? (
-        <p className="closet__note">No liked {filter === 'top' ? 'tops' : 'bottoms'} yet.</p>
+        <p className="closet__note">No liked {filter === 'top' ? 'tops' : filter === 'bottom' ? 'bottoms' : 'jackets'} yet.</p>
       ) : (
         <ul className="tile-grid">
           {shown.map((g) => {

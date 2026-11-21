@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../../domain/body';
 import { preferenceSpec, recommendSize } from '../../domain/fit';
 import { canWarp, findGarment, garmentsByCategory } from '../../domain/garments';
-import { defaultSize, resolveOutfit, suggestedFit, wearGarment } from './outfit';
+import { defaultSize, firstGarment, resolveOutfit, suggestedFit, wearGarment } from './outfit';
 import { EMPTY_OUTFIT } from './stored';
 import { UNKNOWN_CHEST_TEE } from '../../domain/garments/testFixtures';
 
@@ -19,12 +19,12 @@ describe('resolveOutfit', () => {
   });
 
   it('keeps a valid saved choice', () => {
-    const saved = { topId: 'fieldline-oxford', topSize: 'XL', bottomId: 'corvo-slim-jean', bottomSize: '30x30' };
+    const saved = { topId: 'fieldline-oxford', topSize: 'XL', bottomId: 'corvo-slim-jean', bottomSize: '30x30', outerId: null, outerSize: null };
     expect(resolveOutfit(saved, body, pref)).toEqual(saved);
   });
 
   it('repairs stale ids, sizes, and garments saved in the wrong slot', () => {
-    const o = resolveOutfit({ topId: 'gone', topSize: 'M', bottomId: 'knightweave-tee', bottomSize: '99' }, body, pref);
+    const o = resolveOutfit({ topId: 'gone', topSize: 'M', bottomId: 'knightweave-tee', bottomSize: '99', outerId: null, outerSize: null }, body, pref);
     expect(findGarment(o.topId!)?.category).toBe('top');
     expect(findGarment(o.bottomId!)?.category).toBe('bottom');
     expect(findGarment(o.bottomId!)!.sizes.map((s) => s.label)).toContain(o.bottomSize);
@@ -32,11 +32,11 @@ describe('resolveOutfit', () => {
 });
 
 describe('wearGarment', () => {
-  const current = { topId: 'knightweave-tee', topSize: 'M', bottomId: 'corvo-slim-jean', bottomSize: '32x32' };
+  const current = { topId: 'knightweave-tee', topSize: 'M', bottomId: 'corvo-slim-jean', bottomSize: '32x32', outerId: null, outerSize: null };
 
   it('swaps only the slot the garment belongs to', () => {
     expect(wearGarment(current, findGarment('fieldline-oxford')!, 'L')).toEqual({ ...current, topId: 'fieldline-oxford', topSize: 'L' });
-    expect(wearGarment(current, findGarment('fieldline-jogger')!, 'S')).toEqual({ ...current, bottomId: 'fieldline-jogger', bottomSize: 'S' });
+    expect(wearGarment(current, findGarment('fieldline-jogger')!, 'S')).toEqual({ ...current, bottomId: 'fieldline-jogger', bottomSize: 'S', outerId: null, outerSize: null });
   });
 });
 
@@ -46,7 +46,7 @@ describe('resolveOutfit with a filtered catalogue', () => {
     const o = resolveOutfit(EMPTY_OUTFIT, body, pref, unisexTops);
     expect(o.topId).toBe(unisexTops[0]!.id);
     expect(o.bottomId).toBeNull();
-    const worn = resolveOutfit({ ...EMPTY_OUTFIT, bottomId: 'corvo-slim-jean', bottomSize: '32x32' }, body, pref, unisexTops);
+    const worn = resolveOutfit({ ...EMPTY_OUTFIT, bottomId: 'corvo-slim-jean', bottomSize: '32x32', outerId: null, outerSize: null }, body, pref, unisexTops);
     expect(worn.bottomId).toBe('corvo-slim-jean');
   });
 });
@@ -75,7 +75,7 @@ describe('resolveOutfit prefers a garment with a photo the mannequin can show', 
   });
 
   it('never swaps out a valid saved garment for a photo one', () => {
-    const saved = { topId: 'knightweave-tee', topSize: 'M', bottomId: null, bottomSize: null };
+    const saved = { topId: 'knightweave-tee', topSize: 'M', bottomId: null, bottomSize: null, outerId: null, outerSize: null };
     expect(resolveOutfit(saved, body, pref, tops).topId).toBe('knightweave-tee');
   });
 });
@@ -100,5 +100,33 @@ describe('suggestedFit', () => {
     const { fit, recommended } = suggestedFit(body, UNKNOWN_CHEST_TEE, pref);
     expect(recommended).toBe(false);
     expect(fit.sizeLabel).toBe('L');
+  });
+});
+
+describe('the jacket slot', () => {
+  const jacket = findGarment('port-authority-j317')!;
+
+  it('starts empty: nothing puts a jacket on by default', () => {
+    const o = resolveOutfit(EMPTY_OUTFIT, body, pref);
+    expect(o.outerId).toBeNull();
+    expect(o.outerSize).toBeNull();
+  });
+
+  it('keeps a worn jacket, fixes its size, and drops an unknown or misfiled one', () => {
+    const base = resolveOutfit(EMPTY_OUTFIT, body, pref);
+    expect(resolveOutfit({ ...base, outerId: jacket.id, outerSize: 'XL' }, body, pref).outerSize).toBe('XL');
+    const fixed = resolveOutfit({ ...base, outerId: jacket.id, outerSize: '99' }, body, pref);
+    expect(jacket.sizes.map((s) => s.label)).toContain(fixed.outerSize);
+    expect(resolveOutfit({ ...base, outerId: 'gone', outerSize: 'M' }, body, pref).outerId).toBeNull();
+    expect(resolveOutfit({ ...base, outerId: 'knightweave-tee', outerSize: 'M' }, body, pref).outerId).toBeNull();
+  });
+
+  it('puts a jacket on in its own slot, keeping the top', () => {
+    const current = resolveOutfit(EMPTY_OUTFIT, body, pref);
+    expect(wearGarment(current, jacket, 'L')).toEqual({ ...current, outerId: jacket.id, outerSize: 'L' });
+  });
+
+  it('never starts the top or bottom slot with a jacket', () => {
+    expect(firstGarment([jacket, ...garmentsByCategory('top')], 'top')!.category).toBe('top');
   });
 });

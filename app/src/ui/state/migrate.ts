@@ -4,7 +4,7 @@
  */
 
 import type { BodyInput } from '../../domain/body';
-import { isFitTestList, isStoredBody, STORAGE_KEYS, type FitTestRecord } from './stored';
+import { isFitTestList, isOutfit, isSavedOutfitList, isStoredBody, STORAGE_KEYS, type FitTestRecord, type Outfit, type SavedOutfit } from './stored';
 
 /** Only the bits of Storage we use, so tests can pass a plain object. */
 export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -16,6 +16,11 @@ export const LEGACY_KEYS = {
   fitTestsV2: 'choudo.fitTests.v2',
   /** v2 under the app's old name, from before the rename (the rename only moves current keys). */
   fitTestsV2Old: 'nimbus.fitTests.v2',
+  /** Outfits before the jacket slot, under both app names. */
+  outfitV1: 'choudo.outfit.v1',
+  outfitV1Old: 'nimbus.outfit.v1',
+  outfitsV1: 'choudo.outfits.v1',
+  outfitsV1Old: 'nimbus.outfits.v1',
 } as const;
 
 /** The app was called Nimbus; its keys started with this prefix before the rename to Choudo. */
@@ -59,6 +64,24 @@ export function migrateFitTestsV2(v: unknown): FitTestRecord[] {
     if (!isRecord(r) || !isRecord(r.prediction)) continue;
     const next: unknown[] = [{ ...r, category: 'top', prediction: { ...r.prediction, category: 'top' } }];
     if (isFitTestList(next)) out.push(...next);
+  }
+  return out;
+}
+
+/** A v1 outfit (top and bottom) as v2, with an empty jacket slot. Null when it isn't an outfit. */
+export function migrateOutfitV1(v: unknown): Outfit | null {
+  if (!isRecord(v)) return null;
+  const next = { ...v, outerId: null, outerSize: null };
+  return isOutfit(next) ? next : null;
+}
+
+/** v1 saved outfits as v2 (an empty jacket slot each). Entries that don't fit are dropped. */
+export function migrateSavedOutfitsV1(v: unknown): SavedOutfit[] {
+  if (!Array.isArray(v)) return [];
+  const out: SavedOutfit[] = [];
+  for (const o of v) {
+    const next = [isRecord(o) ? { ...o, outerId: null, outerSize: null } : o];
+    if (isSavedOutfitList(next)) out.push(...next);
   }
   return out;
 }
@@ -110,6 +133,10 @@ export function migrateStorage(given?: StorageLike): void {
     move(storage, LEGACY_KEYS.fitTestsV2, STORAGE_KEYS.fitTests, migrateFitTestsV2);
     move(storage, LEGACY_KEYS.fitTestsV2Old, STORAGE_KEYS.fitTests, migrateFitTestsV2);
     move(storage, LEGACY_KEYS.fitTestsV1, STORAGE_KEYS.fitTests, migrateFitTestsV1);
+    move(storage, LEGACY_KEYS.outfitV1, STORAGE_KEYS.outfit, migrateOutfitV1);
+    move(storage, LEGACY_KEYS.outfitV1Old, STORAGE_KEYS.outfit, migrateOutfitV1);
+    move(storage, LEGACY_KEYS.outfitsV1, STORAGE_KEYS.outfits, migrateSavedOutfitsV1);
+    move(storage, LEGACY_KEYS.outfitsV1Old, STORAGE_KEYS.outfits, migrateSavedOutfitsV1);
   } catch {
     // Storage unavailable or full: the app falls back to defaults.
   }
