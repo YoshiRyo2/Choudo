@@ -85,7 +85,8 @@ export function FittingRoom({
   const model = useMemo(() => estimateBody(body), [body]);
   const shown = useMemo(() => catalogueFor(GARMENTS, body.bodyType, catalogue), [body.bodyType, catalogue]);
   const outfit = useMemo(() => resolveOutfit(saved, model, preference, shown), [saved, model, preference, shown]);
-  const [browsing, setBrowsing] = useState<GarmentCategory>('top');
+  // Open on the dress when one is worn: the Top tab would have nothing on to show.
+  const [browsing, setBrowsing] = useState<GarmentCategory>(() => (outfit.onepieceId ? 'onepiece' : 'top'));
   const [saving, setSaving] = useState<'naming' | 'saved' | null>(null);
 
   const slot = (id: string | null, size: string | null, under?: UnderLayer): Slot | null => {
