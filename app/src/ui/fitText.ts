@@ -463,10 +463,19 @@ const MEASURE_NAME: Record<MeasurableKey, string> = {
   inseamCm: 'inseam',
 };
 
+/** The hinted measurement's name for this body: "chest", or "bust" for a women's body. */
+function measureName(hint: MeasureHint, bodyType: BodyType): string {
+  return hint.key === 'chestCm' && bodyType === 'womens' ? 'bust' : MEASURE_NAME[hint.key];
+}
+
 /** "Measure your chest to decide between M and L." ("bust" for a women's body) */
 export function measureHintText(hint: MeasureHint, bodyType: BodyType = 'mens'): string {
-  const name = hint.key === 'chestCm' && bodyType === 'womens' ? 'bust' : MEASURE_NAME[hint.key];
-  return `Measure your ${name} to decide between ${listOf(hint.sizes)}.`;
+  return `Measure your ${measureName(hint, bodyType)} to decide between ${listOf(hint.sizes)}.`;
+}
+
+/** The hint's button: "Add chest" ("Add bust" for a women's body). */
+export function measureHintAction(hint: MeasureHint, bodyType: BodyType = 'mens'): string {
+  return `Add ${measureName(hint, bodyType)}`;
 }
 
 /**

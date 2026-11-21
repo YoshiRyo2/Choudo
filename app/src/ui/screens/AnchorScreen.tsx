@@ -60,8 +60,8 @@ export function AnchorScreen({ units, anchor, style, onDone, onSkip, skipLabel }
             <span className="choice__hint">Lay it flat, two numbers, a minute with a tape</span>
           </button>
           <button type="button" className="choice choice--quiet" onClick={() => setStep('style')}>
-            <span className="choice__title">No — ask me another way</span>
-            <span className="choice__hint">One quick question instead</span>
+            <span className="choice__title">Ask me a question instead</span>
+            <span className="choice__hint">One quick question about how you like tees to fit</span>
           </button>
         </div>
       )}
