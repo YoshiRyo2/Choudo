@@ -148,3 +148,14 @@ describe('a jacket over a dress', () => {
     expect(layerAllowanceCm(model.measurements, dressXL).chestCm).toBeGreaterThan(0);
   });
 });
+
+describe('a dress whose chart doesn’t say where length is measured', () => {
+  const model = estimateBody({ heightCm: 163, weightKg: 68, bodyType: 'womens' });
+  const g = withDefs({ length: 'unknown', waistSeam: 'natural' });
+
+  it('leaves the hem unscored and has no walking room to guess at', () => {
+    const zones = fitGarment(model, g, 'M').zones;
+    expect(zones.find((z) => z.zone === 'length')!.label).toBe('unknown');
+    expect(zones.some((z) => z.zone === 'walkingRoom')).toBe(false);
+  });
+});

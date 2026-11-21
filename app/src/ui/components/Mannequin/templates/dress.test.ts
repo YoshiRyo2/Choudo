@@ -59,3 +59,12 @@ describe('dressShape', () => {
     expect(s.hemY).toBeCloseTo(g.height - dressHemHeight(m, surplice, sizeOf(surplice, 'M')), 2);
   });
 });
+
+describe('dressShape without a placeable length', () => {
+  it('draws the hem at the knee, dashed', () => {
+    const unknownLength = normalizeGarment({ ...DRESS_SEED, chart: { ...DRESS_SEED.chart, definitions: { length: 'unknown', waistSeam: 'natural' } } } as SeedGarment);
+    const s = dressShape(g, m, unknownLength, unknownLength.sizes[1]!.measurements);
+    expect(s.approximate).toBe(true);
+    expect(s.hemY).toBeCloseTo(g.y.knee, 6);
+  });
+});

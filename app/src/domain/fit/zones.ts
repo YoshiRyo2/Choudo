@@ -423,7 +423,8 @@ const DRESS_ZONES: readonly ZoneSpec[] = [
     bodyKey: 'thighCm',
     rule: WALKING_ROOM,
     optional: true,
-    applies: (_g, s) => s.length !== undefined,
+    // Needs the hem's height: only with a length we can place (from the shoulder or the centre back).
+    applies: (g, s) => hpsLengthCm(g, s) !== undefined,
     bodyTarget: (m, g, s) => strideGirthCm(m, dressHemHeight(m, g, s)),
     bodyAt: 'stride',
   },

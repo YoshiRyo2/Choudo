@@ -6,11 +6,12 @@
  * functions the fit compares at), the hips at the body's hip line where the fit
  * compares them, and every width is a chart girth through halfWidth (the bodice
  * is topShape over the chart's bust, as for any top). A chart without hips or a
- * hem sweep falls straight from the seam, drawn dashed (`approximate`).
+ * hem sweep falls straight from the seam, and one whose length can't be placed
+ * ends at the knee, both drawn dashed (`approximate`).
  */
 
 import type { BodyMeasurements } from '../../../../domain/body';
-import { dressHemHeight, dressSeamHeight } from '../../../../domain/fit';
+import { dressHemHeight, dressSeamHeight, hpsLengthCm } from '../../../../domain/fit';
 import { girthKnown, type Garment, type SizeMeasurements } from '../../../../domain/garments';
 import { bodyHalfAt, halfWidth, type BodyGeometry, type Marker } from '../geometry';
 import { topShape, type TopShape } from '../topShape';
@@ -38,6 +39,7 @@ export function dressShape(g: BodyGeometry, body: BodyMeasurements, garment: Gar
     size[key] !== undefined && girthKnown(garment, key) ? size[key] : undefined;
   const [waist, hips, sweep] = (['waist', 'hips', 'hemSweep'] as const).map(chartGirth);
 
+  const placeable = hpsLengthCm(garment, size) !== undefined;
   const seamY = g.height - dressSeamHeight(body, garment);
   const seamHalf = waist === undefined ? undefined : Math.max(halfWidth.waist(waist), bodyHalfAt(g, seamY) + MIN_ROOM_CM);
   const bodice = topShape(g, garment, size, body.chestCm, body, { hemAt: { y: seamY, half: seamHalf } });
@@ -47,7 +49,8 @@ export function dressShape(g: BodyGeometry, body: BodyMeasurements, garment: Gar
   const skirt = skirtOutline(g, {
     bandY: seamY,
     hipY: g.y.hip,
-    hemY: g.height - dressHemHeight(body, garment, size),
+    // A length we can't place (no length, or one measured from we don't know where) is drawn to the knee, dashed.
+    hemY: placeable ? g.height - dressHemHeight(body, garment, size) : g.y.knee,
     bandHalf,
     hips,
     sweep,
@@ -69,6 +72,6 @@ export function dressShape(g: BodyGeometry, body: BodyMeasurements, garment: Gar
     markers,
     hemY: skirt.hemY,
     asUnder: { ...bodice, right: { ...bodice.right, sideSeam: [...side, ...skirt.right.slice(1)] } },
-    approximate: bodice.approximate || hips === undefined || sweep === undefined,
+    approximate: bodice.approximate || hips === undefined || sweep === undefined || !placeable,
   };
 }
