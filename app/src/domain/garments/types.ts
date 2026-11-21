@@ -9,8 +9,11 @@
  *    is a full circumference. Produced by `normalizeGarment`.
  */
 
-/** The outfit slot: top (tees, shirts, knits), bottom, or outer (jackets and coats, worn over the top). */
-export type GarmentCategory = 'top' | 'bottom' | 'outer';
+/**
+ * The outfit slot: top (tees, shirts, knits), bottom, outer (jackets and coats,
+ * worn over the top), or onepiece (dresses: the top and the bottom in one).
+ */
+export type GarmentCategory = 'top' | 'bottom' | 'outer' | 'onepiece';
 
 export type GarmentType =
   | 'tee'
@@ -28,7 +31,8 @@ export type GarmentType =
   | 'sweater'
   | 'cardigan'
   | 'jacket'
-  | 'coat';
+  | 'coat'
+  | 'dress';
 
 /** Who the size chart is cut for. */
 export type GarmentSizing = 'mens' | 'womens' | 'unisex';
@@ -80,6 +84,14 @@ export type ThighDefinition = 'at_crotch' | 'below_crotch_2_5cm' | 'unknown';
 export type WaistDefinition = 'natural' | 'mid' | 'low' | 'unknown';
 
 /**
+ * Where a dress's waist seam sits: natural (at the waist, which ANSUR II measures
+ * at the navel), empire (under the bust), drop (below the waist, towards the hips),
+ * none (no seam: a sheath shaped by darts, its waist still at the waist), or unknown.
+ * See domain/fit/dress.ts.
+ */
+export type WaistSeamDefinition = 'natural' | 'empire' | 'drop' | 'none' | 'unknown';
+
+/**
  * Where each measurement is taken, as the chart defines it. A zone that needs a
  * definition is "unknown" without the one it accepts (see domain/fit/zones.ts).
  */
@@ -90,6 +102,8 @@ export interface Definitions {
   thigh?: ThighDefinition;
   /** Skirts: where the waistband sits. */
   waist?: WaistDefinition;
+  /** Dresses: where the waist seam sits. */
+  waistSeam?: WaistSeamDefinition;
 }
 export type DefinitionName = keyof Definitions;
 
@@ -100,6 +114,7 @@ export const DEFINITION_VALUES: { [K in DefinitionName]-?: readonly NonNullable<
   rise: ['front', 'back', 'total', 'unknown'],
   thigh: ['at_crotch', 'below_crotch_2_5cm', 'unknown'],
   waist: ['natural', 'mid', 'low', 'unknown'],
+  waistSeam: ['natural', 'empire', 'drop', 'none', 'unknown'],
 };
 
 /** How the brand means the garment to sit. Used to judge whether its ease is plausible. */
@@ -401,7 +416,7 @@ export interface Garment extends GarmentBase {
   stretchByKey?: Partial<Record<MeasurementKey, Stretch>>;
   lengthDefinition?: LengthDefinition;
   sleeveDefinition?: SleeveDefinition;
-  /** Every other definition the chart gives (rise, thigh, a skirt's waist). Read any definition with definitionOf(). */
+  /** Every other definition the chart gives (rise, thigh, a skirt's waist, a dress's waist seam). Read any definition with definitionOf(). */
   definitions?: Omit<Definitions, 'length' | 'sleeve'>;
   /** Skirts: chart.hipsBelowWaist in cm. */
   hipsBelowWaistCm?: number;

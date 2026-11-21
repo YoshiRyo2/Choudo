@@ -80,7 +80,7 @@ export const CHEST_ANSWERS: readonly ChestAnswer[] = ['too-tight', 'just-right',
 export const LENGTH_ANSWERS: readonly LengthAnswer[] = ['too-short', 'just-right', 'too-long'];
 
 /** What a Test-mode result is about: a top, a bottom or an outer layer (a jacket). */
-export type FitTestCategory = 'top' | 'bottom' | 'outer';
+export type FitTestCategory = 'top' | 'bottom' | 'outer' | 'onepiece';
 
 /** Chance of under / right / over for one zone. */
 export interface ZoneChances {
@@ -245,8 +245,8 @@ function isZoneChances(v: unknown): v is ZoneChances {
   return isRecord(v) && isNumber(v.under) && isNumber(v.right) && isNumber(v.over);
 }
 
-// Widened with jackets ('outer'); every older record still reads, so the key stays v3.
-const isCategory = (v: unknown): v is FitTestCategory => v === 'top' || v === 'bottom' || v === 'outer';
+// Widened with jackets ('outer') and dresses ('onepiece'); every older record still reads, so the key stays v3.
+const isCategory = (v: unknown): v is FitTestCategory => v === 'top' || v === 'bottom' || v === 'outer' || v === 'onepiece';
 const optional = <T>(guard: (x: unknown) => x is T) => (x: unknown) => x === undefined || guard(x);
 const isGirthAnswer = (v: unknown): v is GirthAnswer => (CHEST_ANSWERS as readonly unknown[]).includes(v);
 

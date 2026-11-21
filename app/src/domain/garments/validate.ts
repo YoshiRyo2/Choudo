@@ -40,10 +40,10 @@ export function validateGarment(g: SeedGarment): string[] {
   if (!g.brand || !g.name) problems.push('missing brand or name');
   if (!/^#[0-9a-f]{6}$/i.test(g.color)) problems.push('color must be #rrggbb');
   if (!GARMENT_SIZINGS.includes(g.sizing)) problems.push('sizing must be "mens", "womens" or "unisex"');
-  if (spec.sleeve === 'required' && !g.sleeve) problems.push('tops need a sleeve type');
+  if (spec.sleeve === 'required' && !g.sleeve) problems.push(spec.category === 'onepiece' ? `a ${g.type} needs a sleeve type` : 'tops need a sleeve type');
   if (spec.sleeve === 'forbidden' && g.sleeve) problems.push("bottoms can't have a sleeve");
   if (spec.category === 'top' && g.ankleZip !== undefined) problems.push("tops can't have an ankle zip");
-  if (spec.category === 'outer' && g.ankleZip !== undefined) problems.push(`a ${g.type} can't have an ankle zip`);
+  if ((spec.category === 'outer' || spec.category === 'onepiece') && g.ankleZip !== undefined) problems.push(`a ${g.type} can't have an ankle zip`);
   problems.push(...validateStretch(g.stretch));
   if (g.weight !== undefined && !GARMENT_WEIGHTS.includes(g.weight)) {
     problems.push(`weight must be one of ${GARMENT_WEIGHTS.join(', ')}`);
@@ -103,6 +103,9 @@ export function validateProvenance(g: SeedGarment): string[] {
     else if (typeof chart.hipsBelowWaist !== 'number' || !(chart.hipsBelowWaist > 0)) {
       problems.push('chart.hipsBelowWaist must be a positive number');
     }
+  }
+  if (chart.definitions?.waistSeam !== undefined && categorySpec(g).template !== 'dress') {
+    problems.push('only dresses give chart.definitions.waistSeam');
   }
   const length = chartDefinition(chart, 'length');
   const spec = categorySpec(g);

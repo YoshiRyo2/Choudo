@@ -377,6 +377,8 @@ export const TEMPLATE_ZONES: Record<TemplateId, TemplateZones> = {
   shorts: { template: 'shorts', zones: SHORTS_ZONES, personal: null },
   skirt: { template: 'skirt', zones: SKIRT_ZONES, personal: null },
   jacket: { template: 'jacket', zones: JACKET_ZONES, personal: { girth: 'chest', length: null, easeOffsetCm: JACKET_EASE_OFFSET_CM } },
+  // Zones come with the dress fit (PR 5, Task 3).
+  dress: { template: 'dress', zones: [], personal: null },
 };
 
 export const templateZones = (g: Pick<Garment, 'type'>): TemplateZones => TEMPLATE_ZONES[templateOf(g)];

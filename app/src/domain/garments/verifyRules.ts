@@ -146,6 +146,25 @@ export const SKIRT_RANGES: Partial<Record<MeasurementKey, Range>> = {
   hemSweep: { min: 70, max: 400 },
 };
 
+/**
+ * Plausible dress measurements, cm (full circumference). ASSUMED: a bust from a
+ * size 00 to a 30W plus a fitted wearing ease, a waist and hips as a skirt's, a
+ * hem from a pencil sheath to a full circle, shoulders from a narrow women's 30 cm.
+ */
+export const DRESS_RANGES: Partial<Record<MeasurementKey, Range>> = {
+  chest: { min: 70, max: 170 },
+  waist: { min: 55, max: 160 },
+  hips: { min: 75, max: 175 },
+  hemSweep: { min: 70, max: 400 },
+  shoulder: { min: 30, max: 55 },
+};
+
+/** Dress length from the high point of the shoulder, mini to maxi. ASSUMED. */
+export const DRESS_LENGTH_RANGES: Range = { min: 70, max: 160 };
+
+/** Dress long sleeves, by where they're measured from. ASSUMED: as a jacket's. */
+export const DRESS_SLEEVE_RANGES: Partial<Record<SleeveDefinition, Range>> = JACKET_SLEEVE_RANGES;
+
 /** A skirt chart's hip point, cm below the top of the waistband. ASSUMED (charts print 6–9 in). */
 export const SKIRT_HIP_DROP_RANGE: Range = { min: 5, max: 30 };
 

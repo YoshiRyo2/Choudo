@@ -214,6 +214,7 @@ const TYPE_NOUN: Record<GarmentType, string> = {
   skirt: 'skirt',
   jacket: 'jacket',
   coat: 'coat',
+  dress: 'dress',
 };
 
 /** A fit worked out over a layer says so: "With your hoodie under it". null for a bare-body fit. */

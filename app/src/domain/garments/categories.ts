@@ -24,6 +24,9 @@ import type {
 import { KNIT_OPTIONAL_LANDMARKS, PANTS_LANDMARKS, TOP_LANDMARKS } from './types';
 import {
   BOTTOM_RANGES,
+  DRESS_LENGTH_RANGES,
+  DRESS_RANGES,
+  DRESS_SLEEVE_RANGES,
   JACKET_LENGTH_RANGES,
   JACKET_RANGES,
   JACKET_SLEEVE_RANGES,
@@ -50,7 +53,7 @@ export interface Relation {
 }
 
 /** The template a garment type is fitted, checked and drawn with. */
-export type TemplateId = 'tee' | 'shirt' | 'knit' | 'pants' | 'shorts' | 'skirt' | 'jacket';
+export type TemplateId = 'tee' | 'shirt' | 'knit' | 'pants' | 'shorts' | 'skirt' | 'jacket' | 'dress';
 
 export const TYPE_TEMPLATE: Record<GarmentType, TemplateId> = {
   tee: 'tee',
@@ -69,6 +72,7 @@ export const TYPE_TEMPLATE: Record<GarmentType, TemplateId> = {
   cardigan: 'knit',
   jacket: 'jacket',
   coat: 'jacket',
+  dress: 'dress',
 };
 
 export const GARMENT_TYPES = Object.keys(TYPE_TEMPLATE) as GarmentType[];
@@ -187,6 +191,29 @@ const TOP_SPEC = {
   scoredDefinitions: { length: ['hps'], sleeve: ['shoulder_to_cuff'] },
 } as const satisfies Omit<CategorySpec, 'template'>;
 
+// A dress: the top's checks for the bust, length and sleeve, the skirt's for the waist and hips.
+const DRESS_SPEC: CategorySpec = {
+  template: 'dress',
+  category: 'onepiece',
+  sleeve: 'required',
+  lengthDefinition: 'required',
+  // Dress length runs from the shoulder, as a top's (domain/fit/dress.ts places the hem from it).
+  lengthDefinitions: ['hps', 'center_back', 'unknown'],
+  scoredDefinitions: { length: ['hps', 'center_back'], sleeve: ['shoulder_to_cuff', 'center_back_to_cuff'] },
+  // No dress photos yet.
+  landmarks: null,
+  checks: {
+    required: ['chest', 'length'],
+    ranges: DRESS_RANGES,
+    lengthRanges: { dress: DRESS_LENGTH_RANGES },
+    sleeveRanges: DRESS_SLEEVE_RANGES,
+    // The typical-chest table is a tee's; a dress's bust is cut with its own ease.
+    labelEase: null,
+    relations: SKIRT_RELATIONS,
+  },
+  defaultWeight: 'light',
+};
+
 export const CATEGORY_SPECS: Record<TemplateId, CategorySpec> = {
   tee: { template: 'tee', ...TOP_SPEC },
   shirt: { template: 'shirt', ...TOP_SPEC },
@@ -253,6 +280,7 @@ export const CATEGORY_SPECS: Record<TemplateId, CategorySpec> = {
     defaultWeight: 'mid',
     scoredDefinitions: { length: ['hps', 'center_back'], sleeve: ['shoulder_to_cuff', 'center_back_to_cuff'] },
   },
+  dress: DRESS_SPEC,
 };
 
 export const isGarmentType = (type: unknown): type is GarmentType =>
