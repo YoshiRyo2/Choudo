@@ -7,6 +7,7 @@ import { affineToSvg, warpPantsPieces, warpPieces, type WarpPiece, type WarpRegi
 import { dressShape } from './templates/dress';
 import { jacketShape } from './templates/jacket';
 import { pantsShape } from './templates/pants';
+import { leggingsShape } from './templates/leggings';
 import { skirtShape } from './templates/skirt';
 import { topShape } from './topShape';
 import { usePhotoSize, type PhotoSize } from './usePhotoSize';
@@ -65,10 +66,12 @@ export function Mannequin({ body, top: shirt, bottom, onepiece, outer, showFit =
   const topSize = shirt?.garment.sizes.find((s) => s.label === shirt.sizeLabel);
   const bottomSize = bottom?.garment.sizes.find((s) => s.label === bottom.sizeLabel);
   const topDraw = shirt && topSize ? topShape(g, shirt.garment, topSize.measurements, body.chestCm, body) : (dressDraw?.bodice ?? null);
-  // Skirts have their own template; pants and shorts share the pants one.
-  const isSkirt = bottom ? templateOf(bottom.garment) === 'skirt' : false;
+  // Skirts have their own template; pants and shorts share the pants one; leggings draw skin-tight on its outline.
+  const bottomTemplate = bottom ? templateOf(bottom.garment) : null;
+  const isSkirt = bottomTemplate === 'skirt';
   const skirtDraw = bottom && bottomSize && isSkirt ? skirtShape(g, body, bottom.garment, bottomSize.measurements) : null;
-  const bottomDraw = bottom && bottomSize && !isSkirt ? pantsShape(g, body, bottom.garment, bottomSize.measurements) : null;
+  const legShape = bottomTemplate === 'leggings' ? leggingsShape : pantsShape;
+  const bottomDraw = bottom && bottomSize && !isSkirt ? legShape(g, body, bottom.garment, bottomSize.measurements) : null;
   // A dress is dashed as a whole when any of its widths is a fallback.
   const topApproximate = dressDraw?.approximate ?? topDraw?.approximate ?? false;
   // A jacket hangs off the top drawn under it (templates/jacket.ts), with the room the fit gives that top.

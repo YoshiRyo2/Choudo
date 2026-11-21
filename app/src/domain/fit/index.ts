@@ -16,6 +16,7 @@ export * from './fitTestReport';
 export * as fitRules from './rules';
 export * as fitUncertainty from './uncertainty';
 export { bandHeight, girthAtHeight, riseForBand } from './pants';
+export { crotchToAnkleCm, leggingsHemHeight } from './leggings';
 export { crotchToKneeCm } from './shorts';
 export { legGirthAt, skirtBandHeight, skirtHemHeight, skirtHipHeight, strideGirthCm } from './skirt';
 export { HPS_BELOW_TOP_RATIO, hpsBelowTopCm, hpsHeightCm, hpsLengthCm, lengthTargetCm, SHOULDER_CURVE_CM, sleeveFromShoulderPointCm, sleeveReachCm, sleeveTargetCm } from './tops';
