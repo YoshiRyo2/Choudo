@@ -33,7 +33,7 @@ app/src/
     body/        estimateBody(input) -> BodyModel (men's power law; women's ANSUR II regressions),
                  braSize.ts (parse "34DD", US/UK cups, bust estimate)
     garments/    types.ts (schema), seed.json, normalize.ts (printed -> cm + provenance),
-                 categories.ts (type -> template: tee | shirt | knit | pants | shorts | skirt; CategorySpec data rules, weightOf),
+                 categories.ts (type -> template: tee | shirt | knit | pants | shorts | skirt | jacket | dress; CategorySpec data rules, weightOf),
                  chart.ts (per-measurement girth method, stretch, definitions),
                  validate.ts (structure), verify.ts + verifyRules.ts (stage-5 checks),
                  grade.ts (confidence grade), report.ts (npm run data:check text),
@@ -43,9 +43,10 @@ app/src/
                  pants.ts (bandHeight, girthAtHeight: where a waistband sits; the drawing reads it too),
                  shorts.ts (crotchToKneeCm), skirt.ts (band / hip-point / hem heights, legGirthAt,
                  strideGirthCm; the drawing reads them too),
-                 tops.ts (length / sleeve body targets per definition, centre back included; the drawing reads it too),
+                 tops.ts (length / sleeve body targets per definition, centre back included, HPS height; the drawing reads it too),
+                 dress.ts (seam / hem heights, HPS to knee; the drawing reads them too),
                  layers.ts (what a top under a jacket adds: layerAllowanceCm, layerGrowCm; the drawing reads it too),
-                 outfit.ts (fitOutfit: top and bottom bare, the jacket over the top, layer notes),
+                 outfit.ts (fitOutfit: top, bottom or dress bare, the jacket over the top or dress, layer notes),
                  golden.test.ts + __golden__/ (byte-for-byte snapshot of every garment's fit and odds)
                  preference.ts (anchor tee / fit style -> personal verdict), sampleFit.ts
                  (seeded odds, recommendSize, measurementHint), uncertainty.ts (every spread),
@@ -54,7 +55,7 @@ app/src/
     screens/     BodyScreen (input; pure bodyForm.ts, bodyFieldErrors.ts: per-field checks shown on blur,
                  bodyPreview.ts: a typical body until height + weight are valid), AnchorScreen (fit reference), FittingRoom (browse + size + fit),
                  FitTestPanel (Test mode), Discover (swipe feed), Closet + closet/ (Liked, Folders, Outfits tabs)
-    components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts + skirt.ts + jacket.ts, photoWarp.ts + SVG),
+    components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts + skirt.ts + jacket.ts + dress.ts, photoWarp.ts + SVG),
                  SwipeCard/ (pure swipe.ts),
                  FitStrip (size row + verdict line under the stage), sizeRow.ts (pure),
                  GarmentIcon (card picture: photo or flat drawing; garmentThumb.ts picks, pure),
@@ -150,6 +151,15 @@ inputs/outputs and unit tests. UI only calls their public functions.
   knee-length / calf). Chest = the top chest rule moved out by `JACKET_EASE_OFFSET_CM` (13, assumed
   from J317's grading); the personal target moves too, no personal length; jackets are never
   anchors. No bicep zone yet (no chart or body key). All thresholds assumed.
+- Dresses (type `dress` → template `dress`, category **`onepiece`**, in place of the top and the
+  bottom): bust (required, `DRESS_GIRTH_RULES` = `TOP_CHEST` for every sizing, assumed), shoulder
+  (optional, `JACKET_SHOULDER`, when charted), sleeve (as knits), waist (optional, when charted, at
+  the navel; scored only for `definitions.waistSeam` `natural` or `none`: empire needs an underbust,
+  drop and unknown can't be placed), hips (optional, when charted, `BOTTOM_HIPS` at the fullest),
+  length a landing with the skirt's marks against HPS → mid-knee (`bodyAt: 'shoulder_knee'`; the HPS
+  height is `hpsHeightCm`, `HPS_BELOW_TOP_RATIO` 0.165 below the head, assumed: the mannequin's own),
+  walking room as skirts at the dress's hem. Objective only (`personal: null`), worded as bottoms
+  (`objectiveOnly` in `fitText.ts`). Heights in `domain/fit/dress.ts`. Sleeveless isn't supported yet.
 - Layering (`domain/fit/layers.ts`): charts and bands are bare-body; a jacket assumes something light
   under it (`OUTER_ASSUMES`). With a top under it (`fitGarment(…, under)`), layered zones compare with
   the body + `layerAllowanceCm`: `LAYER_BULK_CM[weight] − LAYER_BULK_CM.light` (light 0.5 / mid 2 /
@@ -221,7 +231,8 @@ inputs/outputs and unit tests. UI only calls their public functions.
   and keeps each value's origin, printed number and conversions (`GarmentSize.provenance`).
 - Every row has `sizing: "mens" | "womens" | "unisex"` (who the chart is cut for). Gildan 5000
   and Knightweave are unisex; the Lands' End A-line skirt is the first women's row; Port Authority
-  J317 (men's) and L317 (women's) soft shells are the first jackets (SanMar spec sheets, tier B). The Fitting room and Discover show the body type's sizing plus
+  J317 (men's) and L317 (women's) soft shells are the first jackets (SanMar spec sheets, tier B); Lands' End's
+  sheath (505999) and surplice (441021) are the first dresses (item-dimension PDFs, tier B). The Fitting room and Discover show the body type's sizing plus
   unisex, with a shared "Show: … & unisex | All" toggle (`catalogueFor`); a worn garment
   stays on even when hidden.
 - `checkGarment` (stage 5) returns errors and warnings. Errors leave the garment out of the
@@ -238,6 +249,10 @@ inputs/outputs and unit tests. UI only calls their public functions.
   `JACKET_LENGTH_RANGES` (jacket 50–100, coat 70–125), the knit flat-chest limit, no tee chest-ease
   check; length definition `hps | center_back | unknown`; an outer can't have an ankle zip; no photo
   landmarks yet (`landmarks: null`).
+- Dress checks: `DRESS_RANGES` (chest 70–170, waist 55–160, hips 75–175, sweep 70–400, shoulder
+  30–55), `DRESS_LENGTH_RANGES` (70–160 from HPS), sleeve as jackets, `waist ≤ hips`; a sleeve is
+  required; length definition `hps | center_back | unknown`; `waistSeam` only on dresses; no photo
+  landmarks yet.
 - Shorts checks: `SHORTS_RANGES` (inseam 5–35 cm, opening 40–100), `legOpening ≤ thigh`. Skirt
   checks: `SKIRT_RANGES`, `waist ≤ hips`, a length definition from `lengthDefinitions`
   (`waist | unknown`; tops can't use `waist`), `hipsBelowWaist` only on skirts, 5–30 cm and above
@@ -256,6 +271,10 @@ inputs/outputs and unit tests. UI only calls their public functions.
   that top's hem; `jacketShape` runs `topShape` on it with chest = body + `layerAllowanceCm` (what the
   fit compares), plus a placket and stand collar (drawn closed). The Mannequin draws `outer` last;
   under a jacket the top's arm overlay and pins give way to the jacket's. A longer top shows below.
+- Dresses (`templates/dress.ts`): the bodice is `topShape` ended at the seam (`hemAt`: the chart
+  waist's width there), the skirt `skirtOutline` from the seam to `dressHemHeight` (hips at the hip
+  line, sweep from the chart; dashed without hips or sweep). Drawn bodice → skirt → arms → sleeves;
+  `asUnder` carries the side seam down the skirt so a jacket hangs over it.
 - Knits draw with `topShape` plus surface details: a rib hem band gathered to the chart's hem band
   (stretched onto the body where smaller, never wider than the body above; body width without one),
   rib cuffs, and for hoodies a hood behind the neck with drawcords. Length and a centre-back
@@ -315,18 +334,22 @@ CI and cloud sessions install with `npm ci --ignore-scripts` then `npm rebuild e
 Logic that can be pure (geometry, form parsing, wording) lives in its own `.ts` file with
 tests; components stay thin. localStorage keys are versioned (`choudo.body.v2`): bump the
 version when a stored shape changes, and move old data in `ui/state/migrate.ts` (runs once at
-start-up). Keys today: `body` (v2: `bodyType`, optional `braSize`), `units`, `outfit` (v2, fitting
-room: top, bottom and `outerId/outerSize`, a jacket slot never filled by default), `swipes` (one
-`{garmentId, sizeShown, liked, at}` per garment), `folders`, `outfits` (v2, saved, with the jacket slot), `anchor` (tee the user likes), `fitStyle`, `catalogue` (`matching` | `all`),
+start-up). Keys today: `body` (v2: `bodyType`, optional `braSize`), `units`, `outfit` (v3, fitting
+room: top, bottom, `outerId/outerSize` (a jacket slot never filled by default) and
+`onepieceId/onepieceSize` (a dress: top and bottom stay null while it's worn)), `swipes` (one
+`{garmentId, sizeShown, liked, at}` per garment), `folders`, `outfits` (v3, saved, with the jacket and dress slots), `anchor` (tee the user likes), `fitStyle`, `catalogue` (`matching` | `all`),
 `testMode` (dev only), `fitTests` (v3, Test mode results with a `category`: tops record chest + length,
-bottoms waist, thigh + inseam, jackets (`outer`) chest + sleeve with `wornOver`; the CSV column stays
+bottoms waist, thigh + inseam, jackets (`outer`) chest + sleeve with `wornOver`, dresses (`onepiece`)
+chest + waist (when scored) + length; the CSV column stays
 `sizing`, bottoms columns come last, then `worn_over`). Keys from
 before the Choudo rename used the app's old prefix; `migrateAppRename` moves them over
 (when both exist, the `choudo.*` key wins).
 
 ## Discover + Closet
-- The Fitting room browses Top / Bottom / Jacket; a worn jacket's sizes, odds, hint and fit sheet
-  are worked out over the top, and its readout says "With your hoodie under it" plus layer notes.
+- The Fitting room browses Top / Bottom / Dress / Jacket (Dress only when a dress is on show or
+  worn; it opens on Dress when one is worn). A dress takes the place of the top and bottom; a top
+  or bottom takes it off. A worn jacket's sizes, odds, hint and fit sheet are worked out over the
+  top or dress, and its readout says "With your hoodie under it" plus layer notes.
 - Navigation is a bottom `TabBar` (Fitting room / Discover / Closet) with plain state in
   `App.tsx`; the fitting-room outfit and the closet data live in `App` so any screen can
   put clothes on the mannequin.
