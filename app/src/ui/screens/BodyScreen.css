@@ -121,6 +121,11 @@
 .body-screen__actions .field-error {
   flex-basis: 100%;
 }
+/* Stays ink while height or weight is missing: tapping it says what's needed
+   (aria-disabled, not disabled, so it stays focusable and tappable). */
+.body-screen__actions .button--primary[aria-disabled='true'] {
+  background: var(--ink);
+}
 
 .body-screen__privacy {
   margin: 0;
@@ -153,15 +158,16 @@
 }
 
 .body-screen__figure {
+  margin: 0;
   height: min(52dvh, 460px);
 }
 
-.body-screen__empty {
-  grid-column: 1 / -1;
+/* Beside the typical-body preview, where the estimates go once there's a body. */
+.body-screen__caption {
   margin: 0;
-  padding: 48px 8px;
+  max-width: 13ch;
+  font-size: var(--step--1);
   color: var(--muted);
-  text-align: center;
 }
 
 .estimates {

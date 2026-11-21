@@ -8,6 +8,7 @@ import {
   formatLength,
   GRADE_EXPLAINED,
   labelOddsText,
+  measureHintAction,
   measureHintText,
   personalOddsText,
   preferenceNote,
@@ -109,7 +110,7 @@ export function FitReadout({
         <p className="readout__hint">
           {measureHintText(hint, fit.bodyType)}{' '}
           <button type="button" className="link-button" onClick={onEditBody}>
-            Add it
+            {measureHintAction(hint, fit.bodyType)}
           </button>
         </p>
       )}

@@ -9,6 +9,7 @@ import {
   fitReferenceLine,
   formatPercent,
   labelOddsText,
+  measureHintAction,
   measureHintText,
   personalOddsText,
   preferenceNote,
@@ -264,6 +265,14 @@ describe('odds wording', () => {
     expect(measureHintText({ key: 'inseamCm', sizes: ['30x30', '30x32', '32x32'] })).toBe(
       'Measure your inseam to decide between 30x30, 30x32 and 32x32.',
     );
+  });
+
+  it('labels the hint button with the measurement to add, bust for a women’s body', () => {
+    expect(measureHintAction({ key: 'chestCm', sizes: ['M', 'L'] })).toBe('Add chest');
+    expect(measureHintAction({ key: 'chestCm', sizes: ['M', 'L'] }, 'womens')).toBe('Add bust');
+    expect(measureHintAction({ key: 'waistCm', sizes: ['M', 'L'] }, 'womens')).toBe('Add waist');
+    expect(measureHintAction({ key: 'hipsCm', sizes: ['M', 'L'] })).toBe('Add hips');
+    expect(measureHintAction({ key: 'inseamCm', sizes: ['30x30', '30x32'] }, 'mens')).toBe('Add inseam');
   });
 });
 

@@ -156,7 +156,8 @@ export function FittingRoom({
     s ? { garment: s.garment, sizeLabel: s.size, fit: s.fit } : undefined;
 
   return (
-    <div className="fitting">
+    <main className="fitting">
+      <h1 className="visually-hidden">Fitting room</h1>
       <header className="fitting__bar">
         <Wordmark />
         <SegmentedControl
@@ -333,6 +334,6 @@ export function FittingRoom({
           />
         )}
       </section>
-    </div>
+    </main>
   );
 }

@@ -35,7 +35,7 @@ export function LikedTab({ model, preference, likedIds, onOpen, onUnlike, folder
     return (
       <section className="empty-state">
         <h2>Nothing liked yet</h2>
-        <p>Swipe right on a garment in Discover and it will be kept here.</p>
+        <p>Tap the heart in Discover, or swipe right, to keep a garment here.</p>
         <button type="button" className="button button--primary" onClick={onOpenDiscover}>
           Go to Discover
         </button>
