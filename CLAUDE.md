@@ -49,7 +49,8 @@ app/src/
                  (seeded odds, recommendSize, measurementHint), uncertainty.ts (every spread),
                  random.ts, fitTestCsv.ts + fitTestReport.ts (npm run fit:report)
   ui/            React (app icons and favicon: app/public/, made by npm run icons)
-    screens/     BodyScreen (input), AnchorScreen (fit reference), FittingRoom (browse + size + fit),
+    screens/     BodyScreen (input; pure bodyForm.ts, bodyFieldErrors.ts: per-field checks shown on blur,
+                 bodyPreview.ts: a typical body until height + weight are valid), AnchorScreen (fit reference), FittingRoom (browse + size + fit),
                  FitTestPanel (Test mode), Discover (swipe feed), Closet + closet/ (Liked, Folders, Outfits tabs)
     components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts + skirt.ts, photoWarp.ts + SVG),
                  SwipeCard/ (pure swipe.ts),

@@ -1,13 +1,12 @@
 import { useId, useMemo, useState, type FormEvent } from 'react';
 import {
   estimateBody,
-  INPUT_LIMITS,
   validateBodyInput,
   type BodyInput,
   type BodyModel,
   type BodyType,
 } from '../../domain/body';
-import { cmToIn, kgToLb, round } from '../../domain/units';
+import { cmToIn, round } from '../../domain/units';
 import { AboutSheet } from '../components/AboutSheet';
 import { Mannequin } from '../components/Mannequin/Mannequin';
 import { FieldError, NumberInput } from '../components/NumberInput';
@@ -24,6 +23,8 @@ import {
   type BodyForm,
   type OverrideField,
 } from './bodyForm';
+import { ALL_FIELDS, fieldErrors, forgetIfFixed, reveal, shownErrors, type FormField } from './bodyFieldErrors';
+import { previewBody } from './bodyPreview';
 import './BodyScreen.css';
 
 interface BodyScreenProps {
@@ -66,62 +67,21 @@ const overrideLabel = (field: OverrideField, bodyType: BodyType) =>
 const overrideHint = (field: OverrideField, bodyType: BodyType) =>
   field === 'chest' && bodyType === 'womens' ? 'Fullest part, tape level all round' : OVERRIDE_HINT[field];
 
-type FieldKey = keyof typeof INPUT_LIMITS;
-
-/** Domain field -> where the message shows on the form. */
-const FIELD_OF: Record<FieldKey, 'height' | 'weight' | OverrideField> = {
-  heightCm: 'height',
-  weightKg: 'weight',
-  chestCm: 'chest',
-  waistCm: 'waist',
-  hipsCm: 'hips',
-  inseamCm: 'inseam',
-};
-
-const FIELD_NAME: Record<FieldKey, string> = {
-  heightCm: 'Height',
-  weightKg: 'Weight',
-  chestCm: 'Chest',
-  waistCm: 'Waist',
-  hipsCm: 'Hips',
-  inseamCm: 'Inseam',
-};
-
-/** Range messages in the units the user is typing in. */
-function errorMessages(input: BodyInput | null, units: UnitSystem): Partial<Record<string, string>> {
-  if (!input) return {};
-  const out: Partial<Record<string, string>> = {};
-  for (const err of validateBodyInput(input)) {
-    if (err.field === 'braSize') continue; // the form shows its own bra-size message
-    const { min, max } = INPUT_LIMITS[err.field];
-    let range: string;
-    if (units === 'metric') {
-      range = `${min}–${max} ${err.field === 'weightKg' ? 'kg' : 'cm'}`;
-    } else if (err.field === 'weightKg') {
-      range = `${Math.round(kgToLb(min))}–${Math.round(kgToLb(max))} lb`;
-    } else if (err.field === 'heightCm') {
-      range = `${Math.round(cmToIn(min))}–${Math.round(cmToIn(max))} in total`;
-    } else {
-      range = `${Math.round(cmToIn(min))}–${Math.round(cmToIn(max))} in`;
-    }
-    const name = err.field === 'chestCm' && input.bodyType === 'womens' ? 'Bust' : FIELD_NAME[err.field];
-    out[FIELD_OF[err.field]] = `${name} should be ${range}.`;
-  }
-  return out;
-}
-
 export function BodyScreen({ initial, units, onDone, onCancel, fitReference, testMode }: BodyScreenProps) {
   const [form, setForm] = useState<BodyForm>(() =>
     initial ? inputToForm(initial, units) : { ...EMPTY_FORM, units },
   );
   const [showTape, setShowTape] = useState(() => Boolean(initial?.overrides));
   const [submitted, setSubmitted] = useState(false);
+  // Fields whose error may show: each after it loses focus, all after a submit.
+  const [revealed, setRevealed] = useState<ReadonlySet<FormField>>(() => new Set());
   const [about, setAbout] = useState(false);
   const formId = useId();
 
   const input = useMemo(() => formToInput(form), [form]);
   const braProblem = braSizeProblemText(form);
-  const errors = useMemo(() => errorMessages(input, form.units), [input, form.units]);
+  const errors = useMemo(() => fieldErrors(form), [form]);
+  const shown = shownErrors(errors, revealed);
   const model: BodyModel | null = useMemo(
     () => (input && validateBodyInput(input).length === 0 ? estimateBody(input) : null),
     [input],
@@ -130,8 +90,15 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
   const metric = form.units === 'metric';
   const lengthUnit = metric ? 'cm' : 'in';
   const set = (patch: Partial<BodyForm>) => setForm((f) => ({ ...f, ...patch }));
+  /** Typing into a field: its error hides as soon as it's right, and shows again only on blur. */
+  const edit = (field: FormField, next: BodyForm) => {
+    setForm(next);
+    setRevealed((r) => forgetIfFixed(r, field, fieldErrors(next)));
+  };
   const setOverride = (field: OverrideField, value: string) =>
-    setForm((f) => ({ ...f, overrides: { ...f.overrides, [field]: value } }));
+    edit(field, { ...form, overrides: { ...form.overrides, [field]: value } });
+  const blur = (field: FormField) => () => setRevealed((r) => reveal(r, [field]));
+  const errorId = (field: FormField) => `${formId}-${field}-error`;
 
   const missing = !input;
   const canSubmit = model !== null && braProblem === undefined;
@@ -139,6 +106,7 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
   function submit(e: FormEvent) {
     e.preventDefault();
     setSubmitted(true);
+    setRevealed((r) => reveal(r, ALL_FIELDS));
     if (input && model && !braProblem) onDone(input, form.units);
   }
 
@@ -149,7 +117,8 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
     return String(round(metric ? cm : cmToIn(cm), metric ? 0 : 1));
   };
 
-  const fieldError = (name: string) => errors[name];
+  const fieldError = (name: FormField) => shown[name];
+  const preview = previewBody(model, form.bodyType);
 
   return (
     <main className="body-screen">
@@ -193,8 +162,10 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
               label="Height"
               unit="cm"
               value={form.heightCm}
-              onChange={(heightCm) => set({ heightCm })}
+              onChange={(heightCm) => edit('height', { ...form, heightCm })}
+              onBlur={blur('height')}
               invalid={Boolean(fieldError('height'))}
+              errorId={errorId('height')}
               autoFocus={!initial}
             />
           ) : (
@@ -204,8 +175,10 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
                 label="Feet"
                 unit="ft"
                 value={form.heightFt}
-                onChange={(heightFt) => set({ heightFt })}
+                onChange={(heightFt) => edit('height', { ...form, heightFt })}
+                onBlur={blur('height')}
                 invalid={Boolean(fieldError('height'))}
+                errorId={errorId('height')}
                 autoFocus={!initial}
               />
               <NumberInput
@@ -213,12 +186,14 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
                 label="Inches"
                 unit="in"
                 value={form.heightIn}
-                onChange={(heightIn) => set({ heightIn })}
+                onChange={(heightIn) => edit('height', { ...form, heightIn })}
+                onBlur={blur('height')}
                 invalid={Boolean(fieldError('height'))}
+                errorId={errorId('height')}
               />
             </div>
           )}
-          <FieldError message={fieldError('height')} />
+          <FieldError id={errorId('height')} message={fieldError('height')} />
         </fieldset>
 
         <fieldset className="measure">
@@ -228,10 +203,12 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
             label="Weight"
             unit={metric ? 'kg' : 'lb'}
             value={form.weight}
-            onChange={(weight) => set({ weight })}
+            onChange={(weight) => edit('weight', { ...form, weight })}
+            onBlur={blur('weight')}
             invalid={Boolean(fieldError('weight'))}
+            errorId={errorId('weight')}
           />
-          <FieldError message={fieldError('weight')} />
+          <FieldError id={errorId('weight')} message={fieldError('weight')} />
         </fieldset>
 
         <section className="tape-section">
@@ -261,10 +238,12 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
                     value={form.overrides[field]}
                     placeholder={estimate(field)}
                     onChange={(v) => setOverride(field, v)}
+                    onBlur={blur(field)}
                     invalid={Boolean(fieldError(field))}
+                    errorId={errorId(field)}
                     showLabel
                   />
-                  <FieldError message={fieldError(field)} />
+                  <FieldError id={errorId(field)} message={fieldError(field)} />
                 </div>
               ))}
             </div>
@@ -275,7 +254,7 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
                     Bra size
                     <span className="number-input__hint">Optional. Used for your bust if Full bust is blank</span>
                   </label>
-                  <div className={`number-input__box${braProblem ? ' is-invalid' : ''}`}>
+                  <div className={`number-input__box${fieldError('braSize') ? ' is-invalid' : ''}`}>
                     <input
                       id={`${formId}-bra`}
                       className="num"
@@ -283,8 +262,10 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
                       autoCapitalize="characters"
                       placeholder="34C"
                       value={form.braSize}
-                      onChange={(e) => set({ braSize: e.target.value })}
-                      aria-invalid={braProblem ? true : undefined}
+                      onChange={(e) => edit('braSize', { ...form, braSize: e.target.value })}
+                      onBlur={blur('braSize')}
+                      aria-invalid={fieldError('braSize') ? true : undefined}
+                      aria-describedby={fieldError('braSize') ? errorId('braSize') : undefined}
                     />
                   </div>
                 </div>
@@ -295,9 +276,9 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
                     { value: 'us', label: 'US' },
                     { value: 'uk', label: 'UK' },
                   ]}
-                  onChange={(braSystem) => set({ braSystem })}
+                  onChange={(braSystem) => edit('braSize', { ...form, braSystem })}
                 />
-                <FieldError message={submitted || form.braSize.trim().length >= 3 ? braProblem : undefined} />
+                <FieldError id={errorId('braSize')} message={fieldError('braSize')} />
               </div>
             )}
           </div>
@@ -363,19 +344,16 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
       </form>
 
       <aside className="body-screen__preview" aria-live="polite">
+        <figure
+          className="body-screen__figure"
+          aria-label={preview.isDefault ? 'Mannequin preview, a typical body until you enter yours' : 'Mannequin preview of your body'}
+        >
+          <Mannequin body={preview.body} showFit={false} />
+        </figure>
         {model ? (
-          <>
-            <div className="body-screen__figure">
-              <Mannequin body={model.measurements} showFit={false} />
-            </div>
-            <EstimateList model={model} units={form.units} />
-          </>
+          <EstimateList model={model} units={form.units} />
         ) : (
-          <p className="body-screen__empty">
-            {input
-              ? 'Fix the number marked in red to see your mannequin.'
-              : 'Your mannequin appears here once you’ve entered height and weight.'}
-          </p>
+          <p className="body-screen__caption">Enter your height and weight to size it to you.</p>
         )}
       </aside>
     </main>
