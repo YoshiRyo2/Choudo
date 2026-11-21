@@ -59,6 +59,8 @@ export const FIT_TEST_COLUMNS = [
   /** too-tight | just-right | too-loose */
   'actual_waist',
   'actual_thigh',
+  /** Jackets: what was worn under it ("gildan-18500 L"), blank when tried on alone. */
+  'worn_over',
 ] as const;
 
 /** The columns every fit-test CSV has; the bottoms columns after them may be missing from older files. */

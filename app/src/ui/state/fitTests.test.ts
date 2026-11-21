@@ -168,3 +168,42 @@ describe('answersFor', () => {
     expect(answersFor(['chest', 'length'], { ...picked, chest: 'just-right' }, ' ', 'M')).toBeNull();
   });
 });
+
+describe('Test mode on a jacket', () => {
+  const jacket = findGarment('port-authority-j317')!;
+  const hoodie = findGarment('gildan-18500')!;
+  const under = { garment: hoodie, sizeLabel: 'L' };
+  const preference = preferenceSpec(null, null);
+  const odds = sampleFit(model, jacket, preference, { under });
+  const p = predictionFor({ body, model, garment: jacket, size: 'L', preference, anchor: null, odds, under });
+
+  it('asks the chest and the sleeve, as a top', () => {
+    expect(testQuestions(fitGarment(model, jacket, 'L', under), jacket)).toEqual(['chest', 'length']);
+  });
+
+  it('records it as an outer layer, over what was under it, with the sleeve as its length', () => {
+    expect(p.category).toBe('outer');
+    expect(p.wornOver).toBe('gildan-18500 L');
+    const layered = fitGarment(model, jacket, 'L', under);
+    expect(p.chestLabel).toBe(layered.zones.find((z) => z.zone === 'chest')!.label);
+    expect(p.lengthLabel).toBe(layered.zones.find((z) => z.zone === 'sleeve')!.label);
+    expect(p.preferredChestEaseCm).not.toBeNull();
+  });
+
+  it('stores, and writes the CSV with the chest and a worn_over column', () => {
+    const r = makeFitTest('j', '2026-11-20T10:00:00Z', jacket.id, 'L', { tester: 'T02', chest: 'just-right', length: 'too-long', keptSize: 'L' }, p);
+    expect(r.category).toBe('outer');
+    expect(isFitTestList([r])).toBe(true);
+    const [row] = readFitTestCsv(fitTestsCsv([r]));
+    expect(row).toMatchObject({ category: 'outer', worn_over: 'gildan-18500 L', actual_chest: 'just-right' });
+    expect(row!.p_chest_just_right).not.toBe('');
+    expect(FIT_TEST_COLUMNS[FIT_TEST_COLUMNS.length - 1]).toBe('worn_over');
+  });
+
+  it('leaves worn_over blank for a jacket tried on alone', () => {
+    const alone = predictionFor({ body, model, garment: jacket, size: 'L', preference, anchor: null, odds: sampleFit(model, jacket, preference) });
+    expect(alone.wornOver).toBeUndefined();
+    const r = makeFitTest('k', '2026-11-20T10:00:00Z', jacket.id, 'L', { tester: 'T02', chest: 'just-right', length: 'too-long', keptSize: 'L' }, alone);
+    expect(readFitTestCsv(fitTestsCsv([r]))[0]!.worn_over).toBe('');
+  });
+});

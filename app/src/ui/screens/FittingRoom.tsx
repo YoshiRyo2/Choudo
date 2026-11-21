@@ -304,6 +304,7 @@ export function FittingRoom({
                 preference,
                 anchor: testing.anchor,
                 odds: active.odds,
+                under: activeUnder,
               });
               testing.onAdd(makeFitTest(makeId(), new Date().toISOString(), active.garment.id, active.size, answers, prediction));
             }}
