@@ -539,6 +539,13 @@ export interface VerdictLine {
   detail: string | null;
   tone: FitTone;
   verdict: Verdict;
+  /** The headline is "Could go either way: M or L": it names the sizes itself. */
+  closeCall: boolean;
+}
+
+/** The size to name after a headline ("… in M"), or null when the headline already names sizes. */
+export function headlineSize(line: VerdictLine, sizeLabel: string): string | null {
+  return line.closeCall ? null : sizeLabel;
 }
 
 const KNOWN_VERDICTS = VERDICTS.filter((v): v is Exclude<Verdict, 'unknown'> => v !== 'unknown');
@@ -568,7 +575,7 @@ export function sizeTone(odds: GarmentOdds, sizeLabel: string): FitTone {
 export function verdictLine(odds: GarmentOdds, sizeLabel: string, garment: Pick<Garment, 'category' | 'fitIntent'>): VerdictLine {
   const likeliest = likeliestVerdict(odds, sizeLabel);
   if (!likeliest) {
-    return { headline: 'Can’t check this fit', detail: null, tone: 'unknown', verdict: 'unknown' };
+    return { headline: 'Can’t check this fit', detail: null, tone: 'unknown', verdict: 'unknown', closeCall: false };
   }
   const { size, modal } = likeliest;
   const liked = objectiveOnly(garment) ? 'fits well' : 'fits how you like';
@@ -585,14 +592,14 @@ export function verdictLine(odds: GarmentOdds, sizeLabel: string, garment: Pick<
   ) {
     const order = odds.sizes.map((s) => s.sizeLabel);
     const pair = [first.sizeLabel, second.sizeLabel].sort((a, b) => order.indexOf(a) - order.indexOf(b));
-    return { headline: `Could go either way: ${pair[0]} or ${pair[1]}`, detail, tone: 'warn', verdict: modal };
+    return { headline: `Could go either way: ${pair[0]} or ${pair[1]}`, detail, tone: 'warn', verdict: modal, closeCall: true };
   }
 
   const p = size.verdicts[modal];
   const phrase = phraseFor(modal, garment);
   const headline =
     p >= CERTAINTY.veryLikely ? `Very likely ${phrase.plain}` : p >= CERTAINTY.probably ? `Probably ${phrase.plain}` : phrase.might;
-  return { headline, detail, tone: VERDICT_TONE[modal], verdict: modal };
+  return { headline, detail, tone: VERDICT_TONE[modal], verdict: modal, closeCall: false };
 }
 
 const MEASURE_NAME: Record<MeasurableKey, string> = {

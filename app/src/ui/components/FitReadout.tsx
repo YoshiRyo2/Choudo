@@ -7,6 +7,7 @@ import {
   formatDiff,
   formatLength,
   GRADE_EXPLAINED,
+  headlineSize,
   labelOddsText,
   measureHintAction,
   measureHintText,
@@ -65,6 +66,8 @@ export function FitReadout({
   const template = templateOf(garment);
   const summary = summarize(fit, template);
   const verdict = verdictLine(odds, fit.sizeLabel, garment);
+  // A close call already names its sizes: "Could go either way: 8 or 10", not "… in 8".
+  const namedSize = headlineSize(verdict, fit.sizeLabel);
   const sizeOdds = odds.sizes.find((s) => s.sizeLabel === fit.sizeLabel);
   const hasLengthPreference = preference.anchor?.lengthCm != null;
   const prefNote = !objectiveOnly(garment) && verdict.verdict !== 'unknown' ? preferenceNote(preference) : null;
@@ -75,10 +78,12 @@ export function FitReadout({
         <header className={`readout__summary tone-${verdict.tone}`}>
           <h2 id="readout-title" className="readout__headline">
             {verdict.headline}
-            <span className="readout__size">
-              {' '}
-              in {fit.sizeLabel}
-            </span>
+            {namedSize && (
+              <span className="readout__size">
+                {' '}
+                in {namedSize}
+              </span>
+            )}
           </h2>
           {verdict.verdict === 'unknown'
             ? summary.detail && <p className="readout__detail">{summary.detail}</p>
