@@ -1,5 +1,5 @@
 import type { GarmentFit, GarmentOdds, MeasureHint, PreferenceSpec, ZoneOdds } from '../../domain/fit';
-import type { Garment } from '../../domain/garments';
+import { templateOf, type Garment } from '../../domain/garments';
 import {
   bodyPlaceText,
   describeZone,
@@ -17,7 +17,7 @@ import {
   wornOverText,
   verdictLine,
   zoneLabelText,
-  zoneName,
+  zoneTitle,
   objectiveOnly,
 } from '../fitText';
 import { GarmentBadge } from './GarmentBadge';
@@ -62,7 +62,8 @@ export function FitReadout({
   layerNotes = [],
   onEditBody,
 }: FitReadoutProps) {
-  const summary = summarize(fit);
+  const template = templateOf(garment);
+  const summary = summarize(fit, template);
   const verdict = verdictLine(odds, fit.sizeLabel, garment);
   const sizeOdds = odds.sizes.find((s) => s.sizeLabel === fit.sizeLabel);
   const hasLengthPreference = preference.anchor?.lengthCm != null;
@@ -120,14 +121,14 @@ export function FitReadout({
         {fit.zones.map((z) => (
           <li key={z.zone} className="zone">
             <div className="zone__head">
-              <span className="zone__name">{zoneName(z.zone, fit.bodyType)}</span>
-              <span className={`zone__label tone-${z.tone}`}>{zoneLabelText(z)}</span>
+              <span className="zone__name">{zoneTitle(z, fit.bodyType)}</span>
+              <span className={`zone__label tone-${z.tone}`}>{zoneLabelText(z, template)}</span>
               {z.diffCm !== null && <span className="zone__diff num">{formatDiff(z.diffCm, units)}</span>}
             </div>
             {z.diffCm !== null && z.kind !== 'landing' && (
               <TapeScale diffCm={z.diffCm} bands={z.bands} units={units} kind={z.kind} />
             )}
-            <p className="zone__text">{describeZone(z, units, fit.bodyType)}</p>
+            <p className="zone__text">{describeZone(z, units, fit.bodyType, template)}</p>
             {showOdds && <ZoneOddsLines odds={sizeOdds?.zones.find((o) => o.zone === z.zone)} garment={garment} hasLengthPreference={hasLengthPreference} />}
             <p className="zone__numbers">
               <span>

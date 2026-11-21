@@ -25,7 +25,7 @@ import {
   type ZoneOdds,
 } from '../domain/fit';
 import { RISE_VERTICAL_RATIO, type BodyModel, type BodyType } from '../domain/body';
-import type { ConfidenceGrade, FitIntent, Garment, GarmentType, SourceTier } from '../domain/garments';
+import type { ConfidenceGrade, FitIntent, Garment, GarmentType, SourceTier, TemplateId } from '../domain/garments';
 import { cmToIn } from '../domain/units';
 import type { UnitSystem } from './state/stored';
 
@@ -83,6 +83,14 @@ export function zoneName(zone: ZoneId, bodyType: BodyType = 'mens'): string {
   return zone === 'chest' && bodyType === 'womens' ? 'Bust' : ZONE_NAME[zone];
 }
 
+/** A zone's name in the readout: as zoneName, but a leggings inseam (it lands at the ankle) is its "Length". */
+export function zoneTitle(z: Pick<ZoneFit, 'zone' | 'bodyAt'>, bodyType: BodyType = 'mens'): string {
+  return z.bodyAt === 'ankle' ? 'Length' : zoneName(z.zone, bodyType);
+}
+
+/** Leggings are cut under the body, so their girth labels read as squeeze, not tightness. */
+const LEGGINGS_LABEL_TEXT: Partial<Record<FitLabel, string>> = { tight: 'Too much squeeze', loose: 'Baggy' };
+
 /** "at the chest" / "at the bust", "in length", ... */
 function zonePlace(zone: ZoneId, bodyType: BodyType): string {
   return zone === 'chest' && bodyType === 'womens' ? 'at the bust' : ZONE_PLACE[zone];
@@ -110,8 +118,11 @@ const MATCH_CM = 0.5;
 /** Jacket length marks: these hems land against the hip line, not the knee. */
 const HIP_LINE_LANDINGS: readonly string[] = ['cropped', 'hip', 'thigh', 'knee-length', 'calf'];
 
-/** One plain sentence about a zone. */
-export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType = 'mens'): string {
+/**
+ * One plain sentence about a zone. `template` changes the wording where a
+ * template reads differently (leggings are meant to sit under the body).
+ */
+export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType = 'mens', template?: TemplateId): string {
   if (z.diffCm === null) return z.note ?? 'The size chart doesn’t give us enough to compare.';
   const d = formatLength(Math.abs(z.diffCm), units);
   const over = z.diffCm >= MATCH_CM;
@@ -120,6 +131,23 @@ export function describeZone(z: ZoneFit, units: UnitSystem, bodyType: BodyType =
 
   // A blocked landing (won't go on, won't stay up): the engine says why.
   if (z.kind === 'landing' && z.tone === 'bad' && z.note) return z.note;
+  // A leggings hem lands against the ankle bone.
+  if (z.bodyAt === 'ankle') {
+    const name = LANDING_TEXT[z.landing ?? ''] ?? 'Here';
+    if (z.landing === 'stacked') return `${name}: runs ${d} past your ankle bone, so it bunches at the ankle.`;
+    if (!over && !under) return `${name}: ends at your ankle bone.`;
+    return `${name}: ends ${d} ${over ? 'below' : 'above'} your ankle bone.`;
+  }
+  // Leggings girths: cut under the body on purpose, so the share under it says how snug.
+  if (template === 'leggings' && z.kind === 'girth') {
+    const pct = Math.round((Math.abs(z.diffCm) / z.bodyCm) * 100);
+    if (under) {
+      return z.label === 'tight'
+        ? `${d} (${pct} %) smaller than your ${part}: more squeeze than the fabric gives.`
+        : `${d} (${pct} %) smaller than your ${part}: snug, as leggings are cut.`;
+    }
+    if (z.label === 'loose') return `${d} bigger than your ${part}, so they won’t hug you.`;
+  }
   // A hem landing against the knee: shorts (inseam) and skirts (length).
   if (z.kind === 'landing' && (z.zone === 'inseam' || z.zone === 'length') && !HIP_LINE_LANDINGS.includes(z.landing ?? '')) {
     const where = !over && !under ? 'at your knee' : `${d} ${over ? 'below' : 'above'} your knee`;
@@ -195,6 +223,7 @@ export function bodyPlaceText(z: ZoneFit, over?: WornOver): string {
   if (z.bodyAt === 'centre_back') return z.zone === 'sleeve' ? ' from the centre of your back to the wrist' : ' from the back of your neck';
   if (z.bodyAt === 'knee') return z.zone === 'inseam' ? ' from your crotch to your knee' : ' from the waistband to your knee';
   if (z.bodyAt === 'shoulder_knee') return ' from your shoulder to your knee';
+  if (z.bodyAt === 'ankle') return ' from your crotch to your ankle bone';
   if (z.bodyAt === 'stride') return ' round both legs mid-stride, at the hem';
   if (z.bodyAt === 'hip_point') return ' where the chart measures the hips';
   return '';
@@ -270,18 +299,23 @@ const LANDING_TEXT: Record<string, string> = {
   thigh: 'Thigh length',
   'knee-length': 'Knee length',
   calf: 'Calf length',
+  capri: 'Capri',
+  '7/8': '7/8 length',
+  ankle: 'Ankle length',
+  stacked: 'Long',
 };
 
 /**
  * A zone's short label for the readout: the objective label for girths and
  * lengths, where it lands for a landing zone, and what goes wrong when one blocks.
  */
-export function zoneLabelText(z: ZoneFit): string {
+export function zoneLabelText(z: ZoneFit, template?: TemplateId): string {
   if (z.kind === 'landing') {
     if (z.label === 'tight') return 'Won’t go on';
     if (z.label === 'short') return 'Won’t stay up';
     if (z.label === 'noted' && z.landing) return LANDING_TEXT[z.landing] ?? LABEL_TEXT.noted;
   }
+  if (template === 'leggings' && z.kind === 'girth') return LEGGINGS_LABEL_TEXT[z.label] ?? LABEL_TEXT[z.label];
   return LABEL_TEXT[z.label];
 }
 
@@ -292,13 +326,13 @@ export interface FitSummary {
   usesEstimates: boolean;
 }
 
-export function summarize(fit: GarmentFit): FitSummary {
+export function summarize(fit: GarmentFit, template?: TemplateId): FitSummary {
   const scored = fit.zones.filter((z) => z.diffCm !== null);
   const usesEstimates = scored.some((z) => z.bodySource === 'estimated');
   const problems = fit.zones.filter((z) => z.tone === fit.overall && z.tone !== 'good');
   const detail =
     problems.length > 0
-      ? sentence(problems.map((z) => `${zoneLabelText(z).toLowerCase()} ${zonePlace(z.zone, fit.bodyType)}`))
+      ? sentence(problems.map((z) => `${zoneLabelText(z, template).toLowerCase()} ${zonePlace(z.zone, fit.bodyType)}`))
       : null;
 
   switch (fit.overall) {
@@ -385,10 +419,11 @@ export function formatCapturedOn(iso: string): string {
 }
 
 /** "From a published garment size chart, copied 18 Nov 2026." */
-export function sourceLine(garment: Pick<Garment, 'source'>): string {
+export function sourceLine(garment: Pick<Garment, 'source' | 'stretchAssumed'>): string {
   const { tier, capturedOn } = garment.source;
   const from = tier ? `From ${TIER_PLAIN[tier]}` : 'From the brand’s size chart';
-  return `${from}${capturedOn ? `, copied ${formatCapturedOn(capturedOn)}` : ''}.`;
+  const stretch = garment.stretchAssumed ? ' Stretch assumed: the chart gives none.' : '';
+  return `${from}${capturedOn ? `, copied ${formatCapturedOn(capturedOn)}` : ''}.${stretch}`;
 }
 
 // ---------- how the user likes tops to fit ----------
