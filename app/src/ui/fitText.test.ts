@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../domain/body';
-import { fitGarment, preferenceSpec, VERDICTS, type GarmentOdds, type SizeOdds, type Verdict, type ZoneFit, type ZoneOdds } from '../domain/fit';
-import { findGarment, type GarmentType } from '../domain/garments';
+import { fitGarment, preferenceSpec, sampleFit, VERDICTS, type GarmentOdds, type SizeOdds, type Verdict, type ZoneFit, type ZoneOdds } from '../domain/fit';
+import { findGarment, GARMENTS, type GarmentType } from '../domain/garments';
 import { UNKNOWN_CHEST_TEE } from '../domain/garments/testFixtures';
 import {
   describeZone,
@@ -14,6 +14,7 @@ import {
   personalOddsText,
   preferenceNote,
   verdictLine,
+  sizeTone,
   formatDiff,
   garmentTag,
   GRADE_EXPLAINED,
@@ -218,6 +219,56 @@ describe('verdictLine', () => {
 
   it('can’t check a fit that is mostly unknown', () => {
     expect(verdictLine(oddsOf(sizeOdds('M', { unknown: 1 })), 'M', top)).toMatchObject({ headline: 'Can’t check this fit', detail: null });
+  });
+});
+
+describe('sizeTone', () => {
+  it('is the tone of the size’s likeliest verdict', () => {
+    const odds = oddsOf(
+      sizeOdds('S', { 'too-tight': 0.7, snugger: 0.3 }),
+      sizeOdds('M', { snugger: 0.55, fits: 0.45 }),
+      sizeOdds('L', { 'as-designed': 0.6, roomier: 0.4 }),
+    );
+    expect(sizeTone(odds, 'S')).toBe('bad');
+    expect(sizeTone(odds, 'M')).toBe('warn');
+    expect(sizeTone(odds, 'L')).toBe('good');
+  });
+
+  it('is unknown for a size that can’t be scored, or isn’t there', () => {
+    const odds = oddsOf(sizeOdds('M', { unknown: 0.6, fits: 0.4 }));
+    expect(sizeTone(odds, 'M')).toBe('unknown');
+    expect(sizeTone(odds, 'XL')).toBe('unknown');
+  });
+
+  it('ignores the close call, which is about choosing between sizes', () => {
+    const odds = oddsOf(sizeOdds('M', { fits: 0.39, snugger: 0.5, 'too-tight': 0.11 }), sizeOdds('L', { fits: 0.3, roomier: 0.7 }));
+    expect(verdictLine(odds, 'M', top).tone).toBe('warn');
+    expect(sizeTone(odds, 'M')).toBe('warn');
+    expect(verdictLine(odds, 'L', top).tone).toBe('warn');
+    expect(sizeTone(odds, 'L')).toBe('warn');
+    const close = oddsOf(sizeOdds('M', { fits: 0.45, roomier: 0.55 }), sizeOdds('L', { 'as-designed': 0.4, 'much-roomier': 0.6 }));
+    expect(verdictLine(close, 'L', top).headline).toBe('Could go either way: M or L');
+    expect(sizeTone(close, 'L')).toBe('bad');
+  });
+
+  it('matches the verdict line’s tone for every catalogue size that isn’t a close call', () => {
+    const bodies = [
+      estimateBody({ heightCm: 170, weightKg: 62, bodyType: 'womens' }),
+      estimateBody({ heightCm: 178, weightKg: 75, bodyType: 'mens' }),
+    ];
+    let compared = 0;
+    for (const body of bodies) {
+      for (const garment of GARMENTS) {
+        const odds = sampleFit(body, garment, preferenceSpec(null, null), { samples: 100 });
+        for (const { sizeLabel } of odds.sizes) {
+          const line = verdictLine(odds, sizeLabel, garment);
+          if (line.headline.startsWith('Could go either way')) continue;
+          expect([garment.id, sizeLabel, sizeTone(odds, sizeLabel)]).toEqual([garment.id, sizeLabel, line.tone]);
+          compared++;
+        }
+      }
+    }
+    expect(compared).toBeGreaterThan(50);
   });
 });
 

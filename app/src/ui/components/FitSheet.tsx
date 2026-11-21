@@ -51,7 +51,7 @@ export function FitSheet({
 
   return (
     <Sheet title={garment.name} kicker={garment.brand} onClose={onClose}>
-      <SizePicker fits={fits} selected={size} recommended={odds.recommended} onSelect={setSize} />
+      <SizePicker fits={fits} selected={size} recommended={odds.recommended} odds={odds} onSelect={setSize} />
       <FitReadout
         garment={garment}
         fit={fit}
