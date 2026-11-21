@@ -21,7 +21,7 @@ import type {
   SleeveDefinition,
   TopLandmarkName,
 } from './types';
-import { KNIT_OPTIONAL_LANDMARKS, PANTS_LANDMARKS, TOP_LANDMARKS } from './types';
+import { KNIT_OPTIONAL_LANDMARKS, PANTS_LANDMARKS, TOP_BACK_LANDMARKS, TOP_LANDMARKS, type PhotoSide } from './types';
 import {
   BOTTOM_RANGES,
   DRESS_LENGTH_RANGES,
@@ -330,9 +330,27 @@ function landmarkSet<N extends LandmarkName>(image: Pick<GarmentImage, 'landmark
   return out;
 }
 
-/** A top photo's 13 landmarks, or null when it isn't a complete top set. */
-export const topLandmarks = (image: Pick<GarmentImage, 'landmarks'>): Record<TopLandmarkName, Point> | null =>
-  landmarkSet(image, TOP_LANDMARKS);
+/**
+ * The landmark names a photo of this side needs, or null when the template takes no
+ * photo. The back is the front's set with `neckBack` in place of `neckFront`.
+ */
+export function photoLandmarkNames(spec: Pick<CategorySpec, 'landmarks'>, side: PhotoSide): readonly LandmarkName[] | null {
+  if (spec.landmarks === null || side === 'front') return spec.landmarks;
+  return spec.landmarks.map((n) => (n === 'neckFront' ? 'neckBack' : n));
+}
+
+/**
+ * A top photo's 13 landmarks, or null when it isn't a complete top set. A back
+ * photo's `neckBack` fills the `neckFront` slot: the warp mesh's centre-neckline
+ * point of whichever side is drawn.
+ */
+export function topLandmarks(image: Pick<GarmentImage, 'landmarks'>, side: PhotoSide = 'front'): Record<TopLandmarkName, Point> | null {
+  if (side === 'front') return landmarkSet(image, TOP_LANDMARKS);
+  const back = landmarkSet(image, TOP_BACK_LANDMARKS);
+  if (!back) return null;
+  const { neckBack, ...rest } = back;
+  return { ...rest, neckFront: neckBack };
+}
 
 /** A pants photo's 14 landmarks, or null when it isn't a complete pants set. */
 export const pantsLandmarks = (image: Pick<GarmentImage, 'landmarks'>): Record<PantsLandmarkName, Point> | null =>

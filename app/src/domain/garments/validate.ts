@@ -3,7 +3,7 @@
  * provenance and photo entries. Pure; no seed import.
  */
 
-import { categorySpec, GARMENT_TYPES, isGarmentType, pantsLandmarks, topLandmarks } from './categories';
+import { categorySpec, GARMENT_TYPES, isGarmentType, pantsLandmarks, photoLandmarkNames, topLandmarks } from './categories';
 import { chartDefinition } from './chart';
 import { GIRTH_KEYS, MEASUREMENT_KEYS } from './normalize';
 import {
@@ -18,6 +18,7 @@ import {
   type DefinitionName,
   type FitIntent,
   type GarmentImage,
+  type PhotoSide,
   type LengthDefinition,
   type MeasuredValue,
   type PantsLandmarkName,
@@ -52,6 +53,9 @@ export function validateGarment(g: SeedGarment): string[] {
   if (g.sizes.length === 0) problems.push('no sizes');
   if (g.image !== undefined) {
     problems.push(...validateImage(g.image, g).map((p) => `image: ${p}`));
+  }
+  if (g.backImage !== undefined) {
+    problems.push(...validateImage(g.backImage, g, 'back').map((p) => `backImage: ${p}`));
   }
 
   const labels = new Set<string>();
@@ -197,7 +201,7 @@ export function validateValue(raw: unknown): string[] {
 }
 
 /** Problems with a garment's photo entry (empty = OK). */
-export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' | 'sizes'>): string[] {
+export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' | 'sizes'>, side: PhotoSide = 'front'): string[] {
   const problems: string[] = [];
   // Photos ship with the app; we never hot-link a retailer's image.
   if (!/^garments\/[\w.-]+\.(png|jpe?g|webp)$/i.test(image.file)) {
@@ -210,7 +214,7 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' |
     problems.push(`photographedSize "${image.photographedSize}" is not one of the garment's sizes`);
   }
   const spec = categorySpec(g);
-  const landmarks = spec.landmarks;
+  const landmarks = photoLandmarkNames(spec, side);
   if (landmarks === null) {
     problems.push('photo textures are only supported for tops and pants');
     return problems;
@@ -225,8 +229,8 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' |
     problems.push(`landmarks need non-negative pixel x/y for ${missing.join(', ')}`);
     return problems;
   }
-  // Any other name must be one of the template's optional points (a knit's hoodTop).
-  const optional = spec.optionalLandmarks ?? [];
+  // Any other name must be one of the template's optional points (a knit's hoodTop, front only).
+  const optional = side === 'front' ? (spec.optionalLandmarks ?? []) : [];
   for (const name of Object.keys(lm ?? {})) {
     if (!(landmarks as readonly string[]).includes(name) && !(optional as readonly string[]).includes(name)) {
       problems.push(`${name} isn't a landmark for a ${g.type}`);
@@ -234,8 +238,8 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' |
   }
   const pants = pantsLandmarks(image);
   if (spec.template === 'pants' && pants) problems.push(...pantsOrder(pants));
-  const top = topLandmarks(image);
-  if (spec.category !== 'bottom' && top) problems.push(...topOrder(top));
+  const top = topLandmarks(image, side);
+  if (spec.category !== 'bottom' && top) problems.push(...topOrder(top, side === 'back' ? 'neckBack' : 'neckFront'));
   const hood = lm?.hoodTop;
   if (hood && top && optional.includes('hoodTop') && !(hood.y < Math.min(top.collarLeft.y, top.collarRight.y))) {
     problems.push('hoodTop must sit above the collar points');
@@ -244,14 +248,14 @@ export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' |
 }
 
 /** A top's landmarks must sit the way a tee does: left of right, collar above armpit above hem… */
-function topOrder(l: Record<TopLandmarkName, XY>): string[] {
+function topOrder(l: Record<TopLandmarkName, XY>, neckName: 'neckFront' | 'neckBack'): string[] {
   const problems: string[] = [];
   for (const part of ['collar', 'shoulder', 'armpit', 'hem', 'sleeveOuter', 'sleeveInner'] as const) {
     if (!(l[`${part}Left`].x < l[`${part}Right`].x)) problems.push(`${part}Left must be left of ${part}Right`);
   }
   const n = l.neckFront;
   if (!(n.x > l.collarLeft.x && n.x < l.collarRight.x && n.y > Math.max(l.collarLeft.y, l.collarRight.y))) {
-    problems.push('neckFront must sit between the collar points and below them');
+    problems.push(`${neckName} must sit between the collar points and below them`);
   }
   for (const side of ['Left', 'Right'] as const) {
     const [c, s, a, h] = [l[`collar${side}`], l[`shoulder${side}`], l[`armpit${side}`], l[`hem${side}`]];

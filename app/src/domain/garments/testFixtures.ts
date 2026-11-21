@@ -3,7 +3,7 @@
  */
 
 import { normalizeGarment } from './garments';
-import type { Garment, SeedGarment } from './types';
+import type { Garment, GarmentImage, SeedGarment } from './types';
 
 /**
  * A real-looking tee whose chart doesn't say whether the chest is flat or a full
@@ -119,3 +119,51 @@ export const DRESS_SEED: SeedGarment = {
 };
 
 export const DRESS: Garment = normalizeGarment(DRESS_SEED);
+
+/**
+ * A tee's back photo (1000 px wide): the 13 back points, `neckBack` in place of the
+ * front's `neckFront`, sitting just under the collar points as a back neckline does.
+ */
+export const TEE_BACK_IMAGE: GarmentImage = {
+  file: 'garments/test-back.png',
+  licence: 'own',
+  photographedSize: null,
+  landmarks: {
+    collarLeft: { x: 380, y: 60 },
+    collarRight: { x: 620, y: 60 },
+    neckBack: { x: 500, y: 80 },
+    shoulderLeft: { x: 230, y: 110 },
+    shoulderRight: { x: 770, y: 110 },
+    armpitLeft: { x: 260, y: 360 },
+    armpitRight: { x: 740, y: 360 },
+    hemLeft: { x: 265, y: 980 },
+    hemRight: { x: 735, y: 980 },
+    sleeveOuterLeft: { x: 120, y: 420 },
+    sleeveInnerLeft: { x: 220, y: 470 },
+    sleeveOuterRight: { x: 880, y: 420 },
+    sleeveInnerRight: { x: 780, y: 470 },
+  },
+};
+
+/** A pair of jeans laid flat, seen from either side: the 14 pants points. */
+export const PANTS_IMAGE: GarmentImage = {
+  file: 'garments/test-jeans-back.png',
+  licence: 'own',
+  photographedSize: null,
+  landmarks: {
+    waistLeft: { x: 250, y: 100 },
+    waistMid: { x: 450, y: 110 },
+    waistRight: { x: 650, y: 100 },
+    hipLeft: { x: 220, y: 300 },
+    hipRight: { x: 680, y: 300 },
+    crotch: { x: 450, y: 420 },
+    kneeOuterLeft: { x: 250, y: 850 },
+    kneeInnerLeft: { x: 420, y: 850 },
+    kneeOuterRight: { x: 650, y: 850 },
+    kneeInnerRight: { x: 480, y: 850 },
+    hemOuterLeft: { x: 260, y: 1320 },
+    hemInnerLeft: { x: 410, y: 1320 },
+    hemOuterRight: { x: 640, y: 1320 },
+    hemInnerRight: { x: 490, y: 1320 },
+  },
+};

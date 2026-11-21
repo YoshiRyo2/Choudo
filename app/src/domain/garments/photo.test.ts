@@ -30,3 +30,10 @@ describe('localOnlyFiles', () => {
     expect(localOnlyFiles(garments)).toEqual(['garments/a.png']);
   });
 });
+
+describe('localOnlyFiles with back photos', () => {
+  it('lists local-only back photos too', () => {
+    const garments = [{ image: image('own'), backImage: image('local-only', 'garments/x-back.png') }];
+    expect(localOnlyFiles(garments)).toEqual(['garments/x-back.png']);
+  });
+});
