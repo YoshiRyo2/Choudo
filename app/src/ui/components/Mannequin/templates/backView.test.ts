@@ -3,6 +3,9 @@ import { estimateBody } from '../../../../domain/body';
 import { GARMENTS } from '../../../../domain/garments';
 import { bodyGeometry } from '../geometry';
 import { BACK_NECKLINE_DIP_CM, topShape } from '../topShape';
+import type { View } from '../view';
+import { dressShape } from './dress';
+import { jacketShape } from './jacket';
 
 /**
  * The back of every top: the same widths, heights and pins as the front (skin
@@ -70,4 +73,57 @@ describe('a top from the back', () => {
     expect(back.right.hem).toEqual(front.right.hem);
     expect(back.markers).toEqual(front.markers);
   });
+});
+
+describe('a jacket from the back', () => {
+  const jackets = GARMENTS.filter((x) => x.category === 'outer');
+  const hoodie = GARMENTS.find((x) => x.type === 'hoodie')!;
+  for (const body of bodies) {
+    const m = body.measurements;
+    const g = bodyGeometry(m);
+    const hoodieSize = hoodie.sizes[Math.floor(hoodie.sizes.length / 2)]!;
+    const under = (view: View) => ({
+      shape: topShape(g, hoodie, hoodieSize.measurements, m.chestCm, m, { view }),
+      layer: { garment: hoodie, sizeLabel: hoodieSize.label },
+    });
+    for (const jacket of jackets) {
+      it(`${jacket.id} on ${m.bodyType}, alone and over a hoodie: same widths and pins, no placket`, () => {
+        for (const s of jacket.sizes) {
+          for (const over of [false, true]) {
+            const front = jacketShape(g, m, jacket, s.measurements, over ? under('front') : null);
+            const back = jacketShape(g, m, jacket, s.measurements, over ? under('back') : null, 'back');
+            expect(back.markers).toEqual(front.markers);
+            expect(back.sleeveEdges).toEqual(front.sleeveEdges);
+            expect(back.right).toEqual(front.right);
+            expect([back.sleeves, back.arms]).toEqual([front.sleeves, front.arms]);
+            expect(front.placket).toMatch(/^M/);
+            expect(back.placket).toBeNull();
+            expect(back.collar).toMatch(/^M/);
+            expect(back.collar).not.toEqual(front.collar);
+            expect(jacketShape(g, m, jacket, s.measurements, over ? under('front') : null, 'front')).toEqual(front);
+          }
+        }
+      });
+    }
+  }
+});
+
+describe('a dress from the back', () => {
+  const dresses = GARMENTS.filter((x) => x.category === 'onepiece');
+  for (const body of bodies) {
+    const m = body.measurements;
+    const g = bodyGeometry(m);
+    for (const dress of dresses) {
+      it(`${dress.id} on ${m.bodyType}: same skirt and pins, back neckline`, () => {
+        for (const s of dress.sizes) {
+          const front = dressShape(g, m, dress, s.measurements);
+          const back = dressShape(g, m, dress, s.measurements, 'back');
+          expect([back.markers, back.skirt, back.hemY, back.approximate]).toEqual([front.markers, front.skirt, front.hemY, front.approximate]);
+          expect(back.asUnder.right).toEqual(front.asUnder.right);
+          expect(back.bodice.landmarks.neckFront.y).toBe(g.y.neckBase + BACK_NECKLINE_DIP_CM);
+          expect(dressShape(g, m, dress, s.measurements, 'front')).toEqual(front);
+        }
+      });
+    }
+  }
 });

@@ -15,6 +15,7 @@ import { dressHemHeight, dressSeamHeight, hpsLengthCm } from '../../../../domain
 import { girthKnown, type Garment, type SizeMeasurements } from '../../../../domain/garments';
 import { bodyHalfAt, halfWidth, type BodyGeometry, type Marker } from '../geometry';
 import { topShape, type TopShape } from '../topShape';
+import type { View } from '../view';
 import { MIN_ROOM_CM, skirtOutline } from './skirt';
 
 export type DressMarker = 'chest' | 'shoulder' | 'sleeve' | 'waist' | 'hips' | 'length' | 'walkingRoom';
@@ -34,7 +35,14 @@ export interface DressShape {
   approximate: boolean;
 }
 
-export function dressShape(g: BodyGeometry, body: BodyMeasurements, garment: Garment, size: SizeMeasurements): DressShape {
+export function dressShape(
+  g: BodyGeometry,
+  body: BodyMeasurements,
+  garment: Garment,
+  size: SizeMeasurements,
+  /** Which side to draw: only the bodice's neckline differs. */
+  view: View = 'front',
+): DressShape {
   const chartGirth = (key: 'waist' | 'hips' | 'hemSweep') =>
     size[key] !== undefined && girthKnown(garment, key) ? size[key] : undefined;
   const [waist, hips, sweep] = (['waist', 'hips', 'hemSweep'] as const).map(chartGirth);
@@ -42,7 +50,7 @@ export function dressShape(g: BodyGeometry, body: BodyMeasurements, garment: Gar
   const placeable = hpsLengthCm(garment, size) !== undefined;
   const seamY = g.height - dressSeamHeight(body, garment);
   const seamHalf = waist === undefined ? undefined : Math.max(halfWidth.waist(waist), bodyHalfAt(g, seamY) + MIN_ROOM_CM);
-  const bodice = topShape(g, garment, size, body.chestCm, body, { hemAt: { y: seamY, half: seamHalf } });
+  const bodice = topShape(g, garment, size, body.chestCm, body, { hemAt: { y: seamY, half: seamHalf }, view });
   const side = bodice.right.sideSeam;
   const bandHalf = side[side.length - 1]!.x;
 

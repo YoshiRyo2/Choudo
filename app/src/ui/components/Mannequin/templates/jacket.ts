@@ -7,7 +7,8 @@
  * against the body plus the layer, as the fit engine compares it. So a jacket
  * over a roomy hoodie is drawn over the hoodie, never through it, and a hoodie
  * longer than the jacket shows below its hem because it was drawn first.
- * Closed for now: a placket down the centre front and a stand collar.
+ * Closed for now: a placket down the centre front and a stand collar (from the
+ * back: the collar band only).
  *
  * Pure functions, no React. Right side (+x) is built and mirrored for the left.
  */
@@ -17,6 +18,7 @@ import { layerAllowanceCm, layerGrowCm, type UnderLayer } from '../../../../doma
 import type { Garment, SizeMeasurements } from '../../../../domain/garments';
 import { bodyHalfAt, limbFrame, limbHalf, limbPath, mirrorPath, smoothPath, xAt, type BodyGeometry, type Pt } from '../geometry';
 import { topShape, type TopShape } from '../topShape';
+import type { View } from '../view';
 
 /** Skin only: how far the stand collar rises above the neck base, cm. */
 const COLLAR_RISE_CM = 3.5;
@@ -82,7 +84,8 @@ export function envelopeGeometry(
 
 export interface JacketShape extends TopShape {
   /** The closed front: a line down the centre from the neck to the hem (stroke only). */
-  placket: string;
+  /** The closed front's centre line (open path); null from the back. */
+  placket: string | null;
   /** A stand collar round the neck (closed path, drawn over the body). */
   collar: string;
 }
@@ -94,6 +97,8 @@ export function jacketShape(
   garment: Garment,
   size: SizeMeasurements,
   under: { shape: TopShape; layer: UnderLayer } | null,
+  /** Which side to draw; `under.shape` should be drawn from the same side. */
+  view: View = 'front',
 ): JacketShape {
   const envelope = envelopeGeometry(
     g,
@@ -101,19 +106,21 @@ export function jacketShape(
     under ? layerGrowCm(under.layer.garment) : 0,
   );
   const chestCm = body.chestCm + (under ? layerAllowanceCm(body, under.layer).chestCm : 0);
-  const shape = topShape(envelope, garment, size, chestCm, body);
+  const shape = topShape(envelope, garment, size, chestCm, body, { view });
 
   const neckFront = shape.landmarks.neckFront;
   const hemY = shape.markers.length?.y ?? shape.right.hem.y;
-  const placket = smoothPath([{ x: 0, y: neckFront.y }, { x: 0, y: hemY - 0.3 }], false);
+  const back = view === 'back';
+  const placket = back ? null : smoothPath([{ x: 0, y: neckFront.y }, { x: 0, y: hemY - 0.3 }], false);
   const nx = g.half.neck;
+  // From the back the stand collar is a plain band; from the front it closes in a point at the neck.
   const collar = smoothPath(
     [
       { x: nx + 1.2, y: g.y.neckBase + 1.2, corner: true },
       { x: nx + 0.9, y: g.y.neckBase - COLLAR_RISE_CM, corner: true },
       { x: -(nx + 0.9), y: g.y.neckBase - COLLAR_RISE_CM, corner: true },
       { x: -(nx + 1.2), y: g.y.neckBase + 1.2, corner: true },
-      { x: 0, y: neckFront.y },
+      ...(back ? [] : [{ x: 0, y: neckFront.y }]),
     ],
     true,
   );

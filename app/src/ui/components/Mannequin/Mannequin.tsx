@@ -275,7 +275,7 @@ export function Mannequin({ body, top: shirt, bottom, onepiece, outer, showFit =
             <path d={outerDraw.sleeves[1]} />
             <path d={outerDraw.collar} />
           </g>
-          <path className="mannequin__placket" d={outerDraw.placket} aria-hidden="true" />
+          {outerDraw.placket && <path className="mannequin__placket" d={outerDraw.placket} aria-hidden="true" />}
         </g>
       )}
 
