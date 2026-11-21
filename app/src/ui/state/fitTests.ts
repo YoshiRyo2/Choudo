@@ -58,6 +58,8 @@ export function predictionFor(args: {
   // (its hem only lands), a bottom's the inseam (a skirt has a length instead).
   const top = garment.category !== 'bottom';
   const outer = garment.category === 'outer';
+  // A dress is asked as a top (the bust, its hem's landing as its length) plus its waist; it has no personal target.
+  const dress = garment.category === 'onepiece';
   const lengthZone = outer ? 'sleeve' : top || !fit.zones.some((z) => z.zone === 'inseam') ? 'length' : 'inseam';
   const prediction: FitTestPrediction = {
     category: garment.category,
@@ -68,7 +70,7 @@ export function predictionFor(args: {
     preferenceSource: preference.source,
     style: preference.style,
     anchor: preference.source === 'anchor' ? anchorText(anchor) : '',
-    preferredChestEaseCm: top ? garmentChestTarget(pref, garment).easeCm : null,
+    preferredChestEaseCm: top && !dress ? garmentChestTarget(pref, garment).easeCm : null,
     preferredLengthDiffCm: pref.lengthDiffCm,
     recommendedSize: odds.recommended,
     verdict,
@@ -79,6 +81,10 @@ export function predictionFor(args: {
     length: oddsOf(lengthZone),
   };
   if (outer) return under ? { ...prediction, wornOver: `${under.garment.id} ${under.sizeLabel}` } : prediction;
+  if (dress) {
+    const waist = zoneFit('waist');
+    return waist ? { ...prediction, waistCm: waist.bodyCm, waistLabel: waist.label, waist: oddsOf('waist') } : prediction;
+  }
   if (top) return prediction;
   return {
     ...prediction,
@@ -117,6 +123,10 @@ export type TestQuestion = 'chest' | 'waist' | 'thigh' | 'length';
  * (nothing to compare the answer with).
  */
 export function testQuestions(fit: GarmentFit, garment: Pick<Garment, 'category'>): TestQuestion[] {
+  if (garment.category === 'onepiece') {
+    const waist = fit.zones.find((z) => z.zone === 'waist');
+    return waist && waist.label !== 'unknown' ? ['chest', 'waist', 'length'] : ['chest', 'length'];
+  }
   if (garment.category !== 'bottom') return ['chest', 'length'];
   const thigh = fit.zones.find((z) => z.zone === 'thigh');
   return thigh && thigh.label !== 'unknown' ? ['waist', 'thigh', 'length'] : ['waist', 'length'];
@@ -146,6 +156,8 @@ const p = (v: number) => v.toFixed(3);
 export function fitTestRow(r: FitTestRecord): Record<FitTestColumn, string> {
   const x = r.prediction;
   const top = r.category !== 'bottom';
+  // A bottom is always asked its waist; a dress when its waist could be scored.
+  const waistAsked = !top || r.waist !== undefined;
   // Chances for a zone the row asked about, blank for one it didn't (so the report leaves it out).
   const pz = (z: ZoneChances | undefined, k: keyof ZoneChances, asked: boolean) => (asked && z ? p(z[k]) : '');
   const opt = (v: number | undefined) => (v === undefined ? '' : cm(v));
@@ -185,9 +197,9 @@ export function fitTestRow(r: FitTestRecord): Record<FitTestColumn, string> {
     thigh_cm: opt(x.thighCm),
     predicted_waist_label: x.waistLabel ?? '',
     predicted_thigh_label: r.thigh ? (x.thighLabel ?? '') : '',
-    p_waist_too_tight: pz(x.waist, 'under', !top),
-    p_waist_just_right: pz(x.waist, 'right', !top),
-    p_waist_too_loose: pz(x.waist, 'over', !top),
+    p_waist_too_tight: pz(x.waist, 'under', waistAsked),
+    p_waist_just_right: pz(x.waist, 'right', waistAsked),
+    p_waist_too_loose: pz(x.waist, 'over', waistAsked),
     p_thigh_too_tight: pz(x.thigh, 'under', r.thigh !== undefined),
     p_thigh_just_right: pz(x.thigh, 'right', r.thigh !== undefined),
     p_thigh_too_loose: pz(x.thigh, 'over', r.thigh !== undefined),

@@ -207,3 +207,37 @@ describe('Test mode on a jacket', () => {
     expect(readFitTestCsv(fitTestsCsv([r]))[0]!.worn_over).toBe('');
   });
 });
+
+describe('Test mode on a dress', () => {
+  const woman = { heightCm: 163, weightKg: 68, bodyType: 'womens' } as const;
+  const wModel = estimateBody(woman);
+  const sheath = findGarment('landsend-sheath-dress')!;
+  const surplice = findGarment('landsend-surplice-dress')!;
+  const preference = preferenceSpec(null, null);
+  const p = predictionFor({ body: woman, model: wModel, garment: sheath, size: '10', preference, anchor: null, odds: sampleFit(wModel, sheath, preference) });
+
+  it('asks the bust, the waist when it is scored, and where the hem lands', () => {
+    expect(testQuestions(fitGarment(wModel, sheath, '10'), sheath)).toEqual(['chest', 'waist', 'length']);
+    expect(testQuestions(fitGarment(wModel, surplice, 'M'), surplice)).toEqual(['chest', 'length']);
+  });
+
+  it('records the bust, the waist at the seam and the hem landing', () => {
+    expect(p.category).toBe('onepiece');
+    const fit = fitGarment(wModel, sheath, '10');
+    expect(p.chestLabel).toBe(fit.zones.find((z) => z.zone === 'chest')!.label);
+    expect(p.waistLabel).toBe(fit.zones.find((z) => z.zone === 'waist')!.label);
+    expect(p.lengthLabel).toBe('noted');
+    expect(p.waist!.under + p.waist!.right + p.waist!.over).toBeCloseTo(1);
+    expect(p.preferredChestEaseCm).toBeNull();
+  });
+
+  it('writes the chest and waist columns', () => {
+    const r = makeFitTest('d', '2026-11-20T10:00:00Z', sheath.id, '10', { tester: 'T03', chest: 'just-right', waist: 'too-tight', length: 'just-right', keptSize: '12' }, p);
+    expect(isFitTestList([r])).toBe(true);
+    const [row] = readFitTestCsv(fitTestsCsv([r]));
+    expect(row).toMatchObject({ category: 'onepiece', actual_chest: 'just-right', actual_waist: 'too-tight' });
+    expect(row!.p_chest_just_right).not.toBe('');
+    expect(row!.p_waist_just_right).not.toBe('');
+    expect(row!.predicted_thigh_label).toBe('');
+  });
+});
