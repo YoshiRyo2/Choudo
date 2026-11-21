@@ -25,23 +25,51 @@ export interface SkirtShape {
 }
 
 /** A skirt is never drawn closer to the body than this (cm, half width). Skin only. */
-const MIN_ROOM_CM = 0.5;
+export const MIN_ROOM_CM = 0.5;
 
-export function skirtShape(g: BodyGeometry, body: BodyMeasurements, garment: Garment, size: SizeMeasurements): SkirtShape {
-  const chartGirth = (key: 'waist' | 'hips' | 'hemSweep') =>
-    size[key] !== undefined && girthKnown(garment, key) ? size[key] : undefined;
-  const [waist, hips, sweep] = (['waist', 'hips', 'hemSweep'] as const).map(chartGirth);
-  const approximate = waist === undefined || hips === undefined || sweep === undefined;
+/** What a skirt outline is drawn from: heights (y, cm from the top of the head) and chart girths (full, cm). */
+export interface SkirtOutlineInput {
+  bandY: number;
+  hipY: number;
+  hemY: number;
+  /** Missing: as narrow as the body allows (a band no width was given for). */
+  waist?: number;
+  /** The band's half width as drawn above it (a dress's bodice at the seam); wins over `waist`. */
+  bandHalf?: number;
+  /** Missing: the body at the hip point plus 2 cm. */
+  hips?: number;
+  /** Missing: straight down from the hips. */
+  sweep?: number;
+}
 
+export interface SkirtOutline {
+  /** Closed path, band to hem. */
+  body: string;
+  /** Right-side points, band to hem. */
+  right: Pt[];
+  bandY: number;
+  hipY: number;
+  hemY: number;
+  bandHalf: number;
+  hipHalf: number;
+  hemHalf: number;
+}
+
+/**
+ * A skirt's outline from the band down: the band, a hip point and a hem, each at
+ * least the body's width there. The hip point is kept below the band and the hem
+ * below the hips and above the floor. Shared by skirts and a dress's skirt.
+ */
+export function skirtOutline(g: BodyGeometry, input: SkirtOutlineInput): SkirtOutline {
+  const { bandY, waist, hips, sweep } = input;
   // Never inside the body at that height.
   const atLeastBody = (half: number, y: number) => Math.max(half, bodyHalfAt(g, y) + MIN_ROOM_CM);
 
-  const bandY = g.height - skirtBandHeight(body, garment);
   // The hip point sits below the band, whatever the chart says (it can't be drawn above it).
-  const hipY = Math.max(g.height - skirtHipHeight(body, garment), bandY + 1);
-  const hemY = Math.max(Math.min(g.height - skirtHemHeight(body, garment, size), g.y.floor - 0.5), hipY + 1);
+  const hipY = Math.max(input.hipY, bandY + 1);
+  const hemY = Math.max(Math.min(input.hemY, g.y.floor - 0.5), hipY + 1);
 
-  const bandHalf = atLeastBody(waist === undefined ? 0 : halfWidth.waist(waist), bandY);
+  const bandHalf = atLeastBody(input.bandHalf ?? (waist === undefined ? 0 : halfWidth.waist(waist)), bandY);
   const hipHalf = atLeastBody(hips === undefined ? bodyHalfAt(g, hipY) + 2 : halfWidth.hips(hips), hipY);
   // An A-line flares from the hips, a pencil narrows; without a sweep, straight down.
   const hemHalf = atLeastBody(sweep === undefined ? hipHalf : halfWidth.hips(sweep), hemY);
@@ -53,17 +81,34 @@ export function skirtShape(g: BodyGeometry, body: BodyMeasurements, garment: Gar
     { x: hemHalf, y: hemY, corner: true },
   ];
   const left = [...right].reverse().map((p) => ({ ...p, x: -p.x }));
+  return { body: smoothPath([...right, ...left], true), right, bandY, hipY, hemY, bandHalf, hipHalf, hemHalf };
+}
+
+export function skirtShape(g: BodyGeometry, body: BodyMeasurements, garment: Garment, size: SizeMeasurements): SkirtShape {
+  const chartGirth = (key: 'waist' | 'hips' | 'hemSweep') =>
+    size[key] !== undefined && girthKnown(garment, key) ? size[key] : undefined;
+  const [waist, hips, sweep] = (['waist', 'hips', 'hemSweep'] as const).map(chartGirth);
+  const approximate = waist === undefined || hips === undefined || sweep === undefined;
+
+  const o = skirtOutline(g, {
+    bandY: g.height - skirtBandHeight(body, garment),
+    hipY: g.height - skirtHipHeight(body, garment),
+    hemY: g.height - skirtHemHeight(body, garment, size),
+    waist,
+    hips,
+    sweep,
+  });
 
   return {
-    body: smoothPath([...right, ...left], true),
+    body: o.body,
     markers: {
-      waist: { x: bandHalf, y: bandY },
-      hips: { x: hipHalf, y: hipY },
-      length: { x: hemHalf, y: hemY },
-      walkingRoom: { x: 0, y: hemY },
+      waist: { x: o.bandHalf, y: o.bandY },
+      hips: { x: o.hipHalf, y: o.hipY },
+      length: { x: o.hemHalf, y: o.hemY },
+      walkingRoom: { x: 0, y: o.hemY },
     },
-    hemY,
-    hemHalf,
+    hemY: o.hemY,
+    hemHalf: o.hemHalf,
     approximate,
   };
 }
