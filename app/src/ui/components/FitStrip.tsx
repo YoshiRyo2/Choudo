@@ -27,7 +27,7 @@ export function FitStrip({ garment, fits, size, recommended, odds, onSelectSize,
   const detail = verdict.verdict === 'unknown' ? (fit ? summarize(fit).detail : null) : verdict.detail;
   return (
     <div className="fit-strip">
-      <SizePicker key={garment.id} layout="row" fits={fits} selected={size} recommended={recommended} onSelect={onSelectSize} />
+      <SizePicker key={garment.id} layout="row" fits={fits} selected={size} recommended={recommended} odds={odds} onSelect={onSelectSize} />
       <div className={`fit-strip__verdict tone-${verdict.tone}`}>
         <p className="fit-strip__text" aria-live="polite">
           <span className="fit-strip__headline">{verdict.headline}</span>

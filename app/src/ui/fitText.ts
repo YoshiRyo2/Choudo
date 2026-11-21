@@ -16,6 +16,7 @@ import {
   type MeasurableKey,
   type MeasureHint,
   type PreferenceSpec,
+  type SizeOdds,
   type Verdict,
   type ZoneFit,
   type ZoneId,
@@ -490,20 +491,38 @@ export interface VerdictLine {
   verdict: Verdict;
 }
 
+const KNOWN_VERDICTS = VERDICTS.filter((v): v is Exclude<Verdict, 'unknown'> => v !== 'unknown');
+
+/** A size's likeliest verdict, or null when the size is missing or mostly can't be checked. */
+function likeliestVerdict(odds: GarmentOdds, sizeLabel: string): { size: SizeOdds; modal: Exclude<Verdict, 'unknown'> } | null {
+  const size = odds.sizes.find((s) => s.sizeLabel === sizeLabel);
+  if (!size || size.verdicts.unknown >= 0.5) return null;
+  const modal = KNOWN_VERDICTS.reduce((best, v) => (size.verdicts[v] > size.verdicts[best] ? v : best), KNOWN_VERDICTS[0]!);
+  return { size, modal };
+}
+
+/**
+ * The colour for one size (its chip's dot): the tone of its likeliest verdict,
+ * as `verdictLine` colours it, but never the close call's warn, which is about
+ * choosing between two sizes, not about this one.
+ */
+export function sizeTone(odds: GarmentOdds, sizeLabel: string): FitTone {
+  const likeliest = likeliestVerdict(odds, sizeLabel);
+  return likeliest ? VERDICT_TONE[likeliest.modal] : 'unknown';
+}
+
 /**
  * The headline for one size: the most likely verdict, worded by how sure we are,
  * or "Could go either way: M or L" when this size and another are close.
  */
 export function verdictLine(odds: GarmentOdds, sizeLabel: string, garment: Pick<Garment, 'category' | 'fitIntent'>): VerdictLine {
-  const size = odds.sizes.find((s) => s.sizeLabel === sizeLabel);
-  if (!size || size.verdicts.unknown >= 0.5) {
+  const likeliest = likeliestVerdict(odds, sizeLabel);
+  if (!likeliest) {
     return { headline: 'Can’t check this fit', detail: null, tone: 'unknown', verdict: 'unknown' };
   }
+  const { size, modal } = likeliest;
   const liked = garment.category === 'bottom' ? 'fits well' : 'fits how you like';
   const detail = `${formatPercent(size.likes)} chance it ${liked}.`;
-
-  const known = VERDICTS.filter((v): v is Exclude<Verdict, 'unknown'> => v !== 'unknown');
-  const modal = known.reduce((best, v) => (size.verdicts[v] > size.verdicts[best] ? v : best), known[0]!);
 
   const ranked = [...odds.sizes].sort((a, b) => b.likes - a.likes);
   const [first, second] = ranked;

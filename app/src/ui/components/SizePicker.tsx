@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef } from 'react';
-import type { FitTone, GarmentFit } from '../../domain/fit';
-import { centredScrollLeft } from './sizeRow';
+import type { FitTone, GarmentFit, GarmentOdds } from '../../domain/fit';
+import { centredScrollLeft, chipTone } from './sizeRow';
 import './SizePicker.css';
 
 interface SizePickerProps {
@@ -8,6 +8,11 @@ interface SizePickerProps {
   selected: string | null;
   recommended: string | null;
   onSelect: (size: string) => void;
+  /**
+   * The garment's odds: each dot then takes the colour of that size's likeliest
+   * verdict, as the verdict line does. Without them, the chart-only fit.
+   */
+  odds?: GarmentOdds;
   /**
    * 'wrap' (default): chips wrap onto more rows. 'row': one row that scrolls
    * sideways, keeping the selected chip in view (give it a `key` per garment so
@@ -24,7 +29,7 @@ const TONE_NAME: Record<FitTone, string> = {
 };
 
 /** One chip per size, each with a dot showing how that size would fit. */
-export function SizePicker({ fits, selected, recommended, onSelect, layout = 'wrap' }: SizePickerProps) {
+export function SizePicker({ fits, selected, recommended, onSelect, odds, layout = 'wrap' }: SizePickerProps) {
   const name = useId();
   const rowRef = useRef<HTMLDivElement>(null);
   const isRow = layout === 'row';
@@ -62,6 +67,7 @@ export function SizePicker({ fits, selected, recommended, onSelect, layout = 'wr
         {fits.map((fit) => {
           const isSelected = fit.sizeLabel === selected;
           const isRecommended = fit.sizeLabel === recommended;
+          const tone = chipTone(fit, odds);
           return (
             <label key={fit.sizeLabel} className={`size-chip${isSelected ? ' is-selected' : ''}`}>
               <input
@@ -72,9 +78,9 @@ export function SizePicker({ fits, selected, recommended, onSelect, layout = 'wr
                 onChange={() => onSelect(fit.sizeLabel)}
               />
               <span className="size-chip__label num">{fit.sizeLabel}</span>
-              <span className={`size-chip__dot tone-${fit.overall}`} aria-hidden="true" />
+              <span className={`size-chip__dot tone-${tone}`} aria-hidden="true" />
               <span className="visually-hidden">
-                {TONE_NAME[fit.overall]}
+                {TONE_NAME[tone]}
                 {isRecommended ? ', suggested size' : ''}
               </span>
               {isRecommended && (
