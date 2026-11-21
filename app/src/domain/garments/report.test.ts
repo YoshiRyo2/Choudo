@@ -3,6 +3,7 @@ import { SEED_GARMENTS } from './garments';
 import { buildReport, errorCount, formatReport, type ImageFileInfo } from './report';
 import type { GarmentImage, SeedGarment } from './types';
 import { MIN_IMAGE_WIDTH_PX } from './verifyRules';
+import { TEE_BACK_IMAGE } from './testFixtures';
 
 const tee: SeedGarment = {
   id: 'tee',
@@ -135,5 +136,37 @@ describe('formatReport', () => {
     expect(text).toContain('Not scored: chest — chart doesn’t say flat or full circumference');
     expect(text).toMatch(/look like flat widths/);
     expect(text.split('\n').at(-1)).toBe('2 errors, 2 warnings. Grades: 1 blocked, 1 charted, 1 unscored.');
+  });
+});
+
+describe('buildReport: back photos', () => {
+  const front: GarmentImage = { ...SEED_GARMENTS.find((g) => g.id === 'ryo-black-henley')!.image!, file: 'garments/tee-front.png' };
+  const withBack = (licence: GarmentImage['licence']): SeedGarment => ({
+    ...tee,
+    image: front,
+    backImage: { ...TEE_BACK_IMAGE, file: 'garments/tee-back.png', licence },
+  });
+  const files = (back: ImageFileInfo) => (file: string) => (file === 'garments/tee-back.png' ? back : sharp());
+
+  it('checks a back photo like a front one', () => {
+    const entries = buildReport([withBack('own')], () => true, files({ width: null, gitIgnored: false }));
+    expect(entries[0]!.backImage).toEqual({ state: 'missing', file: 'garments/tee-back.png' });
+    expect(errorCount(entries)).toBe(1);
+    expect(formatReport(entries)).toContain('Error   [backImage] garments/tee-back.png is missing');
+  });
+
+  it('a local-only back photo is not checked', () => {
+    const entries = buildReport([withBack('local-only')], () => true, files({ width: null, gitIgnored: true }));
+    expect(errorCount(entries)).toBe(0);
+    expect(formatReport(entries)).toContain('  Back:     garments/tee-back.png (local-only, not on this machine; not checked)');
+  });
+
+  it('lists a back photo that passes under the front one', () => {
+    const text = formatReport(buildReport([withBack('own')], () => true, sharp));
+    expect(text).toContain('  Image:    garments/tee-front.png (900 px wide)\n  Back:     garments/tee-back.png (900 px wide)');
+  });
+
+  it('has no back photo to check by default', () => {
+    expect(buildReport([tee], () => true, sharp)[0]!.backImage).toEqual({ state: 'none' });
   });
 });
