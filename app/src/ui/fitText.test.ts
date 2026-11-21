@@ -14,6 +14,7 @@ import {
   personalOddsText,
   preferenceNote,
   verdictLine,
+  headlineSize,
   sizeTone,
   formatDiff,
   garmentTag,
@@ -185,6 +186,7 @@ describe('verdictLine', () => {
       detail: '82% chance it fits how you like.',
       tone: 'good',
       verdict: 'fits',
+      closeCall: false,
     });
     expect(verdictLine(odds, 'S', top).headline).toBe('Probably a bit snugger than you like');
     expect(verdictLine(odds, 'XL', top).headline).toBe('Very likely much roomier than you like');
@@ -195,6 +197,7 @@ describe('verdictLine', () => {
     const odds = oddsOf(sizeOdds('M', { fits: 0.39, snugger: 0.5, 'too-tight': 0.11 }), sizeOdds('L', { fits: 0.3, roomier: 0.7 }));
     expect(verdictLine(odds, 'L', top).headline).toBe('Could go either way: M or L');
     expect(verdictLine(odds, 'M', top).headline).toBe('Could go either way: M or L');
+    expect(verdictLine(odds, 'M', top).closeCall).toBe(true);
   });
 
   it('is not a close call when the runner-up is unlikely', () => {
@@ -263,7 +266,7 @@ describe('sizeTone', () => {
         const odds = sampleFit(body, garment, preferenceSpec(null, null), { samples: 100 });
         for (const { sizeLabel } of odds.sizes) {
           const line = verdictLine(odds, sizeLabel, garment);
-          if (line.headline.startsWith('Could go either way')) continue;
+          if (line.closeCall) continue;
           expect([garment.id, sizeLabel, sizeTone(odds, sizeLabel)]).toEqual([garment.id, sizeLabel, line.tone]);
           compared++;
         }
@@ -612,5 +615,33 @@ describe('dress wording', () => {
     expect(zoneName('chest', fitGarment(woman, sheath, '10').bodyType)).toBe('Bust');
     expect(zoneName('chest', fitGarment(man, sheath, '10').bodyType)).toBe('Chest');
     expect(chestOf(woman).label).not.toBe('unknown');
+  });
+});
+
+describe('headlineSize', () => {
+  it('names the size after a one-size headline', () => {
+    const odds = oddsOf(sizeOdds('M', { fits: 0.82, roomier: 0.18 }), sizeOdds('L', { roomier: 0.9, fits: 0.1 }));
+    const line = verdictLine(odds, 'M', top);
+    expect(line.closeCall).toBe(false);
+    expect(headlineSize(line, 'M')).toBe('M');
+  });
+
+  it('names no size after a close call, which already names both', () => {
+    const odds = oddsOf(sizeOdds('M', { fits: 0.39, snugger: 0.5, 'too-tight': 0.11 }), sizeOdds('L', { fits: 0.3, roomier: 0.7 }));
+    expect(headlineSize(verdictLine(odds, 'M', top), 'M')).toBeNull();
+  });
+
+  it('names a size after "Can’t check this fit"', () => {
+    const line = verdictLine(oddsOf(sizeOdds('M', { unknown: 1 })), 'M', top);
+    expect(headlineSize(line, 'M')).toBe('M');
+  });
+
+  // The demo case: Fit details read "Could go either way: 8 or 10 in 8".
+  it('names no size for the Lands’ End A-line skirt in 8 at 170 cm / 62 kg', () => {
+    const garment = findGarment('landsend-a-line-skirt')!;
+    const body = estimateBody({ heightCm: 170, weightKg: 62, bodyType: 'womens' });
+    const line = verdictLine(sampleFit(body, garment, preferenceSpec(null, null)), '8', garment);
+    expect(line.headline).toBe('Could go either way: 8 or 10');
+    expect(headlineSize(line, '8')).toBeNull();
   });
 });

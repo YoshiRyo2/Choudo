@@ -36,7 +36,7 @@ describe('chipTone', () => {
     const odds = sampleFit(model, garment, preferenceSpec(null, null));
     const fit = fitAllSizes(model, garment).find((f) => f.sizeLabel === size)!;
     const line = verdictLine(odds, size, garment);
-    expect(line.headline).not.toMatch(/^Could go either way/);
+    expect(line.closeCall).toBe(false);
     expect(chipTone(fit, odds)).toBe(line.tone);
     expect(fit.overall).not.toBe(line.tone); // the old dot
   });
