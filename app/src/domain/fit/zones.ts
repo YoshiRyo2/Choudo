@@ -27,6 +27,9 @@ import {
   JACKET_GIRTH_RULES,
   JACKET_LENGTH,
   JACKET_SHOULDER,
+  LEGGINGS_GIRTH,
+  LEGGINGS_LENGTH,
+  LEGGINGS_WAIST,
   KNIT_EASE_OFFSET_CM,
   KNIT_GIRTH_RULES,
   LEG_OPENING,
@@ -44,6 +47,7 @@ import {
 } from './rules';
 import { bandHeight, girthAtHeight, riseForBand } from './pants';
 import { crotchToKneeCm } from './shorts';
+import { crotchToAnkleCm } from './leggings';
 import { skirtBandHeight, skirtHemHeight, skirtHipHeight, strideGirthCm } from './skirt';
 import { lengthTargetCm, sleeveTargetCm, hpsLengthCm } from './tops';
 import { dressHemHeight, hpsToKneeCm } from './dress';
@@ -60,7 +64,8 @@ export type ZoneId =
   | 'legOpening'
   | 'hemBand'
   | 'walkingRoom'
-  | 'shoulder';
+  | 'shoulder'
+  | 'calf';
 
 /**
  * Where a worked-out body number was taken: band = the body's girth where a
@@ -69,9 +74,10 @@ export type ZoneId =
  * hip_point = the body's girth where a skirt chart measures its hips;
  * stride = the girth round both legs mid-stride, at the hem;
  * shoulder_knee = from the high point of the shoulder down to the knee (a dress hem);
- * over_layer = the body plus what is worn under the garment (layers.ts).
+ * over_layer = the body plus what is worn under the garment (layers.ts);
+ * ankle = a distance down to the ankle bone (where a leggings hem lands against it).
  */
-export type BodyAt = 'band' | 'centre_back' | 'knee' | 'hip_point' | 'stride' | 'over_layer' | 'shoulder_knee';
+export type BodyAt = 'band' | 'centre_back' | 'knee' | 'hip_point' | 'stride' | 'over_layer' | 'shoulder_knee' | 'ankle';
 
 export type Rule = GirthRule | LengthRule | LandingRule;
 
@@ -253,6 +259,26 @@ const SHORTS_ZONES: readonly ZoneSpec[] = [
     rule: SHORTS_INSEAM,
     bodyTarget: (m) => crotchToKneeCm(m),
     bodyAt: 'knee',
+  },
+];
+
+/**
+ * Leggings: the waist where the band sits, the hips, thigh and calf as a share of
+ * the body (cut under it, ASSUMED rules in rules.ts), and where the hem lands
+ * against the ankle bone. Thigh and calf are optional: few charts list them.
+ */
+const LEGGINGS_ZONES: readonly ZoneSpec[] = [
+  { ...PANTS_ZONES.find((z) => z.zone === 'waist')!, rule: LEGGINGS_WAIST },
+  { zone: 'hips', garmentKey: 'hips', bodyKey: 'hipsCm', rule: LEGGINGS_GIRTH },
+  { ...PANTS_ZONES.find((z) => z.zone === 'thigh')!, rule: LEGGINGS_GIRTH },
+  { zone: 'calf', garmentKey: 'calf', bodyKey: 'calfCm', rule: LEGGINGS_GIRTH, optional: true },
+  {
+    zone: 'inseam',
+    garmentKey: 'inseam',
+    bodyKey: 'inseamCm',
+    rule: LEGGINGS_LENGTH,
+    bodyTarget: (m) => crotchToAnkleCm(m),
+    bodyAt: 'ankle',
   },
 ];
 
@@ -441,6 +467,7 @@ export const TEMPLATE_ZONES: Record<TemplateId, TemplateZones> = {
   skirt: { template: 'skirt', zones: SKIRT_ZONES, personal: null },
   jacket: { template: 'jacket', zones: JACKET_ZONES, personal: { girth: 'chest', length: null, easeOffsetCm: JACKET_EASE_OFFSET_CM } },
   dress: { template: 'dress', zones: DRESS_ZONES, personal: null },
+  leggings: { template: 'leggings', zones: LEGGINGS_ZONES, personal: null },
 };
 
 export const templateZones = (g: Pick<Garment, 'type'>): TemplateZones => TEMPLATE_ZONES[templateOf(g)];

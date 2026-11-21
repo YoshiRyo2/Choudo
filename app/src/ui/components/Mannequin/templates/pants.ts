@@ -17,7 +17,7 @@ import { SLEEVE_STRIPS, type SleeveEdges, type XY } from '../photoWarp';
 
 export interface BottomShape {
   body: string;
-  markers: Partial<Record<'waist' | 'hips' | 'thigh' | 'rise' | 'inseam' | 'legOpening', Marker>>;
+  markers: Partial<Record<'waist' | 'hips' | 'thigh' | 'calf' | 'rise' | 'inseam' | 'legOpening', Marker>>;
   /** Each leg's outer edge (hip → knee → hem) and inner edge (crotch → knee → hem), SLEEVE_STRIPS + 1 points each, for the photo warp's leg strips. */
   limbEdges: { left: SleeveEdges; right: SleeveEdges };
   /** Each leg's own outline (its strips' clip), so a leg's photo never spills onto the other leg. */
@@ -49,6 +49,7 @@ export const HEM_HALF: Record<GarmentType, number> = {
   jacket: 9,
   coat: 9,
   dress: 9,
+  leggings: 3.2,
 };
 
 /** How much wider than the leg under it a fallback thigh or knee is drawn (cm, half width). Skin only. */
@@ -59,7 +60,7 @@ const MIN_ROOM_CM = 0.3;
 const mirrorX = (p: XY): XY => ({ x: -p.x, y: p.y });
 
 /** Points along a two-segment edge (top → knee → hem), the knee always at the middle index. */
-function edge(top: XY, knee: XY, hem: XY): XY[] {
+export function edge(top: XY, knee: XY, hem: XY): XY[] {
   const half = SLEEVE_STRIPS / 2;
   return Array.from({ length: SLEEVE_STRIPS + 1 }, (_, k) => {
     const [a, b, t] = k <= half ? [top, knee, k / half] : [knee, hem, (k - half) / half];

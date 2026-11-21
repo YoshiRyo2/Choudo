@@ -1,5 +1,5 @@
 import type { GarmentFit, GarmentOdds } from '../../domain/fit';
-import type { Garment } from '../../domain/garments';
+import { templateOf, type Garment } from '../../domain/garments';
 import { summarize, verdictLine } from '../fitText';
 import { SizePicker } from './SizePicker';
 import './FitStrip.css';
@@ -24,7 +24,7 @@ export function FitStrip({ garment, fits, size, recommended, odds, onSelectSize,
   const fit = fits.find((f) => f.sizeLabel === size);
   const verdict = verdictLine(odds, size, garment);
   // As FitReadout's summary: with no verdict, say what couldn't be checked instead of odds.
-  const detail = verdict.verdict === 'unknown' ? (fit ? summarize(fit).detail : null) : verdict.detail;
+  const detail = verdict.verdict === 'unknown' ? (fit ? summarize(fit, templateOf(garment)).detail : null) : verdict.detail;
   return (
     <div className="fit-strip">
       <SizePicker key={garment.id} layout="row" fits={fits} selected={size} recommended={recommended} odds={odds} onSelect={onSelectSize} />

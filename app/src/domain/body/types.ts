@@ -74,6 +74,8 @@ export interface BodyMeasurements {
   hipHeightCm: number;
   /** Floor to the middle of the kneecap. */
   kneeHeightCm: number;
+  /** Floor to the ankle bone (lateral malleolus): where a full-length legging ends. */
+  ankleHeightCm: number;
 }
 
 /** Keys of BodyMeasurements that are measurements (not height/weight/bodyType). */
@@ -96,7 +98,8 @@ export type LegKey =
   | 'frontRiseCm'
   | 'waistHeightCm'
   | 'hipHeightCm'
-  | 'kneeHeightCm';
+  | 'kneeHeightCm'
+  | 'ankleHeightCm';
 
 export const LEG_KEYS: readonly LegKey[] = [
   'thighCm',
@@ -107,6 +110,7 @@ export const LEG_KEYS: readonly LegKey[] = [
   'waistHeightCm',
   'hipHeightCm',
   'kneeHeightCm',
+  'ankleHeightCm',
 ];
 
 /**

@@ -140,7 +140,7 @@ describe('validateBodyInput', () => {
 });
 
 describe('leg keys (pants)', () => {
-  const LEG_KEYS = ['thighCm', 'kneeCm', 'calfCm', 'heelAnkleCm', 'frontRiseCm', 'waistHeightCm', 'hipHeightCm', 'kneeHeightCm'] as const;
+  const LEG_KEYS = ['thighCm', 'kneeCm', 'calfCm', 'heelAnkleCm', 'frontRiseCm', 'waistHeightCm', 'hipHeightCm', 'kneeHeightCm', 'ankleHeightCm'] as const;
 
   it('come after the original keys, in a fixed order', () => {
     expect(BODY_MEASUREMENT_KEYS.slice(7)).toEqual([...LEG_KEYS]);
@@ -154,6 +154,8 @@ describe('leg keys (pants)', () => {
     expect(m.waistHeightCm).toBeCloseTo(98.1, 1);
     expect(m.hipHeightCm).toBeCloseTo(83.5, 1);
     expect(m.kneeHeightCm).toBeCloseTo(44.95, 1);
+    // lateralmalleolusheight: 0.6924 + 0.0338 × 163 + 0.0011 × 68
+    expect(m.ankleHeightCm).toBeCloseTo(6.28, 2);
   });
 
   it("men's leg keys are assumed ratios (girths of the hips, heights of the height)", () => {
@@ -166,6 +168,7 @@ describe('leg keys (pants)', () => {
     expect(m.waistHeightCm).toBeCloseTo(0.601 * 176);
     expect(m.hipHeightCm).toBeCloseTo(0.505 * 176);
     expect(m.kneeHeightCm).toBeCloseTo(0.278 * 176);
+    expect(m.ankleHeightCm).toBeCloseTo(0.0415 * 176);
   });
 
   it("men's existing keys don't move", () => {
@@ -184,6 +187,14 @@ describe('leg keys (pants)', () => {
       expect(m.kneeHeightCm).toBeLessThan(95);
       expect(m.hipHeightCm).toBeGreaterThan(95);
       expect(m.waistHeightCm).toBeGreaterThan(m.hipHeightCm);
+    }
+  });
+
+  it('keeps the ankle below the knee when an entered inseam is very short', () => {
+    for (const bodyType of ['womens', 'mens'] as const) {
+      const { measurements: m } = estimateBody({ heightCm: 163, weightKg: 68, bodyType, overrides: { inseamCm: 50 } });
+      expect(m.ankleHeightCm).toBeLessThan(m.kneeHeightCm);
+      expect(m.ankleHeightCm).toBeGreaterThan(0);
     }
   });
 

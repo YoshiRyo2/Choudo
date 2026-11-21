@@ -131,6 +131,7 @@ function formatEntry({ garment: g, check, grade, snapshot, image }: ReportEntry)
   } else if (!src.placeholder) {
     lines.push('  Snapshot: none saved');
   }
+  if (g.stretchAssumed) lines.push(`  Stretch:  ${typeof g.stretch === 'string' ? g.stretch : g.stretch.default} (assumed: the chart gives no stretch data)`);
   const imageText = imageLine(image);
   if (imageText) lines.push(imageText);
   if (check.errors.length === 0 && check.warnings.length === 0) lines.push('  Checks:   pass');

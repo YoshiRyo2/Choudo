@@ -169,7 +169,8 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
     hip: H - m.hipHeightCm,
     crotch: H - m.inseamCm,
     knee: H - m.kneeHeightCm,
-    ankle: 0.955 * H,
+    // The body model's ankle bone, where a full-length legging ends.
+    ankle: H - m.ankleHeightCm,
     floor: H,
   };
 

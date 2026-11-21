@@ -112,6 +112,8 @@ export const WOMENS_RATIO: Omit<LengthRatios, 'inseam'> = { armLength: 0.339, to
  *  - waistHeightCm: "waistheightomphalion", floor to navel.               R² 0.84, SD 2.01 cm
  *  - hipHeightCm: "buttockheight", floor to the fullest seat.             R² 0.71, SD 2.47 cm
  *  - kneeHeightCm: "kneeheightmidpatella".                                R² 0.71, SD 1.40 cm
+ *  - ankleHeightCm: "lateralmalleolusheight", floor to the ankle bone; fitted
+ *    2026-11-21. Weak R² but a small spread.                               R² 0.19, SD 0.46 cm
  */
 export const WOMENS_LEG_REGRESSION: Record<LegKey, LinearFit> = {
   thighCm: { intercept: 58.4, perCm: -0.1942, perKg: 0.5142, residualSdCm: 2.28 },
@@ -122,6 +124,7 @@ export const WOMENS_LEG_REGRESSION: Record<LegKey, LinearFit> = {
   waistHeightCm: { intercept: -22.36, perCm: 0.7652, perKg: -0.0624, residualSdCm: 2.01 },
   hipHeightCm: { intercept: -11.94, perCm: 0.5743, perKg: 0.0266, residualSdCm: 2.47 },
   kneeHeightCm: { intercept: -10.1, perCm: 0.3347, perKg: 0.0073, residualSdCm: 1.4 },
+  ankleHeightCm: { intercept: 0.6924, perCm: 0.0338, perKg: 0.0011, residualSdCm: 0.46 },
 };
 
 /**
@@ -141,6 +144,8 @@ export const MENS_LEG_RATIO = {
   waistHeight: 0.601,
   hipHeight: 0.505,
   kneeHeight: 0.278,
+  // male mean lateralmalleolusheight 7.29 cm / mean stature 175.6 cm
+  ankleHeight: 0.0415,
 };
 
 /**
@@ -161,14 +166,15 @@ export const LEG_ESTIMATE_LIMITS: Record<LegKey, { min: number; max: number }> =
   waistHeightCm: { min: 70, max: 145 },
   hipHeightCm: { min: 55, max: 125 },
   kneeHeightCm: { min: 30, max: 75 },
+  ankleHeightCm: { min: 4, max: 11 },
 };
 
 /**
  * Smallest gaps kept between heights (cm), ASSUMED: the hip line sits above the
- * crotch, the navel above the hip line, the knee below the crotch. When an entered
+ * crotch, the navel above the hip line, the knee below the crotch, the ankle below the knee. When an entered
  * inseam is far from the estimate, the leg heights give way; the inseam never does.
  */
-export const HEIGHT_GAPS_CM = { hipAboveCrotch: 2, navelAboveHip: 5, kneeBelowCrotch: 10 };
+export const HEIGHT_GAPS_CM = { hipAboveCrotch: 2, navelAboveHip: 5, kneeBelowCrotch: 10, ankleBelowKnee: 25 };
 
 /**
  * A regression's value, kept inside the plausible range for that measurement: far
@@ -272,6 +278,7 @@ function womensLegs(heightCm: number, weightKg: number): Record<LegKey, number> 
     waistHeightCm: fit('waistHeightCm'),
     hipHeightCm: fit('hipHeightCm'),
     kneeHeightCm: fit('kneeHeightCm'),
+    ankleHeightCm: fit('ankleHeightCm'),
   };
 }
 
@@ -287,15 +294,17 @@ function mensLegs(heightCm: number, hipsCm: number): Record<LegKey, number> {
     waistHeightCm: clamp('waistHeightCm', r.waistHeight * heightCm),
     hipHeightCm: clamp('hipHeightCm', r.hipHeight * heightCm),
     kneeHeightCm: clamp('kneeHeightCm', r.kneeHeight * heightCm),
+    ankleHeightCm: clamp('ankleHeightCm', r.ankleHeight * heightCm),
   };
 }
 
-/** Keep knee < crotch (inseam) < hip line < navel, moving only the leg heights. */
-function orderHeights(m: { inseamCm: number; kneeHeightCm: number; hipHeightCm: number; waistHeightCm: number }) {
+/** Keep ankle < knee < crotch (inseam) < hip line < navel, moving only the leg heights. */
+function orderHeights(m: { inseamCm: number; kneeHeightCm: number; hipHeightCm: number; waistHeightCm: number; ankleHeightCm: number }) {
   const g = HEIGHT_GAPS_CM;
   m.hipHeightCm = Math.max(m.hipHeightCm, m.inseamCm + g.hipAboveCrotch);
   m.waistHeightCm = Math.max(m.waistHeightCm, m.hipHeightCm + g.navelAboveHip);
   m.kneeHeightCm = Math.min(m.kneeHeightCm, m.inseamCm - g.kneeBelowCrotch);
+  m.ankleHeightCm = Math.min(m.ankleHeightCm, m.kneeHeightCm - g.ankleBelowKnee);
 }
 
 /**
@@ -351,6 +360,7 @@ export function estimateBody(input: BodyInput): BodyModel {
       waistHeightCm: 'estimated',
       hipHeightCm: 'estimated',
       kneeHeightCm: 'estimated',
+      ankleHeightCm: 'estimated',
     },
   };
   orderHeights(model.measurements);
