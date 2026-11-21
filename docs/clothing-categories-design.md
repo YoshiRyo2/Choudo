@@ -883,6 +883,34 @@ Split into 1a (commits 1–2, Medium, no visible change) and 1b (3–8).
 - **Not built**: a knee zone; a `legwear` slot; leggings photo landmarks and warp; Test mode asks
   waist, thigh and length only (not hips or calf).
 
+#### Back view as built
+
+- **Front / Back toggle** in the Fitting room stage (`View` in `ui/components/Mannequin/view.ts`), not
+  stored: it opens on Front. A drawing option only — `bodyGeometry` takes no view, nothing in
+  `domain/fit/` changes, the FitStrip and readout don't see it.
+- **Templates**: `topShape` (`options.view`), `jacketShape(…, view)` and `dressShape(…, view)` draw the
+  same outline points, sleeve edges, folds and markers from the back (tests compare them with the
+  front for every seed top, jacket and dress, so the pins sit at the same heights). What differs: the
+  back neckline sits `BACK_NECKLINE_DIP_CM` (1, skin, assumed) under the neck base, and in the back
+  view `TopShape.landmarks.neckFront` holds that centre-back point; a hoodie's hood lies on the upper
+  back (`hoodOnBack`, `HOOD_BACK_DROP_CM` 22, assumed), drawn over the top and over a jacket worn on
+  it; a jacket has no placket and its stand collar is a plain band. Pants, shorts, skirts and leggings
+  draw the same outline from both sides. Pins stay on the same viewer sides as the front.
+- **Back photo**: optional `backImage` (same `GarmentImage`, same `PHOTO_LICENCES` / `canWarp`;
+  `local-only` never warped, and `localOnlyFiles` keeps it out of the build). Landmarks: tops
+  `TOP_BACK_LANDMARKS` (`neckBack` in place of `neckFront`, viewer-relative left/right), pants
+  `PANTS_LANDMARKS`; no `hoodTop`. `topLandmarks(image, 'back')` reads `neckBack` into the warp
+  mesh's centre-neckline slot. `viewPhoto` picks the side's photo; the back never uses the front
+  photo (no front graphic on the back). A warped back photo of a hoodie hides the drawn hood unless a
+  jacket is on.
+- **data:check**: `backImage: …` problems from `validateImage(…, 'back')` (landmarks, order,
+  licence, template takes a photo); the report prints a `Back:` line and counts its file errors.
+- **Picker**: `/dev/landmarks` has a Front / Back tab; `garment-photos.json` entries take
+  `"side": "back"` (default output `<id>-back.png`); saving writes `"backImage"` after `"image"`.
+- **Not built**: back photos for jackets, skirts, shorts, dresses and leggings (no photo landmarks
+  for those yet); back-only details (yokes, back pockets, a back rise); a stored view. No seed
+  garment has a back photo yet.
+
 ### PR 2 — hoodies / sweaters (Medium)
 - `knit` zones: chest (personal, tee `INTENT_EASE` plus a knit offset), length (`hps` or `center_back` against
   `cervicaleHeightCm`), sleeve (`shoulder_to_cuff` or `center_back_to_cuff` against `sleevelengthspinewrist`),

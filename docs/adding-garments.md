@@ -49,7 +49,16 @@ without one the top is drawn in its `color`. Full details are in
    hold the rights to the source photo either (a retailer's model shot), list its PNG in
    `app/.gitignore` too. A git-ignored PNG must be `local-only`, or the check fails. The
    source photo in `photo-sources/` is never committed.
-6. **Then the measurements**, below. If the garment isn't in `seed.json` yet, add its
+6. **A back photo (optional).** Same steps for a photo of the back: add a second line to
+   `garment-photos.json` with `"side": "back"` (the cut-out goes to `<garment-id>-back.png`),
+   run `npm run photos -- <garment-id>`, then place its points on the picker's **Back** tab
+   (<http://localhost:5173/dev/landmarks?id=garment-id&side=back>). A top's back has the same
+   13 points with **Back neck** (`neckBack`, the bottom of the back neckline) in place of the
+   front neck; pants use the same 14. They're saved as the garment's `"backImage"`, which takes
+   the same licence and the same `data:check` rules as the front. Without one, the Fitting
+   room's Back view draws the garment in its flat colour; it never uses the front photo.
+   Tops and pants only (jackets, skirts, shorts, dresses and leggings take no photo yet).
+7. **Then the measurements**, below. If the garment isn't in `seed.json` yet, add its
    row first (steps 1–5) and come back to step 3.
 
 ## The numbers
