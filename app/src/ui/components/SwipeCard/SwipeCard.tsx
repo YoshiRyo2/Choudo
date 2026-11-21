@@ -96,6 +96,7 @@ export function SwipeCard({ garment, body, fit, recommended, verdict, leaving, i
           onepiece={garment.category === 'onepiece' ? worn : undefined}
           outer={garment.category === 'outer' ? worn : undefined}
           showFit={false}
+          frame="body"
         />
         <span className="swipe-card__stamp is-like" style={{ opacity: offset > 0 ? intent : 0 }} aria-hidden="true">
           Like
