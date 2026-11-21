@@ -2,7 +2,7 @@
 
 Status: proposal, written 2026-11-19 against `main` @ `0060dee` (after PRs #27–#32). Decisions on the open
 questions are at the end (2026-11-20). PR 1a (registry + rules, commits 1–2 of §6) is built; see "PR 1a as built".
-PRs 1b–5 are built too; each has its own "as built" note in §6.
+PRs 1b–5 and 7 are built too; each has its own "as built" note in §6.
 Order asked for: pants/jeans → hoodies/sweaters → skirts/shorts → jackets/coats → dresses → bras → leggings
 (the PR plan in §6 puts bras before leggings, as requested for the PRs).
 
@@ -840,6 +840,40 @@ Split into 1a (commits 1–2, Medium, no visible change) and 1b (3–8).
   bottoms.
 - **Not built**: sleeveless dresses (`topShape` always draws sleeves); empire waists (need an
   underbust, PR 6); drop waists; a slit/vent field; dress photo landmarks and warp.
+
+#### PR 7 as built (leggings)
+
+- **Template** `leggings` (type `leggings`), category **`bottom`**, not §2.1's `legwear` slot: nothing can
+  be worn over them yet. Zones, in order: waist (the pants waist at the band), hips (required), thigh
+  (optional, needs `definitions.thigh`), calf (optional, new garment key `calf`, last in
+  `MEASUREMENT_KEYS`), length. **No knee zone** (the brief asked for waist, hips, thigh and calf).
+  Objective only.
+- **Rules** (all assumed, fraction scale, per-zone stretch through `GirthRule.stretch`):
+  `LEGGINGS_GIRTH` (hips, thigh, calf) ideal −8 %, fitted to −2 %, relaxed to +3 %, tight below
+  −5 % less the allowance (compression 0.13 → −18 %, high 0.08 → −13 %, some 0.04). `LEGGINGS_WAIST`
+  ideal −8 %, fitted to 0, relaxed to +4 %, tight below −8 % (compression 0.08 → −16 %). The first
+  waist rule (band ≈ body) called a 163 / 68 body's SanMar M "tight": Sport-Tek cuts its relaxed
+  band at its chart's *natural* waist in every size, and ANSUR II's navel waist runs about 8 % larger.
+  Re-derived from the chart; tune with Test mode.
+- **Length** is a landing against crotch → ankle bone (`bodyAt: 'ankle'`): capri, 7/8 from −16 cm,
+  ankle from −5, `stacked` (tone warn, "Long") from +4. Never decides the size.
+- **Body**: `ankleHeightCm`, women's ANSUR II `lateralmalleolusheight` regression (R² 0.19, SD
+  0.46 cm, n 1,986), men's 0.0415 × height (male means), assumed; kept 25 cm under the knee. The
+  golden files' body header lines gained the key; every garment line was unchanged.
+- **Recommendation** without hips: `pickSize` still suggests by the waist (the girths it can score),
+  as it already does for pants with no hips. So LPST890 reads "can't check" with a suggested size.
+- **Data**: SanMar spec pages, tier B, snapshots saved locally: Sport-Tek LPST890 7/8 Legging (waist
+  flat, 25 in inseam; no hip, so unknown) and LPST880 NRG Fitness Pant (named a pant by SanMar, but
+  spandex and cut ≈ 15 % under the body: typed leggings; its hip row has no method, read as flat like
+  the waist). No stretch data on either: `compression` with the new `stretchAssumed: true`.
+- **Drawing**: `templates/leggings.ts` on the pants outline and warp points: body leg + 0.2 cm, the
+  chart's width only where bigger, hem at `leggingsHemHeight()`, stopped and `pooled` at the ankle when
+  longer. `y.ankle` is now the body's ankle height (was 0.955 H); no existing snapshot moved.
+- **Wording**: "Too much squeeze" / "Baggy", the share under the body ("8.0 cm (8 %) smaller than your
+  hips: snug, as leggings are cut."), "7/8 length: ends 8.5 cm above your ankle bone.", "Stretch
+  assumed" on the source line.
+- **Not built**: a knee zone; a `legwear` slot; leggings photo landmarks and warp; Test mode asks
+  waist, thigh and length only (not hips or calf).
 
 ### PR 2 — hoodies / sweaters (Medium)
 - `knit` zones: chest (personal, tee `INTENT_EASE` plus a knit offset), length (`hps` or `center_back` against

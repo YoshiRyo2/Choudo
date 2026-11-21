@@ -115,6 +115,7 @@ Never guess. An unknown definition means that zone can't be scored, and the fit 
 | `fitIntent` | `slim`, `regular`, `relaxed`, `oversized` | How the brand describes the cut. |
 | `sizing` | `mens`, `womens`, `unisex` | Who the size chart is cut for. Decides who sees it by default and, for tops, which chest thresholds apply (women's cuts sit closer). Anything else is an error. |
 | `stretch` | `none`, `some`, `high`, `compression` | How much the fabric gives. Elastic waistbands are `high`; `compression` is for leggings. Knits: `{ "default": "none", "hemBand": "high" }` for a rib hem. |
+| `stretchAssumed` | `true` | When the chart gives no stretch data and the level is ours (a spandex legging read as `compression`). The readout and `npm run data:check` say so. Leave it out when the chart or product page states the stretch. |
 | `hemBand` (a size measurement) | number | Knits: the rib hem band, relaxed (a girth, so flat or full as `girth` says). Few charts print it; an estimate needs `origin: "estimated"` and a `how`. |
 | `weight` | `light`, `mid`, `heavy` | Optional fabric bulk: what a garment adds under a jacket (`domain/fit/layers.ts`). Leave out for the template's default: tees light, knits and jackets mid. A heavy fleece (9 oz and up) is `heavy`. |
 | `category` for dresses | `onepiece` | Dresses (`type` `dress`) take the place of the top and the bottom. They need a sleeve (`short` or `long`; sleeveless isn't supported yet) and a length definition (`hps` or `center_back`). |
@@ -162,6 +163,14 @@ Dresses (`"type": "dress"`, `"category": "onepiece"`) give `chest` (the bust) an
 (`definitions.waistSeam`), the hips at the fullest, the hem lands against the knee (mini to
 maxi, as a skirt's) and the sweep is checked for walking room. A "back only" chest (half the
 back, not the full bust) can't be turned into a girth: leave that dress out.
+
+Leggings (`"type": "leggings"`, `"category": "bottom"`) give `waist` and `inseam`, and when
+the chart lists them `hips`, `thigh` (with `definitions.thigh`) and `calf` (a girth, last in the
+key list). They're compared as a share of the body (meant to sit under it), the waist where
+the band sits, and the inseam lands against the ankle bone (capri / 7/8 / ankle / long). Hips
+are required, as for pants: a chart without them reads "can't check". Sport-Tek prints the
+waistband "point to point when laid flat", so `girth: "flat"`. If the chart gives no stretch
+figure, use `compression` for a spandex legging and set `stretchAssumed: true`.
 
 ## 5. Copy the numbers exactly as printed
 

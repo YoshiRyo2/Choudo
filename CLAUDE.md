@@ -33,7 +33,7 @@ app/src/
     body/        estimateBody(input) -> BodyModel (men's power law; women's ANSUR II regressions),
                  braSize.ts (parse "34DD", US/UK cups, bust estimate)
     garments/    types.ts (schema), seed.json, normalize.ts (printed -> cm + provenance),
-                 categories.ts (type -> template: tee | shirt | knit | pants | shorts | skirt | jacket | dress; CategorySpec data rules, weightOf),
+                 categories.ts (type -> template: tee | shirt | knit | pants | shorts | skirt | jacket | dress | leggings; CategorySpec data rules, weightOf),
                  chart.ts (per-measurement girth method, stretch, definitions),
                  validate.ts (structure), verify.ts + verifyRules.ts (stage-5 checks),
                  grade.ts (confidence grade), report.ts (npm run data:check text),
@@ -45,6 +45,7 @@ app/src/
                  strideGirthCm; the drawing reads them too),
                  tops.ts (length / sleeve body targets per definition, centre back included, HPS height; the drawing reads it too),
                  dress.ts (seam / hem heights, HPS to knee; the drawing reads them too),
+                 leggings.ts (crotchToAnkleCm, leggingsHemHeight; the drawing reads it too),
                  layers.ts (what a top under a jacket adds: layerAllowanceCm, layerGrowCm; the drawing reads it too),
                  outfit.ts (fitOutfit: top, bottom or dress bare, the jacket over the top or dress, layer notes),
                  golden.test.ts + __golden__/ (byte-for-byte snapshot of every garment's fit and odds)
@@ -55,7 +56,7 @@ app/src/
     screens/     BodyScreen (input; pure bodyForm.ts, bodyFieldErrors.ts: per-field checks shown on blur,
                  bodyPreview.ts: a typical body until height + weight are valid), AnchorScreen (fit reference), FittingRoom (browse + size + fit),
                  FitTestPanel (Test mode), Discover (swipe feed), Closet + closet/ (Liked, Folders, Outfits tabs)
-    components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts + skirt.ts + jacket.ts + dress.ts, photoWarp.ts + SVG),
+    components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts + skirt.ts + jacket.ts + dress.ts + leggings.ts, photoWarp.ts + SVG),
                  SwipeCard/ (pure swipe.ts),
                  FitStrip (size row + verdict line under the stage), sizeRow.ts (pure),
                  GarmentIcon (card picture: photo or flat drawing; garmentThumb.ts picks, pure),
@@ -160,6 +161,17 @@ inputs/outputs and unit tests. UI only calls their public functions.
   height is `hpsHeightCm`, `HPS_BELOW_TOP_RATIO` 0.165 below the head, assumed: the mannequin's own),
   walking room as skirts at the dress's hem. Objective only (`personal: null`), worded as bottoms
   (`objectiveOnly` in `fitText.ts`). Heights in `domain/fit/dress.ts`. Sleeveless isn't supported yet.
+- Leggings (type `leggings` → template `leggings`, category bottom): waist at the band (as pants;
+  `LEGGINGS_WAIST`), hips (required), thigh (optional, needs `definitions.thigh`) and calf (optional,
+  garment key `calf`) on `LEGGINGS_GIRTH`, all `scale: 'fraction'` with their own stretch allowances.
+  Hips / thigh / calf: ideal −8 %, fitted to −2 %, relaxed to +3 %, tight below −5 % less the
+  allowance (compression 0.13 → −18 %, high 0.08 → −13 %). Waist: ideal −8 %, fitted to 0, relaxed to
+  +4 %, tight below −8 % (compression −16 %): Sport-Tek cuts the band at the natural waist, about 8 %
+  under ANSUR II's navel waist. Length is a landing against crotch → ankle bone (`bodyAt: 'ankle'`,
+  `LEGGINGS_LENGTH`: capri / 7/8 from −16 / ankle from −5 / stacked from +4 cm, tone warn). All assumed.
+  Objective only. Labels read "Too much squeeze" / "Baggy" (`zoneLabelText(z, template)`), girth
+  sentences give the share under the body, and the inseam is called "Length" (`zoneTitle`).
+  `stretchAssumed: true` marks a stretch level the chart doesn't give (readout source line, data report).
 - Layering (`domain/fit/layers.ts`): charts and bands are bare-body; a jacket assumes something light
   under it (`OUTER_ASSUMES`). With a top under it (`fitGarment(…, under)`), layered zones compare with
   the body + `layerAllowanceCm`: `LAYER_BULK_CM[weight] − LAYER_BULK_CM.light` (light 0.5 / mid 2 /
@@ -190,7 +202,9 @@ inputs/outputs and unit tests. UI only calls their public functions.
   heel–ankle, front rise, and navel / hip-line (fullest seat) / knee heights. Women's are ANSUR II
   regressions (`WOMENS_LEG_REGRESSION`); men's are **assumed** ratios of the ANSUR II male means
   (`MENS_LEG_RATIO`: girths × the hips estimate, the rest × height) until the men's re-fit.
-  Heights are kept in order (knee < crotch < hip line < navel); an entered inseam never moves.
+  Heights are kept in order (ankle < knee < crotch < hip line < navel); an entered inseam never moves.
+- Ankle height (`ankleHeightCm`, floor to the ankle bone, leggings): women's ANSUR II
+  `lateralmalleolusheight` regression (R² 0.19, SD 0.46 cm); men's 0.0415 × height, assumed.
 
 ## Personal fit and odds (source of truth is `domain/fit/`)
 - Zone labels stay objective. The **verdict** is personal: fits how you like / a bit snugger /
@@ -232,7 +246,9 @@ inputs/outputs and unit tests. UI only calls their public functions.
 - Every row has `sizing: "mens" | "womens" | "unisex"` (who the chart is cut for). Gildan 5000
   and Knightweave are unisex; the Lands' End A-line skirt is the first women's row; Port Authority
   J317 (men's) and L317 (women's) soft shells are the first jackets (SanMar spec sheets, tier B); Lands' End's
-  sheath (505999) and surplice (441021) are the first dresses (item-dimension PDFs, tier B). The Fitting room and Discover show the body type's sizing plus
+  sheath (505999) and surplice (441021) are the first dresses (item-dimension PDFs, tier B); Sport-Tek
+  LPST890 (7/8 legging: waist + inseam only, so its hips read "can't check") and LPST880 (fitness pant
+  typed leggings: waist, hip, inseam) are the first leggings (SanMar spec pages, tier B, stretch assumed). The Fitting room and Discover show the body type's sizing plus
   unisex, with a shared "Show: … & unisex | All" toggle (`catalogueFor`); a worn garment
   stays on even when hidden.
 - `checkGarment` (stage 5) returns errors and warnings. Errors leave the garment out of the
@@ -271,6 +287,10 @@ inputs/outputs and unit tests. UI only calls their public functions.
   that top's hem; `jacketShape` runs `topShape` on it with chest = body + `layerAllowanceCm` (what the
   fit compares), plus a placket and stand collar (drawn closed). The Mannequin draws `outer` last;
   under a jacket the top's arm overlay and pins give way to the jacket's. A longer top shows below.
+- Leggings (`templates/leggings.ts`): skin-tight on the pants outline: the band at `bandHeight()`, the
+  hem at `leggingsHemHeight()` (past the ankle bone it stops at the ankle, `pooled`), widths the body's
+  own leg + `LEGGINGS_ROOM_CM` (0.2), the chart's only where it's bigger. Dashed only without an
+  inseam. The drawn ankle (`y.ankle`) is the body model's ankle height.
 - Dresses (`templates/dress.ts`): the bodice is `topShape` ended at the seam (`hemAt`: the chart
   waist's width there), the skirt `skirtOutline` from the seam to `dressHemHeight` (hips at the hip
   line, sweep from the chart; dashed without hips or sweep). Drawn bodice → skirt → arms → sleeves;
