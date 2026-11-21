@@ -3,7 +3,7 @@ import { estimateBody } from '../../../../domain/body';
 import { hpsLengthCm, layerAllowanceCm, layerGrowCm } from '../../../../domain/fit';
 import { findGarment, type Garment } from '../../../../domain/garments';
 import { JACKET } from '../../../../domain/garments/testFixtures';
-import { bodyGeometry, bodyHalfAt } from '../geometry';
+import { bodyGeometry, bodyHalfAt, limbPath } from '../geometry';
 import { DRAPE, topShape } from '../topShape';
 import { envelopeGeometry, jacketShape } from './jacket';
 
@@ -84,5 +84,19 @@ describe('jacketShape', () => {
     const h = under(hoodie, 'L');
     const s = jacket('S', h);
     expect(h.shape.markers.length!.y).toBeGreaterThan(s.markers.length!.y);
+  });
+});
+
+describe('jacketShape arms below the cuff', () => {
+  it('draws the hand at the body’s width, from the jacket’s cuff, with nothing longer under it', () => {
+    const s = jacket('M', under(tee, 'M'));
+    expect(s.arms[0]).toBe(limbPath(g.arm, Math.min(s.right.sleeveEndT - 0.04, 1.02), 1.1, 0, 0));
+  });
+
+  it('starts below a longer cuff under it, so that cuff stays visible (as the layer note says)', () => {
+    const h = under(hoodie, 'L');
+    const s = jacket('S', h);
+    expect(h.shape.right.sleeveEndT).toBeGreaterThan(s.right.sleeveEndT);
+    expect(s.arms[0]).toBe(limbPath(g.arm, Math.min(h.shape.right.sleeveEndT, 1.02), 1.1, 0, 0));
   });
 });

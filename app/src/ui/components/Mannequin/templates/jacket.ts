@@ -15,7 +15,7 @@
 import type { BodyMeasurements } from '../../../../domain/body';
 import { layerAllowanceCm, layerGrowCm, type UnderLayer } from '../../../../domain/fit';
 import type { Garment, SizeMeasurements } from '../../../../domain/garments';
-import { bodyHalfAt, limbFrame, limbHalf, smoothPath, xAt, type BodyGeometry, type Pt } from '../geometry';
+import { bodyHalfAt, limbFrame, limbHalf, limbPath, mirrorPath, smoothPath, xAt, type BodyGeometry, type Pt } from '../geometry';
 import { topShape, type TopShape } from '../topShape';
 
 /** Skin only: how far the stand collar rises above the neck base, cm. */
@@ -117,5 +117,11 @@ export function jacketShape(
     ],
     true,
   );
-  return { ...shape, placket, collar };
+  // The bare forearm below the cuff is the body's own arm (skin rule), not the grown
+  // envelope's, and it starts below whichever cuff ends lower: a longer cuff under the
+  // jacket stays visible, as the layer note says.
+  const underEndT = under && under.layer.garment.sleeve === 'long' ? under.shape.right.sleeveEndT : 0;
+  const fromT = underEndT > shape.right.sleeveEndT ? Math.min(underEndT, 1.02) : Math.min(shape.right.sleeveEndT - 0.04, 1.02);
+  const forearm = limbPath(g.arm, fromT, 1.1, 0, 0);
+  return { ...shape, arms: [forearm, mirrorPath(forearm)], placket, collar };
 }
