@@ -20,6 +20,7 @@ import {
 import {
   BOTTOM_HIPS,
   BOTTOM_WAIST,
+  DRESS_GIRTH_RULES,
   HEM_BAND,
   INSEAM,
   JACKET_EASE_OFFSET_CM,
@@ -44,7 +45,8 @@ import {
 import { bandHeight, girthAtHeight, riseForBand } from './pants';
 import { crotchToKneeCm } from './shorts';
 import { skirtBandHeight, skirtHemHeight, skirtHipHeight, strideGirthCm } from './skirt';
-import { lengthTargetCm, sleeveTargetCm } from './tops';
+import { lengthTargetCm, sleeveTargetCm, hpsLengthCm } from './tops';
+import { dressHemHeight, hpsToKneeCm } from './dress';
 
 export type ZoneId =
   | 'chest'
@@ -367,6 +369,63 @@ const JACKET_ZONES: readonly ZoneSpec[] = [
   },
 ];
 
+/**
+ * Dresses: the top's bust (and a charted shoulder and long sleeve), the waist at
+ * the seam, the hips, where the hem lands against the knee and whether it opens
+ * to a stride (the skirt's marks and check). Waist and hips are optional: a
+ * fit-and-flare chart often has neither, and an empire seam can't be compared
+ * until there's an underbust (PR 6).
+ */
+const DRESS_ZONES: readonly ZoneSpec[] = [
+  { zone: 'chest', garmentKey: 'chest', bodyKey: 'chestCm', rule: DRESS_GIRTH_RULES },
+  { ...JACKET_ZONES.find((z) => z.zone === 'shoulder')!, applies: (_g, s) => s.shoulder !== undefined },
+  KNIT_ZONES.find((z) => z.zone === 'sleeve')!,
+  {
+    zone: 'waist',
+    garmentKey: 'waist',
+    bodyKey: 'waistCm',
+    rule: DRESS_GIRTH_RULES,
+    optional: true,
+    // A natural seam, or a sheath with none, is fitted at the waist: ANSUR II's, at the navel.
+    needs: {
+      definition: 'waistSeam',
+      accepts: ['natural', 'none'],
+      reason: (brand, value) =>
+        value === 'empire'
+          ? `${brand}'s waist seam sits under the bust; we can't compare it until we know your underbust.`
+          : value === 'drop'
+            ? `${brand}'s waist seam sits below the waist, which we can't place yet.`
+            : `${brand}'s chart doesn’t say where the waist seam is.`,
+    },
+  },
+  { zone: 'hips', garmentKey: 'hips', bodyKey: 'hipsCm', rule: BOTTOM_HIPS, optional: true },
+  {
+    zone: 'length',
+    garmentKey: 'length',
+    bodyKey: 'kneeHeightCm',
+    rule: SKIRT_LENGTH,
+    // Shoulder to knee: a dress this long (from the high point of the shoulder) ends at the
+    // middle of the kneecap. A centre-back length is compared less the back-neck drop.
+    bodyTarget: (m, g, s) => hpsToKneeCm(m) - ((hpsLengthCm(g, s) ?? s.length ?? 0) - (s.length ?? 0)),
+    bodyAt: 'knee',
+    needs: {
+      definition: 'length',
+      accepts: ['hps', 'center_back'],
+      reason: (brand) => `${brand}'s chart doesn't say where length is measured from.`,
+    },
+  },
+  {
+    zone: 'walkingRoom',
+    garmentKey: 'hemSweep',
+    bodyKey: 'thighCm',
+    rule: WALKING_ROOM,
+    optional: true,
+    applies: (_g, s) => s.length !== undefined,
+    bodyTarget: (m, g, s) => strideGirthCm(m, dressHemHeight(m, g, s)),
+    bodyAt: 'stride',
+  },
+];
+
 const TOP_PERSONAL = { girth: 'chest', length: 'length' } as const;
 
 export const TEMPLATE_ZONES: Record<TemplateId, TemplateZones> = {
@@ -377,8 +436,7 @@ export const TEMPLATE_ZONES: Record<TemplateId, TemplateZones> = {
   shorts: { template: 'shorts', zones: SHORTS_ZONES, personal: null },
   skirt: { template: 'skirt', zones: SKIRT_ZONES, personal: null },
   jacket: { template: 'jacket', zones: JACKET_ZONES, personal: { girth: 'chest', length: null, easeOffsetCm: JACKET_EASE_OFFSET_CM } },
-  // Zones come with the dress fit (PR 5, Task 3).
-  dress: { template: 'dress', zones: [], personal: null },
+  dress: { template: 'dress', zones: DRESS_ZONES, personal: null },
 };
 
 export const templateZones = (g: Pick<Garment, 'type'>): TemplateZones => TEMPLATE_ZONES[templateOf(g)];
