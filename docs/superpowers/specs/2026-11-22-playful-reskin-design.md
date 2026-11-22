@@ -122,3 +122,110 @@ there are swapped for flat fills and borders (an anti-goal fix, not a layout cha
 - Component tests (jsdom + Testing Library) for the Fitting room headline cases and for
   opening and closing Fit details.
 - 390 px screenshots of every screen in the PR.
+
+---
+
+# PR 2: mascot — design
+
+Date: 2026-11-22. Branch: `claude/reskin-playful-2` (from `main` after PR 1). Presentation only.
+
+## Goals
+- A mascot head on the mannequin wherever it is drawn (Body, Fitting room, Discover,
+  Closet): **cloud** (default), **peach** or **bunny**, picked in the Fitting room and
+  remembered on the device.
+- A face that reacts to the fit of the size shown.
+- A ちょうど ("just right") seal that lands on the Fitting room stage when the size shown
+  is the suggested size and it fits, with a small hop of the figure.
+
+## Non-goals and hard rules
+- Same as PR 1: no change to fit logic, thresholds, zone results, verdict wording or
+  `domain/fit/__golden__/`.
+- **Skin rule.** The head, face and motion are a rendering skin. Body geometry (neck,
+  shoulders, bust, waist, hips, legs, height) and garment shapes are byte-for-byte what
+  they were: `bodyGeometry` is not touched, and a test renders the Mannequin with each head
+  and checks everything outside the head group is the same markup.
+- The motion is a translate of the whole figure; the body is never scaled.
+- Tokens only, no hardcoded colours. No emoji, gradients or sparkles.
+
+## Heads (`Mannequin/heads.ts`, pure; drawn by `Mannequin/MascotHead.tsx`)
+The old head ellipse (`g.head`) is replaced by the head drawing, in the same place in the
+paint order (over the neck). Each head is laid out from `g.head` only: centred on its `cx`,
+its bottom on `cy + ry` (the chin, so it overlaps the neck's top), and sized in units of
+`w = g.head.rx`, so it scales with the head the geometry already uses. Everything fits in
+the old head's height (`2 × ry ≈ 2.96 w`), so the figure is no taller.
+
+| Head  | Drawing |
+|-------|---------|
+| cloud | four overlapping `--surface` circles (a face circle and three puffs) with **one** ink outline round the group: the circles are drawn once with a 4.4 px ink stroke, then again filled on top, so only the outer edge shows (2.2 px). |
+| peach | one `--brand` circle, a small leaf at the top (`--surface`, ink outline: no green, since green reads as a fit colour) and a soft crease line (ink at 35 %). |
+| bunny | a `--surface` round head and two ears behind it, ears with `--brand` insides. |
+
+Outlines are ink, 2.2 px, non-scaling (`vector-effect`), like the body.
+
+## Face (`faceShape(tone, at)` in `heads.ts`)
+The same face on every head, on the face circle: two eyes, two `--blush` cheeks, a small
+mouth, ink lines 2 px. It follows a `FitTone`:
+
+| Tone    | Eyes | Mouth |
+|---------|------|-------|
+| good    | happy closed (^ ^) | smile |
+| warn    | dots | flat |
+| bad     | dots | small frown |
+| unknown | dots | flat |
+
+- Fitting room: the selected size's existing verdict tone (`fittingHeadline(...).tone`,
+  the same tone as the dot by the verdict line).
+- Discover: the card's size's verdict tone (the tone the card already shows).
+- Body screen and Closet: no fit is shown there, so `unknown` (neutral).
+
+## Head picker (Fitting room)
+Three 44 px round buttons stacked down the left edge of the stage, each showing a small
+drawing of its head. `aria-label` "Cloud head" / "Peach head" / "Bunny head",
+`aria-pressed` on the chosen one (ink fill when pressed; white with a 2 px ink ring when
+not). Saved with `usePersistentState` under `choudo.head.v1` (guard `isHeadKind`). App
+holds it and hands it down through a small context (`MascotHeadContext`), so every
+Mannequin draws the chosen head without threading a prop through each screen.
+
+## ちょうど stamp (`components/Stamp/`)
+- A round double-ring seal in `--stamp`: a thick outer ring, a thin inner ring and ちょうど
+  across the middle. The glyphs are outlined once from **Shippori Mincho B1 ExtraBold
+  (800, SIL OFL)** by `app/scripts/stamp-glyphs.mjs` (opentype.js) into a committed path
+  module, `Stamp/stampGlyphs.ts`, and a reference `Stamp/stamp.svg`. No Japanese font loads
+  at runtime.
+- Uneven ink: an SVG `feTurbulence` + `feDisplacementMap` filter roughens the edges, and a
+  second noise pass knocks a few faint voids out of the ink.
+- Rotated −9°, `mix-blend-mode: multiply`, 76 px, `role="img"`,
+  `aria-label="ちょうど: just right"`.
+- Top right of the stage, just outside the peach circle so it sits on `--bg` (stamp on
+  `--bg` is ≥ 4.5:1; on `--peach-soft` it is not). The Save outfit button moves from that
+  corner to the stage's bottom right.
+- **Shows** only when the selected size is the suggested size **and** the headline says
+  "{size} fits you": `isJustRight(odds, size, garment)` in `fitText.ts`, the same
+  `confidentFit` rule `fittingHeadline` uses.
+- **Animates once per garment + size per session** (`state/stampSeen.ts`, sessionStorage
+  with an in-memory fallback): a 260 ms drop from scale 1.5 to 1 with a small rebound
+  (1.5 → 0.94 → 1.03 → 1). Seen again in the same session, it is simply there.
+
+## Hop
+When a stamp drops, the whole figure (the Mannequin SVG) translates up 7 px and back over
+380 ms, starting 140 ms in, as the seal first touches down. Web Animations API on the
+figure (`ui/motion.ts`, keyframes are `translateY` only), so it doesn't restart the SVG
+or its photos.
+
+## Reduced motion
+`prefers-reduced-motion: reduce`: the stamp fades in over 160 ms instead of dropping; no
+hop.
+
+## Testing
+- `npm run check` and `npm run build` pass; golden files untouched.
+- Head choice persists (`choudo.head.v1`), and the picker's `aria-pressed` follows it.
+- Face per tone (pure `faceShape`, and the rendered `data-face`).
+- Stamp only for recommended + fits (`isJustRight`, and the Fitting room: not for another
+  size, not for "Your best bet").
+- Stamp animates once per garment + size (`claimStampDrop`, and a second visit renders
+  it static).
+- Geometry identical across heads: the Mannequin markup outside the head group is the
+  same for cloud, peach and bunny, for a bare body and a dressed one; hop keyframes
+  translate only.
+- 390 px screenshots in `2026-11-22-playful-reskin-screens/`: the Fitting room with each
+  head, the stamp on, and a size that doesn't fit.
