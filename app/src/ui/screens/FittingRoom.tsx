@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
 import {
   fitAllSizes,
@@ -13,17 +13,24 @@ import { catalogueToggle, emptyCategoryText } from '../catalogueText';
 import { FitAnswer } from '../components/FitAnswer';
 import { FitSheet } from '../components/FitSheet';
 import { GarmentCarousel } from '../components/GarmentCarousel';
+import { HEAD_KINDS, HEAD_NAME, type HeadKind } from '../components/Mannequin/heads';
+import { MascotHeadIcon } from '../components/Mannequin/MascotHead';
 import { Mannequin, type WornGarment } from '../components/Mannequin/Mannequin';
 import type { View } from '../components/Mannequin/view';
 import { NameForm } from '../components/NameForm';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Sheet } from '../components/Sheet';
 import { SizePicker } from '../components/SizePicker';
+import { Stamp } from '../components/Stamp/Stamp';
+import { useStampDrop } from '../components/Stamp/useStampDrop';
 import { Wordmark } from '../components/Wordmark';
+import { fittingHeadline, isJustRight } from '../fitText';
 import { clickedByPointer, refocus } from '../focus';
+import { hop } from '../motion';
 import { makeId } from '../state/closet';
 import { makeFitTest, predictionFor } from '../state/fitTests';
 import { garmentOdds } from '../state/odds';
+import { stampKey } from '../state/stampSeen';
 import { defaultSize, resolveOutfit, wearGarment } from '../state/outfit';
 import type { FitTestRecord, Outfit, UnitSystem } from '../state/stored';
 import { FitTestPanel } from './FitTestPanel';
@@ -46,6 +53,9 @@ interface FittingRoomProps {
   nextOutfitName: string;
   onUnitsChange: (units: UnitSystem) => void;
   onEditBody: () => void;
+  /** The mascot head (a drawing choice, stored by App) and the picker's change. */
+  head: HeadKind;
+  onHeadChange: (head: HeadKind) => void;
   /** Present when Test mode is on. */
   testing?: {
     records: FitTestRecord[];
@@ -79,6 +89,8 @@ export function FittingRoom({
   nextOutfitName,
   onUnitsChange,
   onEditBody,
+  head,
+  onHeadChange,
   testing,
 }: FittingRoomProps) {
   const model = useMemo(() => estimateBody(body), [body]);
@@ -125,6 +137,16 @@ export function FittingRoom({
   const activeUnder = tab === 'outer' ? under : undefined;
   // The zones, tape scales, cm and odds live in this sheet: the screen itself shows no numbers.
   const [showDetails, setShowDetails] = useState(false);
+
+  // The face follows the shown size's verdict tone; the ちょうど stamp shows when it is
+  // the suggested size and the headline says it fits, and drops once per garment + size.
+  const face = active ? fittingHeadline(active.odds, active.size, active.garment).tone : 'unknown';
+  const stamp = active && isJustRight(active.odds, active.size, active.garment) ? stampKey(active.garment.id, active.size) : null;
+  const dropping = useStampDrop(stamp);
+  const figure = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (dropping) hop(figure.current);
+  }, [dropping, stamp]);
 
   function chooseGarment(id: string) {
     const garment = findGarment(id);
@@ -205,17 +227,36 @@ export function FittingRoom({
 
       <section className="fitting__stage" aria-label="Mannequin">
         <div className="fitting__circle" aria-hidden="true" />
-        <Mannequin
-          body={model.measurements}
-          top={worn(top)}
-          bottom={worn(bottom)}
-          onepiece={worn(onepiece)}
-          outer={worn(outer)}
-          frame="body"
-          view={view}
-          showHeightTape={false}
-          className="fitting__figure"
-        />
+        {/* The hop moves this wrapper (translate only), so the SVG and its photos aren't redrawn. */}
+        <div className="fitting__figure" ref={figure}>
+          <Mannequin
+            body={model.measurements}
+            top={worn(top)}
+            bottom={worn(bottom)}
+            onepiece={worn(onepiece)}
+            outer={worn(outer)}
+            frame="body"
+            view={view}
+            showHeightTape={false}
+            head={head}
+            face={face}
+          />
+        </div>
+        <div className="fitting__heads" role="group" aria-label="Head">
+          {HEAD_KINDS.map((kind) => (
+            <button
+              key={kind}
+              type="button"
+              className="fitting__head"
+              aria-label={`${HEAD_NAME[kind]} head`}
+              aria-pressed={head === kind}
+              onClick={() => onHeadChange(kind)}
+            >
+              <MascotHeadIcon kind={kind} />
+            </button>
+          ))}
+        </div>
+        {stamp && <Stamp key={stamp} dropping={dropping} className="fitting__stamp" />}
         <button type="button" className="fitting__save" aria-label="Save outfit" title="Save outfit" onClick={() => setSaving('naming')}>
           {/* A bookmark with a plus: keep this outfit. */}
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">

@@ -1,0 +1,53 @@
+/* The ちょうど seal: --stamp ink, tilted, multiplied into what's under it like a real stamp. */
+.stamp {
+  display: block;
+  width: 80px;
+  height: 80px;
+  overflow: visible;
+  transform: rotate(-9deg);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+.stamp__ring {
+  fill: none;
+  stroke: var(--stamp);
+}
+.stamp__glyphs {
+  fill: var(--stamp);
+}
+
+/* 260 ms: dropped from 1.5×, a small rebound (0.94, 1.03), then still. */
+.stamp.is-dropping {
+  animation: stamp-drop 260ms ease-out both;
+}
+@keyframes stamp-drop {
+  0% {
+    opacity: 0;
+    transform: rotate(-9deg) scale(1.5);
+  }
+  55% {
+    opacity: 1;
+    transform: rotate(-9deg) scale(0.94);
+  }
+  78% {
+    transform: rotate(-9deg) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-9deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp.is-dropping {
+    animation: stamp-fade 160ms ease-out both;
+  }
+}
+@keyframes stamp-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
