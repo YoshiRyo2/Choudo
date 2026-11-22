@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Choudo icon for 32px and below (favicon): same dress form as choudo.svg,
+       without seams, ticks or tape tail, with a thicker tape and a larger form
+       so the shape survives at 16px. -->
+  <rect width="100" height="100" rx="18" fill="#1b2433"/>
+  <g transform="translate(-8 -6) scale(1.16)">
+    <path d="M45 18 L55 18 L56.5 26.5 L43.5 26.5 Z" fill="#d9d1c3"/>
+    <path d="M44 25 C38 25.5 32 27 29.5 30 C27.5 32.5 26.6 37 27 41 C27.4 46 30.5 50 34 54
+             C36.5 57 38 59 38 62 C38 66 33.5 69.5 33 74 L33 80 Q50 83 67 80 L67 74
+             C66.5 69.5 62 66 62 62 C62 59 63.5 57 66 54 C69.5 50 72.6 46 73 41
+             C73.4 37 72.5 32.5 70.5 30 C68 27 62 25.5 56 25 Z"
+          fill="#d9d1c3"/>
+    <path d="M27 36.5 Q50 43 73 36.5 L73 46.5 Q50 53 27 46.5 Z" fill="#f2c12e"/>
+  </g>
+</svg>
