@@ -1,48 +1,51 @@
+/* A floating white pill bar; the current section sits on a peach-soft pill. */
 .tabbar {
   position: fixed;
-  inset: auto 0 0;
+  left: 50%;
+  bottom: calc(10px + env(safe-area-inset-bottom));
   z-index: 20;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  padding: 4px 8px calc(4px + env(safe-area-inset-bottom));
-  background: color-mix(in srgb, var(--paper-raised) 94%, transparent);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 -1px 0 var(--line);
+  gap: 4px;
+  width: min(calc(100% - 32px), 440px);
+  padding: 6px;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-pill);
 }
 
 .tabbar__tab {
   display: grid;
   justify-items: center;
-  gap: 2px;
+  align-content: center;
+  gap: 1px;
   min-height: 52px;
-  padding: 6px 4px;
+  padding: 4px;
   border: 0;
+  border-radius: var(--radius-pill);
   background: none;
   color: var(--muted);
   font-size: var(--step--1);
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .tabbar__tab svg {
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.6;
+  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .tabbar__tab.is-current {
+  background: var(--peach-soft);
   color: var(--ink);
-  font-weight: 600;
-}
-/* A brand strip under the current section's icon. */
-.tabbar__tab.is-current svg {
-  border-bottom: 3px solid var(--brand);
-  padding-bottom: 1px;
+  font-weight: 800;
 }
 
-/* Room under every screen so the bar never covers the last thing on it. */
+/* Room under every screen so the floating bar never covers the last thing on it. */
 .app-shell {
-  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  padding-bottom: calc(84px + env(safe-area-inset-bottom));
 }

@@ -26,11 +26,11 @@
 }
 .picker__sides button.is-active {
   background: var(--ink, #1b2433);
-  color: var(--paper, #fff);
+  color: var(--surface);
 }
 
 .picker__head h1 {
-  font-family: var(--font-numeric);
+  font-family: var(--font-text);
   font-size: var(--step-2);
   margin: 0;
 }
@@ -42,7 +42,7 @@
   color: var(--muted);
 }
 .picker__bad {
-  color: var(--chalk-bad);
+  color: var(--fit-bad);
 }
 .picker__body {
   display: grid;
@@ -77,7 +77,7 @@
   touch-action: none;
   border: 1px solid var(--line);
   border-radius: var(--radius-s);
-  background: var(--paper-raised);
+  background: var(--surface);
 }
 .picker__checker {
   fill: #e4e7ec;
@@ -89,12 +89,12 @@
   vector-effect: non-scaling-stroke;
 }
 .picker__pt {
-  fill: var(--tape);
+  fill: var(--brand);
   stroke: var(--ink);
   cursor: grab;
 }
 .picker__pt.is-active {
-  fill: var(--chalk-bad);
+  fill: var(--fit-bad);
   stroke: #fff;
 }
 .picker__guide {
@@ -102,7 +102,7 @@
   grid-template-columns: 110px 1fr;
   gap: 12px;
   align-items: start;
-  background: var(--paper-raised);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-m);
   padding: 12px;
@@ -113,7 +113,7 @@
 }
 .picker__tee {
   fill: var(--form);
-  stroke: var(--form-edge);
+  stroke: var(--ink);
   stroke-width: 1;
 }
 .picker__dot {
@@ -122,10 +122,10 @@
   stroke-width: 0.8;
 }
 .picker__dot.is-placed {
-  fill: var(--tape);
+  fill: var(--brand);
 }
 .picker__dot.is-active {
-  fill: var(--chalk-bad);
+  fill: var(--fit-bad);
 }
 .picker__list {
   list-style: none;
@@ -151,7 +151,7 @@
   color: #fff;
 }
 .picker__xy {
-  font-family: var(--font-numeric);
+  font-family: var(--font-text);
 }
 .picker__actions {
   display: flex;
@@ -160,11 +160,11 @@
 }
 .picker__actions button {
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
   padding: 8px 12px;
   border-radius: var(--radius-s);
   border: 1px solid var(--ink);
-  background: var(--paper-raised);
+  background: var(--surface);
   color: var(--ink);
   cursor: pointer;
 }
@@ -177,13 +177,13 @@
   cursor: default;
 }
 .picker__problems {
-  color: var(--chalk-bad);
+  color: var(--fit-bad);
   font-size: var(--step--1);
   padding-left: 18px;
 }
 .picker__warn {
   font-size: var(--step--1);
-  color: var(--chalk-warn);
+  color: var(--fit-warn);
 }
 .picker__status {
   font-size: var(--step--1);
@@ -218,14 +218,14 @@
 }
 .picker__preview figure {
   margin: 0;
-  background: var(--paper-raised);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-m);
   padding: 8px;
   text-align: center;
 }
 .picker__preview figcaption {
-  font-family: var(--font-numeric);
+  font-family: var(--font-text);
   font-size: var(--step--1);
   color: var(--muted);
 }

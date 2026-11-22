@@ -3,9 +3,9 @@
   inset: 0;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
-  background: var(--paper-raised);
-  border-radius: var(--radius-m);
-  box-shadow: 0 1px 2px rgba(27, 36, 51, 0.1), 0 8px 24px rgba(27, 36, 51, 0.08);
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  border: 1.5px solid var(--line);
   overflow: hidden;
   touch-action: pan-y;
   user-select: none;
@@ -33,7 +33,7 @@
   position: relative;
   min-height: 0;
   padding: 12px 12px 0;
-  background: linear-gradient(var(--paper), var(--paper-raised));
+  background: var(--peach-tint);
 }
 
 .swipe-card__stamp {
@@ -42,12 +42,12 @@
   padding: 2px 12px;
   border: 3px solid currentColor;
   border-radius: var(--radius-s);
-  font-family: var(--font-numeric);
-  font-weight: 600;
+  font-family: var(--font-text);
+  font-weight: 700;
   font-size: var(--step-2);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  background: color-mix(in srgb, var(--paper-raised) 80%, transparent);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
   pointer-events: none;
 }
 .swipe-card__stamp.is-like {
@@ -85,7 +85,7 @@
   align-items: center;
   gap: 8px;
   margin: 2px 0 0;
-  font-weight: 600;
+  font-weight: 700;
 }
 .swipe-card__dot {
   width: 10px;

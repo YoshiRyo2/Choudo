@@ -5,26 +5,30 @@
   overflow: visible;
 }
 
+/* A cream form with a 2.2 px ink outline at any size (the drawing is in cm, the line isn't). */
 .mannequin__form {
   fill: var(--form);
-  stroke: var(--form-edge);
-  stroke-width: 0.35;
+  stroke: var(--ink);
+  stroke-width: 2.2px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
 
-/* Arms a shade darker than the torso, so the torso's shape reads where they overlap. */
+/* Arms a step towards peach, so the torso's shape reads where they overlap. */
 .mannequin__arm {
-  fill: color-mix(in srgb, var(--form) 72%, var(--form-edge));
+  fill: color-mix(in srgb, var(--form) 55%, var(--peach-tint));
 }
 
 .mannequin__seam {
-  stroke: var(--form-edge);
-  stroke-width: 0.3;
-  stroke-dasharray: 1 1.2;
+  stroke: color-mix(in srgb, var(--ink) 35%, transparent);
+  stroke-width: 1.2px;
+  stroke-dasharray: 3 4;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
 }
 
-.mannequin__floor {
-  stroke: var(--line);
-  stroke-width: 0.4;
+.mannequin__stand {
+  fill: var(--ink);
 }
 
 .mannequin__garment {
@@ -81,7 +85,7 @@
   stroke-width: 0.3;
 }
 .mannequin__cord {
-  stroke: color-mix(in srgb, var(--paper, #fff) 80%, var(--ink));
+  stroke: color-mix(in srgb, var(--surface) 80%, var(--ink));
   stroke-width: 0.45;
 }
 
@@ -103,39 +107,35 @@
 }
 .mannequin__pin circle {
   fill: currentColor;
-  stroke: var(--paper);
+  stroke: var(--bg);
   stroke-width: 0.6;
 }
 /* Couldn't be checked: a hollow ring, so it reads as "no answer", not broken. */
 .mannequin__pin.tone-unknown circle {
-  fill: var(--paper);
+  fill: var(--bg);
   stroke: var(--muted);
   stroke-width: 0.5;
 }
 
-.tone-good { color: var(--chalk-good); }
-.tone-warn { color: var(--chalk-warn); }
-.tone-bad { color: var(--chalk-bad); }
-.tone-unknown { color: var(--muted); }
 
-/* Height ruler: a quiet paper strip; yellow tape is kept for the fit readout. */
+/* Height ruler (the body screen): a quiet white strip. */
 .tape__strip {
-  fill: var(--paper-raised);
+  fill: var(--surface);
   stroke: var(--line);
   stroke-width: 0.3;
 }
 .tape__tick { stroke: var(--ink); stroke-width: 0.25; }
 .tape__num {
-  font-family: var(--font-numeric);
+  font-family: var(--font-text);
   font-size: 2.6px;
-  font-weight: 600;
+  font-weight: 700;
   fill: var(--ink);
 }
 .tape__mark { stroke: var(--ink); stroke-width: 0.4; }
 .tape__reading {
-  font-family: var(--font-numeric);
+  font-family: var(--font-text);
   font-size: 3.6px;
-  font-weight: 600;
+  font-weight: 700;
   fill: var(--ink);
 }
 

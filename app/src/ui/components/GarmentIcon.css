@@ -7,6 +7,6 @@
   height: 60px;
   padding: 2px;
   object-fit: contain;
-  background: var(--paper);
+  background: var(--bg);
   border-radius: var(--radius-s);
 }
