@@ -1,7 +1,7 @@
 import { useId, useMemo } from 'react';
 import type { BodyMeasurements } from '../../../domain/body';
 import type { GarmentFit, ZoneFit } from '../../../domain/fit';
-import { canWarp, pantsLandmarks, templateOf, topLandmarks, type Garment, type GarmentImage } from '../../../domain/garments';
+import { pantsLandmarks, templateOf, topLandmarks, type Garment } from '../../../domain/garments';
 import { bodyGeometry, type Marker } from './geometry';
 import { affineToSvg, warpPantsPieces, warpPieces, type WarpPiece, type WarpRegion } from './photoWarp';
 import { dressShape } from './templates/dress';
@@ -11,6 +11,7 @@ import { leggingsShape } from './templates/leggings';
 import { skirtShape } from './templates/skirt';
 import { topShape } from './topShape';
 import { usePhotoSize, type PhotoSize } from './usePhotoSize';
+import { viewPhoto, type View } from './view';
 import './Mannequin.css';
 
 export interface WornGarment {
@@ -42,6 +43,11 @@ interface MannequinProps {
    *   empty floor below it (the fitting room's stage).
    */
   frame?: 'canvas' | 'body';
+  /**
+   * Which side to show (default front). The body and every pin are the same either
+   * way; garments lose their front-only details and use their back photo, if any.
+   */
+  view?: View;
   className?: string;
 }
 
@@ -56,16 +62,27 @@ const VIEW = { left: -62, right: 62, top: -6 };
  * bottom (or a dress), and a jacket over them. Swap this component out to move
  * to a 3D renderer later.
  */
-export function Mannequin({ body, top: shirt, bottom, onepiece, outer, showFit = true, photos = 'licensed', frame = 'canvas', className }: MannequinProps) {
+export function Mannequin({
+  body,
+  top: shirt,
+  bottom,
+  onepiece,
+  outer,
+  showFit = true,
+  photos = 'licensed',
+  frame = 'canvas',
+  view = 'front',
+  className,
+}: MannequinProps) {
   const g = useMemo(() => bodyGeometry(body), [body]);
 
   // A dress is drawn as its bodice (in the top's place) and a skirt from the seam (templates/dress.ts).
   const dressSize = onepiece?.garment.sizes.find((s) => s.label === onepiece.sizeLabel);
-  const dressDraw = onepiece && dressSize ? dressShape(g, body, onepiece.garment, dressSize.measurements) : null;
+  const dressDraw = onepiece && dressSize ? dressShape(g, body, onepiece.garment, dressSize.measurements, view) : null;
   const top = shirt ?? (dressDraw ? onepiece : undefined);
   const topSize = shirt?.garment.sizes.find((s) => s.label === shirt.sizeLabel);
   const bottomSize = bottom?.garment.sizes.find((s) => s.label === bottom.sizeLabel);
-  const topDraw = shirt && topSize ? topShape(g, shirt.garment, topSize.measurements, body.chestCm, body) : (dressDraw?.bodice ?? null);
+  const topDraw = shirt && topSize ? topShape(g, shirt.garment, topSize.measurements, body.chestCm, body, { view }) : (dressDraw?.bodice ?? null);
   // Skirts have their own template; pants and shorts share the pants one; leggings draw skin-tight on its outline.
   const bottomTemplate = bottom ? templateOf(bottom.garment) : null;
   const isSkirt = bottomTemplate === 'skirt';
@@ -78,17 +95,16 @@ export function Mannequin({ body, top: shirt, bottom, onepiece, outer, showFit =
   const outerSize = outer?.garment.sizes.find((s) => s.label === outer.sizeLabel);
   const underTop =
     topDraw && top ? { shape: dressDraw?.asUnder ?? topDraw, layer: { garment: top.garment, sizeLabel: top.sizeLabel } } : null;
-  const outerDraw = outer && outerSize ? jacketShape(g, body, outer.garment, outerSize.measurements, underTop) : null;
+  const outerDraw = outer && outerSize ? jacketShape(g, body, outer.garment, outerSize.measurements, underTop, view) : null;
 
-  // A product photo, when the garment has one, its licence allows warping and the
-  // file is present, is warped onto this size's outline over the flat colour.
-  const warpable = (image: GarmentImage | undefined) => (photos === 'all' || canWarp(image) ? image : undefined);
-  const photo = warpable(top?.garment.image);
+  // A product photo of the side shown, when the garment has one, its licence allows
+  // warping and the file is present, is warped onto this size's outline over the flat colour.
+  const photo = top ? viewPhoto(top.garment, view, photos) : undefined;
   const photoSrc = photo ? `${import.meta.env.BASE_URL}${photo.file}` : null;
   const photoSize = usePhotoSize(photoSrc);
-  const topPhoto = photo ? topLandmarks(photo) : null;
+  const topPhoto = photo ? topLandmarks(photo, view) : null;
   const pieces = topDraw && topPhoto && photoSize ? warpPieces(topPhoto, topDraw.landmarks, topDraw.sleeveEdges) : null;
-  const bottomPhoto = warpable(bottom?.garment.image);
+  const bottomPhoto = bottom ? viewPhoto(bottom.garment, view, photos) : undefined;
   const bottomSrc = bottomPhoto ? `${import.meta.env.BASE_URL}${bottomPhoto.file}` : null;
   const bottomPhotoSize = usePhotoSize(bottomSrc);
   const pantsPhoto = bottomPhoto ? pantsLandmarks(bottomPhoto) : null;
@@ -145,13 +161,20 @@ export function Mannequin({ body, top: shirt, bottom, onepiece, outer, showFit =
   }
 
   const label = [
-    `Mannequin, ${Math.round(body.heightCm)} cm tall`,
+    `Mannequin, ${Math.round(body.heightCm)} cm tall${view === 'back' ? ', seen from the back,' : ''}`,
     top ? `wearing ${top.garment.brand} ${top.garment.name} in ${top.sizeLabel}` : null,
     bottom ? `and ${bottom.garment.brand} ${bottom.garment.name} in ${bottom.sizeLabel}` : null,
     outer ? `with ${outer.garment.brand} ${outer.garment.name} in ${outer.sizeLabel} over ${top ? 'it' : 'the body'}` : null,
   ]
     .filter(Boolean)
     .join(' ');
+
+  // From the back a hoodie's hood lies on its upper back, over the top and over a
+  // jacket worn on it (a hood comes out over a jacket's collar).
+  const hoodOnBack =
+    topDraw?.hoodOnBack && top ? (
+      <path className={garmentClass(topApproximate, top.garment)} d={topDraw.hoodOnBack} style={{ fill: top.garment.color }} />
+    ) : null;
 
   return (
     <svg
@@ -230,6 +253,8 @@ export function Mannequin({ body, top: shirt, bottom, onepiece, outer, showFit =
           </g>
           {texture('sleeveRight', topDraw.sleeves[0])}
           {texture('sleeveLeft', topDraw.sleeves[1])}
+          {/* A warped back photo already shows its hood. */}
+          {!outerDraw && !pieces && hoodOnBack}
           {/* Knits: rib hem band and cuffs over the body and sleeves, then the hood's edge and drawcords. */}
           {topDraw.rib && (
             <g className="mannequin__knit" aria-hidden="true">
@@ -275,7 +300,8 @@ export function Mannequin({ body, top: shirt, bottom, onepiece, outer, showFit =
             <path d={outerDraw.sleeves[1]} />
             <path d={outerDraw.collar} />
           </g>
-          <path className="mannequin__placket" d={outerDraw.placket} aria-hidden="true" />
+          {outerDraw.placket && <path className="mannequin__placket" d={outerDraw.placket} aria-hidden="true" />}
+          {hoodOnBack}
         </g>
       )}
 

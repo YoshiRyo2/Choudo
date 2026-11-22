@@ -29,6 +29,7 @@ import type { BodyMeasurements } from '../../../domain/body';
 import { hpsLengthCm, sleeveFromShoulderPointCm } from '../../../domain/fit/tops';
 import { girthKnown, templateOf, type Garment, type SizeMeasurements, type TopLandmarkName } from '../../../domain/garments';
 import { SLEEVE_STRIPS, type SleeveEdges } from './photoWarp';
+import type { View } from './view';
 import {
   bodyHalfAt,
   halfWidth,
@@ -77,6 +78,13 @@ export const RIB_CUFF_CM = 6;
 const CUFF_PAD_CM = 0.5;
 /** A hood lying down shows this far above the high shoulder point, behind the neck (never up to the chin). */
 const HOOD_RISE_CM = 5;
+/**
+ * Back view, skin only (assumed): the back neckline sits this far under the neck
+ * base (shallower than any front's), and a hood lying down hangs this far down the
+ * back from the high shoulder point.
+ */
+export const BACK_NECKLINE_DIP_CM = 1;
+const HOOD_BACK_DROP_CM = 22;
 /** Rib lines are drawn this far apart. */
 const RIB_PITCH_CM = 1.4;
 
@@ -97,10 +105,14 @@ export interface TopShape {
   hood?: { back: string; edges: string[]; cords: string[] };
   /** Hoodies: the top of the hood, matching a photo's optional hoodTop landmark. */
   hoodTop?: Pt;
+  /** Hoodies, back view: the hood lying flat on the upper back (closed path, drawn over the top). */
+  hoodOnBack?: string;
   /**
    * Outline points matching a product photo's landmarks, for warping it onto this
    * size. "Right" is the +x side, as the viewer sees it. The armpits are the shirt
    * body's; `sleeveArmpits` are where each sleeve's own outline meets the body.
+   * From the back, `neckFront` holds the back neckline's centre point (a back
+   * photo's `neckBack`): the centre neckline of the side drawn.
    */
   landmarks: Record<TopLandmarkName, Pt>;
   sleeveArmpits: { left: Pt; right: Pt };
@@ -136,6 +148,11 @@ export interface TopShapeOptions {
    * there (the chart's waist), or leave it out for the side seam's own width.
    */
   hemAt?: { y: number; half?: number };
+  /**
+   * Which side to draw (default front). The back has the same outline points,
+   * sleeves, folds and pins; only the neckline and a hoodie's hood differ.
+   */
+  view?: View;
 }
 
 export function topShape(
@@ -147,7 +164,7 @@ export function topShape(
   bodyM?: Pick<BodyMeasurements, 'shoulderWidthCm' | 'bodyType'>,
   options: TopShapeOptions = {},
 ): TopShape {
-  const { hemAt } = options;
+  const { hemAt, view = 'front' } = options;
   const knit = templateOf(garment) === 'knit';
   const approximate = !garment.girthVerified || size.chest === undefined;
   const chestCirc = approximate ? bodyChestCm * 1.08 : size.chest!;
@@ -299,10 +316,9 @@ export function topShape(
 
   const left = [...right].reverse().map((p) => ({ ...p, x: -p.x }));
   const necklineDip = ['button-up', 'polo', 'jacket', 'coat'].includes(garment.type) ? 1.5 : 3.5;
-  const body = smoothPath(
-    [...right, { x: 0, y: hemY }, ...left, { x: 0, y: g.y.neckBase + necklineDip }],
-    true,
-  );
+  // The centre of the neckline: the front's dips; the back's sits just under the neck base.
+  const neckCentre: Pt = { x: 0, y: g.y.neckBase + (view === 'back' ? BACK_NECKLINE_DIP_CM : necklineDip) };
+  const body = smoothPath([...right, { x: 0, y: hemY }, ...left, neckCentre], true);
 
   // ----- folds and strain -----
   // Spare width falls into a few soft vertical folds of uneven length, hanging
@@ -393,9 +409,23 @@ export function topShape(
   // A hood lying down: drawn behind the body, so the neck hides its middle and it
   // shows either side of the neck, above the shoulders. Its front edge runs into the
   // neckline, with two drawcords. Shape only; the body sets where it sits.
+  // From the back the same hood lies flat on the upper back, over the top.
   let hood: TopShape['hood'];
   let hoodTop: Pt | undefined;
-  if (garment.type === 'hoodie') {
+  let hoodOnBack: string | undefined;
+  if (garment.type === 'hoodie' && view === 'back') {
+    const outer = collar.x + 3.5;
+    const bottomY = g.y.hps + HOOD_BACK_DROP_CM;
+    const sideRight: Pt[] = [
+      { x: outer, y: g.y.hps - 0.5, corner: true },
+      { x: outer + 0.8, y: lerp(g.y.hps, bottomY, 0.4) },
+      { x: outer * 0.55, y: bottomY - 3 },
+    ];
+    hoodOnBack = smoothPath(
+      [...sideRight, { x: 0, y: bottomY }, ...[...sideRight].reverse().map(mirrorPt), { x: 0, y: neckCentre.y + 0.5 }],
+      true,
+    );
+  } else if (garment.type === 'hoodie') {
     hoodTop = { x: 0, y: Math.max(g.y.hps - HOOD_RISE_CM, g.y.chin + 1.5) };
     const outer = collar.x + 3.5;
     const backRight: Pt[] = [
@@ -442,10 +472,11 @@ export function topShape(
     ...(rib ? { rib } : {}),
     ...(hood ? { hood } : {}),
     ...(hoodTop ? { hoodTop } : {}),
+    ...(hoodOnBack ? { hoodOnBack } : {}),
     landmarks: {
       collarRight: collar,
       collarLeft: mirrorPt(collar),
-      neckFront: { x: 0, y: g.y.neckBase + necklineDip },
+      neckFront: { x: 0, y: neckCentre.y },
       shoulderRight: seam,
       shoulderLeft: mirrorPt(seam),
       armpitRight: underarm,

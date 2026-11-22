@@ -4,7 +4,7 @@
  */
 
 import { templateOf } from '../../domain/garments/categories';
-import type { Garment, GarmentSize, LandmarkName, PantsLandmarkName, TopLandmarkName } from '../../domain/garments/types';
+import type { Garment, GarmentSize, LandmarkName, PantsLandmarkName, PhotoSide, TopBackLandmarkName, TopLandmarkName } from '../../domain/garments/types';
 import type { WarpPiece } from '../../ui/components/Mannequin/photoWarp';
 import type { XY } from './suggest';
 
@@ -178,9 +178,22 @@ export const PICKER_KITS = {
   } satisfies PickerKit<PantsLandmarkName>,
 };
 
-/** The picker kit for a garment's template. */
-export const kitFor = (garment: Pick<Garment, 'type'>): PickerKit =>
-  (templateOf(garment) === 'pants' ? PICKER_KITS.pants : PICKER_KITS.top) as PickerKit;
+/** A back photo of a top: the front's points with the back neck in place of the front neck. */
+const backOf = <T,>(r: Record<TopLandmarkName, T>, neckBack: T): Record<TopBackLandmarkName, T> => {
+  const { neckFront: _front, ...rest } = r;
+  return { ...rest, neckBack };
+};
+export const TOP_BACK_KIT: PickerKit<TopBackLandmarkName> = {
+  order: PLACE_ORDER.map((n) => (n === 'neckFront' ? 'neckBack' : n)),
+  labels: backOf(LANDMARK_LABELS, 'Back neck: bottom of the back neckline'),
+  short: backOf(SHORT_LABELS, 'Back neck'),
+  diagram: backOf(DIAGRAM, { x: 60, y: 15 }),
+  diagramPath: 'M50 12 Q60 17 70 12 L86 18 L110 40 L100 50 L86 40 L86 92 L34 92 L34 40 L20 50 L10 40 L34 18 Z',
+};
+
+/** The picker kit for a garment's template and the side photographed (pants look the same from both). */
+export const kitFor = (garment: Pick<Garment, 'type'>, side: PhotoSide = 'front'): PickerKit =>
+  (templateOf(garment) === 'pants' ? PICKER_KITS.pants : side === 'back' ? TOP_BACK_KIT : PICKER_KITS.top) as PickerKit;
 
 /**
  * The point to place after `current`: the next unplaced one going round, or

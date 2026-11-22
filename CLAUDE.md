@@ -57,7 +57,8 @@ app/src/
     screens/     BodyScreen (input; pure bodyForm.ts, bodyFieldErrors.ts: per-field checks shown on blur,
                  bodyPreview.ts: a typical body until height + weight are valid), AnchorScreen (fit reference), FittingRoom (browse + size + fit),
                  FitTestPanel (Test mode), Discover (swipe feed), Closet + closet/ (Liked, Folders, Outfits tabs)
-    components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts + skirt.ts + jacket.ts + dress.ts + leggings.ts, photoWarp.ts + SVG),
+    components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts + skirt.ts + jacket.ts + dress.ts + leggings.ts, photoWarp.ts,
+                 view.ts: Front/Back is a drawing option only — same body, same fit, same pins + SVG),
                  SwipeCard/ (pure swipe.ts),
                  FitStrip (size row + verdict line under the stage), sizeRow.ts (pure),
                  GarmentIcon (card picture: photo or flat drawing; garmentThumb.ts picks, pure),

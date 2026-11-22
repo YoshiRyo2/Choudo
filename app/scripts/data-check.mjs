@@ -1,7 +1,7 @@
 // Checks every garment in the seed and prints a report: errors, warnings,
 // confidence grade, unscored zones, audit differences and images. Exits 1 on any error.
 //
-// Images: every image needs a "licence". A "local-only" photo never ships and isn't
+// Images (front and back): every image needs a "licence". A "local-only" photo never ships and isn't
 // checked; any other must be committed (not git-ignored), in app/public/ and at least
 // MIN_IMAGE_WIDTH_PX wide, so a fresh clone and the public build show the same photos.
 //
@@ -34,11 +34,11 @@ function gitIgnored(path) {
 }
 
 const images = new Map();
-for (const g of SEED_GARMENTS) {
-  if (!g.image || images.has(g.image.file)) continue;
-  const path = resolve(appDir, 'public', g.image.file);
+for (const image of SEED_GARMENTS.flatMap((g) => [g.image, g.backImage])) {
+  if (!image || images.has(image.file)) continue;
+  const path = resolve(appDir, 'public', image.file);
   const width = existsSync(path) ? ((await sharp(path).metadata()).width ?? null) : null;
-  images.set(g.image.file, { width, gitIgnored: gitIgnored(path) });
+  images.set(image.file, { width, gitIgnored: gitIgnored(path) });
 }
 
 const entries = buildReport(

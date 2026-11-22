@@ -266,6 +266,20 @@ export const TOP_LANDMARKS = [
 export type TopLandmarkName = (typeof TOP_LANDMARKS)[number];
 
 /**
+ * A top's points in a back photo ("Left" is still the viewer's left): the front's,
+ * with `neckBack` (bottom of the back neckline, on the centre line) in place of
+ * `neckFront`, in the same order.
+ */
+export const TOP_BACK_LANDMARKS = TOP_LANDMARKS.map((n) => (n === 'neckFront' ? 'neckBack' : n)) as readonly (
+  | Exclude<TopLandmarkName, 'neckFront'>
+  | 'neckBack'
+)[];
+export type TopBackLandmarkName = (typeof TOP_BACK_LANDMARKS)[number];
+
+/** Which side of a garment a photo (or a drawing) shows. */
+export type PhotoSide = 'front' | 'back';
+
+/**
  * Named points on a pair of pants laid flat, front view ("Left" is the viewer's
  * left): the waistband's corners and centre, the hip corners, the crotch, and each
  * leg's outer and inner edge at the knee and at the hem.
@@ -296,7 +310,7 @@ export const KNIT_OPTIONAL_LANDMARKS = ['hoodTop'] as const;
 export type KnitLandmarkName = (typeof KNIT_OPTIONAL_LANDMARKS)[number];
 
 /** Any template's landmark name. Which ones a photo needs depends on its garment's template. */
-export type LandmarkName = TopLandmarkName | PantsLandmarkName | KnitLandmarkName;
+export type LandmarkName = TopLandmarkName | TopBackLandmarkName | PantsLandmarkName | KnitLandmarkName;
 
 /**
  * What we may do with a garment photo.
@@ -364,6 +378,12 @@ interface GarmentBase {
   sizing: GarmentSizing;
   /** A front product photo to texture the garment with. Without one we draw it in `color`. */
   image?: GarmentImage;
+  /**
+   * A back product photo, under the same licence rules as `image`. Its landmarks are
+   * the template's back set (TOP_BACK_LANDMARKS for tops, PANTS_LANDMARKS for pants).
+   * Without one the back is drawn in `color`; the front photo is never used for it.
+   */
+  backImage?: GarmentImage;
   /** Main colour, used to draw the garment on the mannequin. */
   color: string;
   /** Tops only. */

@@ -15,13 +15,15 @@
  *    not the front neckline, so it sits a typical crew-neck depth below, but
  *    never below the line between the shoulders. The mannequin's neckline is
  *    above its shoulder seams, and a photo point below them would fold the warp.
+ *    A back photo's silhouette shows the back neckline itself, so its neckBack
+ *    is the bottom of the neck dip on the centre line (same limits).
  *  - Sleeve openings: on the stretch of outline from shoulder round the sleeve
  *    to the armpit, the two points that make the biggest quadrilateral
  *    shoulder -> outer -> inner -> armpit. That fits short sleeves cut square or
  *    slanted, and long sleeves at any angle.
  */
 
-import type { PantsLandmarkName, TopLandmarkName } from '../../domain/garments/types';
+import type { PantsLandmarkName, PhotoSide, TopBackLandmarkName, TopLandmarkName } from '../../domain/garments/types';
 
 export interface XY {
   x: number;
@@ -29,6 +31,8 @@ export interface XY {
 }
 
 export type Landmarks = Record<TopLandmarkName, XY>;
+/** A back photo's points: `neckBack` in place of `neckFront`. */
+export type BackLandmarks = Record<TopBackLandmarkName, XY>;
 
 /** Front neckline depth below the collar points, as a fraction of the neck opening's width. */
 const NECK_DEPTH = 0.45;
@@ -156,7 +160,10 @@ const median = (v: number[]) => {
 };
 
 /** Suggested landmarks, or null when the mask doesn't look like a top. */
-export function suggestLandmarks(mask: Uint8Array, w: number, h: number): Landmarks | null {
+export function suggestLandmarks(mask: Uint8Array, w: number, h: number, side?: 'front'): Landmarks | null;
+export function suggestLandmarks(mask: Uint8Array, w: number, h: number, side: 'back'): BackLandmarks | null;
+export function suggestLandmarks(mask: Uint8Array, w: number, h: number, side: PhotoSide): Landmarks | BackLandmarks | null;
+export function suggestLandmarks(mask: Uint8Array, w: number, h: number, side: PhotoSide = 'front'): Landmarks | BackLandmarks | null {
   const on = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && mask[y * w + Math.round(x)] === 1;
   const outline = traceOutline(mask, w, h);
   if (outline.length < 40) return null;
@@ -247,9 +254,10 @@ export function suggestLandmarks(mask: Uint8Array, w: number, h: number): Landma
   const collarRight = collar(1, outline[shoulderR]!.x);
   const collarY = Math.max(collarLeft.y, collarRight.y);
   const shoulderMidY = (outline[shoulderL]!.y + outline[shoulderR]!.y) / 2;
-  const neckFront = {
+  const neckDepth = side === 'back' ? topAt(cx) - collarY : NECK_DEPTH * (collarRight.x - collarLeft.x);
+  const neckCentre = {
     x: cx,
-    y: Math.max(collarY + 2, Math.min(collarY + NECK_DEPTH * (collarRight.x - collarLeft.x), shoulderMidY - 2)),
+    y: Math.max(collarY + 2, Math.min(collarY + neckDepth, shoulderMidY - 2)),
   };
 
   // ----- sleeve openings -----
@@ -287,10 +295,9 @@ export function suggestLandmarks(mask: Uint8Array, w: number, h: number): Landma
   const right = sleeve(shoulderR, pitR, outline[shoulderR]!, armpitRight, true);
 
   const r = (p: XY): XY => ({ x: Math.round(p.x), y: Math.round(p.y) });
-  return {
+  const rest = {
     collarLeft: r(collarLeft),
     collarRight: r(collarRight),
-    neckFront: r(neckFront),
     shoulderLeft: r(outline[shoulderL]!),
     shoulderRight: r(outline[shoulderR]!),
     armpitLeft: r(armpitLeft),
@@ -302,6 +309,7 @@ export function suggestLandmarks(mask: Uint8Array, w: number, h: number): Landma
     sleeveOuterRight: r(right.outer),
     sleeveInnerRight: r(right.inner),
   };
+  return side === 'back' ? { ...rest, neckBack: r(neckCentre) } : { ...rest, neckFront: r(neckCentre) };
 }
 
 // ---------- pants ----------

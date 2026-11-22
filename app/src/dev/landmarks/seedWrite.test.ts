@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PANTS_LANDMARKS, TOP_LANDMARKS, type GarmentImage, type TopLandmarkName } from '../../domain/garments/types';
+import { PANTS_LANDMARKS, TOP_BACK_LANDMARKS, TOP_LANDMARKS, type GarmentImage, type TopLandmarkName } from '../../domain/garments/types';
 import SEED from '../../domain/garments/seed.json?raw';
 import { formatImage, licenceForSave, writeGarmentImage } from './seedWrite';
 
@@ -121,5 +121,44 @@ describe('licenceForSave', () => {
     expect(licenceForSave({ ...saved, licence: 'brand-permission' }, 'garments/a.png')).toBe('brand-permission');
     expect(licenceForSave(saved, 'garments/b.png')).toBe('local-only');
     expect(licenceForSave(undefined, 'garments/a.png')).toBe('local-only');
+  });
+});
+
+describe('writing a back photo', () => {
+  const back: GarmentImage = {
+    file: 'garments/ryo-black-henley-back.png',
+    licence: 'local-only',
+    photographedSize: null,
+    landmarks: Object.fromEntries(TOP_BACK_LANDMARKS.map((n, i) => [n, { x: 10 * i, y: 5 * i }])),
+  };
+
+  it('formats a back top in TOP_BACK_LANDMARKS order', () => {
+    expect(Object.keys(JSON.parse(formatImage(back, '      ')).landmarks)).toEqual([...TOP_BACK_LANDMARKS]);
+  });
+
+  it('writes a back photo right after the front one, leaving the rest byte for byte', () => {
+    const next = writeGarmentImage(SEED, 'ryo-black-henley', back, 'back');
+    const garment = (JSON.parse(next) as { garments: { id: string; image: unknown; backImage: unknown }[] }).garments.find(
+      (g) => g.id === 'ryo-black-henley',
+    )!;
+    const old = (JSON.parse(SEED) as { garments: { id: string; image: unknown }[] }).garments.find((g) => g.id === 'ryo-black-henley')!;
+    expect(garment.backImage).toEqual(back);
+    expect(garment.image).toEqual(old.image);
+    // Removing the inserted member gives back the seed byte for byte.
+    const start = next.indexOf(',\n      "backImage": {');
+    const end = next.indexOf('\n      }', start) + '\n      }'.length;
+    expect(start).toBeGreaterThan(next.indexOf('"id": "ryo-black-henley"'));
+    expect(next.slice(0, start) + next.slice(end)).toBe(SEED);
+    expect(Object.keys(garment).indexOf('backImage')).toBe(Object.keys(garment).indexOf('image') + 1);
+  });
+
+  it('replaces an existing backImage only', () => {
+    const once = writeGarmentImage(SEED, 'ryo-black-henley', back, 'back');
+    const moved = { ...back, landmarks: { ...back.landmarks, hemLeft: { x: 1, y: 2 } } };
+    const twice = writeGarmentImage(once, 'ryo-black-henley', moved, 'back');
+    const { before, after } = changedRegion(once, twice);
+    expect(once.indexOf(before)).toBeGreaterThan(once.indexOf('"backImage"'));
+    expect(after).toContain('1');
+    expect(writeGarmentImage(once, 'ryo-black-henley', back, 'back')).toBe(once);
   });
 });

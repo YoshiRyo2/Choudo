@@ -38,6 +38,7 @@ import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { boundingBox, cleanCutOut, largestRegion, medianColour, outputScale, threshold } from './photo-mask.mjs';
 import { ensureModel, segment } from './photo-model.mjs';
+import { overlayOutline } from './photo-overlay.mjs';
 
 const APP = join(dirname(fileURLToPath(import.meta.url)), '..');
 const config = JSON.parse(await readFile(join(APP, 'scripts/garment-photos.json'), 'utf8'));
@@ -49,7 +50,14 @@ const DEFAULTS = { maxSide: 900, erode: 3, pad: 24, ...config.defaults };
 const MODEL_FILE = join(APP, '.models/birefnet-lite.onnx');
 /** Full-resolution photos are first shrunk to this longest side (px). */
 const WORK_SIDE = 2400;
-const outPath = (photo) => photo.out ?? `public/garments/${photo.id}-front.png`;
+/** A photo entry's side: "back" for a back photo, else the front. */
+const sideOf = (photo) => (photo.side === 'back' ? 'back' : 'front');
+const outPath = (photo) => photo.out ?? `public/garments/${photo.id}-${sideOf(photo)}.png`;
+/** The seed's photo entry for this side: "image" or "backImage". */
+const seedImage = (photo) => {
+  const g = seed.garments.find((x) => x.id === photo.id);
+  return sideOf(photo) === 'back' ? g?.backImage : g?.image;
+};
 
 /** RGB 0–255 -> hue (degrees), saturation and value (0–1). */
 function hsv(r, g, b) {
@@ -133,13 +141,14 @@ async function colourCutOut(photo) {
       out[di + 3] = mask[(y + y0) * w + x + x0] ? 255 : 0;
     }
   }
-  const lm = seed.garments.find((g) => g.id === photo.id)?.image?.landmarks;
+  const lm = seedImage(photo)?.landmarks;
+  const neck = lm && (lm.neckFront ?? lm.neckBack);
   settleEdges(out, ow, oh, {
     colour: median,
     bleed,
     fade: photo.fade ?? 0,
     // The neck opening, from the landmarks if we have them.
-    keep: lm && { x0: lm.collarLeft.x - 6, x1: lm.collarRight.x + 6, y1: lm.neckFront.y + 4 },
+    keep: lm && neck && { x0: lm.collarLeft.x - 6, x1: lm.collarRight.x + 6, y1: neck.y + 4 },
   });
   const file = join(APP, outPath(photo));
   // A fresh clone may not have public/garments/ if no cut-out is committed yet.
@@ -281,18 +290,13 @@ function flood(grid, w, h, starts, test) {
 
 /** Draw the garment's seed.json landmarks on a copy of the cut-out. */
 async function overlay(photo, file) {
-  const garment = seed.garments.find((g) => g.id === photo.id);
-  const lm = garment?.image?.landmarks;
+  const lm = seedImage(photo)?.landmarks;
   if (!lm) {
     console.log(`${photo.id}: no landmarks in seed.json yet, skipping overlay`);
     return;
   }
   const { width, height } = await sharp(file).metadata();
-  const pt = (name) => lm[name];
-  const outline = [
-    'collarRight', 'shoulderRight', 'sleeveOuterRight', 'sleeveInnerRight', 'armpitRight', 'hemRight',
-    'hemLeft', 'armpitLeft', 'sleeveInnerLeft', 'sleeveOuterLeft', 'shoulderLeft', 'collarLeft', 'neckFront',
-  ].map((n) => `${pt(n).x},${pt(n).y}`).join(' ');
+  const outline = overlayOutline(lm);
   const marks = Object.entries(lm).map(([name, { x, y }]) => {
     const right = name.endsWith('Right');
     const centre = !right && !name.endsWith('Left');
@@ -329,8 +333,8 @@ for (const photo of config.photos) {
   }
   const file = photo.method === 'colour' ? await colourCutOut(photo) : await aiCutOut(photo);
   if (withOverlay) await overlay(photo, file);
-  const image = seed.garments.find((g) => g.id === photo.id)?.image;
-  if (!image?.landmarks) {
-    console.log(`  next: place its landmarks at http://localhost:5173/dev/landmarks?id=${photo.id} (npm run dev)`);
+  if (!seedImage(photo)?.landmarks) {
+    const tab = sideOf(photo) === 'back' ? '&side=back' : '';
+    console.log(`  next: place its landmarks at http://localhost:5173/dev/landmarks?id=${photo.id}${tab} (npm run dev)`);
   }
 }

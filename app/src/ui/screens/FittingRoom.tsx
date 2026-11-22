@@ -17,6 +17,7 @@ import { FitSheet } from '../components/FitSheet';
 import { FitStrip } from '../components/FitStrip';
 import { GarmentCarousel } from '../components/GarmentCarousel';
 import { Mannequin, type WornGarment } from '../components/Mannequin/Mannequin';
+import type { View } from '../components/Mannequin/view';
 import { NameForm } from '../components/NameForm';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Sheet } from '../components/Sheet';
@@ -88,6 +89,8 @@ export function FittingRoom({
   // Open on the dress when one is worn: the Top tab would have nothing on to show.
   const [browsing, setBrowsing] = useState<GarmentCategory>(() => (outfit.onepieceId ? 'onepiece' : 'top'));
   const [saving, setSaving] = useState<'naming' | 'saved' | null>(null);
+  // Which side of the mannequin is shown; a drawing choice only, not stored.
+  const [view, setView] = useState<View>('front');
 
   const slot = (id: string | null, size: string | null, under?: UnderLayer): Slot | null => {
     const garment = id ? findGarment(id) : undefined;
@@ -191,7 +194,20 @@ export function FittingRoom({
           onepiece={worn(onepiece)}
           outer={worn(outer)}
           frame="body"
+          view={view}
         />
+        <div className="fitting__view">
+          <SegmentedControl
+            label="View"
+            hideLabel
+            value={view}
+            options={[
+              { value: 'front', label: 'Front' },
+              { value: 'back', label: 'Back' },
+            ]}
+            onChange={setView}
+          />
+        </div>
         <button type="button" className="fitting__save" aria-label="Save outfit" title="Save outfit" onClick={() => setSaving('naming')}>
           {/* A bookmark with a plus: keep this outfit. */}
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">

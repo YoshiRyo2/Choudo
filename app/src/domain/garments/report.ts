@@ -40,6 +40,8 @@ export interface ReportEntry {
   snapshot: SnapshotStatus;
   /** An image problem is an error but doesn't block the garment: it draws in flat colour. */
   image: ImageStatus;
+  /** The back photo's check, the same way. */
+  backImage: ImageStatus;
 }
 
 export const TIER_DESCRIPTION: Record<SourceTier, string> = {
@@ -91,33 +93,39 @@ export function buildReport(
       grade: gradeGarment(garment, check),
       snapshot: path === undefined ? 'none' : hasFile(path) ? 'present' : 'missing',
       image: garment.image ? checkImage(garment.image, imageFile(garment.image.file)) : { state: 'none' },
+      backImage: garment.backImage ? checkImage(garment.backImage, imageFile(garment.backImage.file)) : { state: 'none' },
     };
   });
 }
 
 export const errorCount = (entries: ReportEntry[]): number =>
-  entries.reduce((n, e) => n + e.check.errors.length + (imageError(e.image) ? 1 : 0), 0);
+  entries.reduce(
+    (n, e) => n + e.check.errors.length + (imageError(e.image) ? 1 : 0) + (imageError(e.backImage) ? 1 : 0),
+    0,
+  );
 
-function imageLine(image: ImageStatus): string | null {
+/** One report line for a photo: `label` is "Image:" (front) or "Back:", `tag` names it in an error. */
+function imageLine(image: ImageStatus, label: string, tag: string): string | null {
+  const head = `  ${label.padEnd(10)}`;
   switch (image.state) {
     case 'none':
       return null;
     case 'ok':
-      return `  Image:    ${image.file} (${image.width} px wide)`;
+      return `${head}${image.file} (${image.width} px wide)`;
     case 'local-only':
-      return `  Image:    ${image.file} (local-only, ${image.width === null ? 'not on this machine' : `${image.width} px wide`}; not checked)`;
+      return `${head}${image.file} (local-only, ${image.width === null ? 'not on this machine' : `${image.width} px wide`}; not checked)`;
     case 'ignored':
     case 'missing':
     case 'too-small':
-      return `  Error   [image] ${imageError(image)}`;
+      return `  Error   [${tag}] ${imageError(image)}`;
   }
 }
 
 const cm = (v: number) => `${v.toFixed(1)} cm`;
 const signed = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(1)} cm`;
 
-function formatEntry({ garment: g, check, grade, snapshot, image }: ReportEntry): string[] {
-  const failed = check.errors.length > 0 || imageError(image) !== null;
+function formatEntry({ garment: g, check, grade, snapshot, image, backImage }: ReportEntry): string[] {
+  const failed = check.errors.length > 0 || imageError(image) !== null || imageError(backImage) !== null;
   const mark = failed ? '✗' : check.warnings.length > 0 ? '!' : '✓';
   const lines = [`${mark} ${g.id} — ${g.brand} ${g.name}`];
   const src = g.source;
@@ -132,8 +140,9 @@ function formatEntry({ garment: g, check, grade, snapshot, image }: ReportEntry)
     lines.push('  Snapshot: none saved');
   }
   if (g.stretchAssumed) lines.push(`  Stretch:  ${typeof g.stretch === 'string' ? g.stretch : g.stretch.default} (assumed: the chart gives no stretch data)`);
-  const imageText = imageLine(image);
-  if (imageText) lines.push(imageText);
+  for (const text of [imageLine(image, 'Image:', 'image'), imageLine(backImage, 'Back:', 'backImage')]) {
+    if (text) lines.push(text);
+  }
   if (check.errors.length === 0 && check.warnings.length === 0) lines.push('  Checks:   pass');
   for (const e of check.errors) lines.push(`  Error   [${e.check}] ${e.message}`);
   for (const w of check.warnings) lines.push(`  Warning [${w.check}] ${w.message}`);

@@ -111,6 +111,19 @@
   }
 }
 
+/* Front / Back: on a phone in the stage's bottom-right corner, clear of the
+   height tape (left) and the save button (top right); on a wide screen under the
+   save button, where the stage has room beside the figure (its bottom edge sits
+   behind the tab bar there). */
+.fitting__view {
+  position: absolute;
+  bottom: 4px;
+  right: 16px;
+}
+@media (min-width: 820px) {
+  .fitting__view { bottom: auto; top: 72px; right: 0; }
+}
+
 /* A 44 px icon button in the stage's top-right corner. */
 .fitting__save {
   position: absolute;
