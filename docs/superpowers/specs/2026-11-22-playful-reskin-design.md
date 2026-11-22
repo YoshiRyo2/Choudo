@@ -177,6 +177,7 @@ mouth, ink lines 2 px. It follows a `FitTone`:
   the same tone as the dot by the verdict line).
 - Discover: the card's size's verdict tone (the tone the card already shows).
 - Body screen and Closet: no fit is shown there, so `unknown` (neutral).
+- From the back (the Front/Back toggle) there is no face, just the back of the head.
 
 ## Head picker (Fitting room)
 Three 44 px round buttons stacked down the left edge of the stage, each showing a small
@@ -194,7 +195,7 @@ Mannequin draws the chosen head without threading a prop through each screen.
   at runtime.
 - Uneven ink: an SVG `feTurbulence` + `feDisplacementMap` filter roughens the edges, and a
   second noise pass knocks a few faint voids out of the ink.
-- Rotated −9°, `mix-blend-mode: multiply`, 76 px, `role="img"`,
+- Rotated −9°, `mix-blend-mode: multiply`, 80 px, `role="img"`,
   `aria-label="ちょうど: just right"`.
 - Top right of the stage, just outside the peach circle so it sits on `--bg` (stamp on
   `--bg` is ≥ 4.5:1; on `--peach-soft` it is not). The Save outfit button moves from that
@@ -227,5 +228,7 @@ hop.
 - Geometry identical across heads: the Mannequin markup outside the head group is the
   same for cloud, peach and bunny, for a bare body and a dressed one; hop keyframes
   translate only.
-- 390 px screenshots in `2026-11-22-playful-reskin-screens/`: the Fitting room with each
-  head, the stamp on, and a size that doesn't fit.
+- 390 px screenshots in `2026-11-22-playful-reskin-screens/` (women's 165 cm / 70 kg, Lands'
+  End surplice dress, "M fits you"): `mascot-cloud-stamp.jpg`, `mascot-peach-stamp.jpg`,
+  `mascot-bunny-stamp.jpg` (M shown: stamp on, happy face) and `mascot-not-fitting.jpg`
+  (XS shown, "Very likely too tight": no stamp, dot eyes and a frown).
