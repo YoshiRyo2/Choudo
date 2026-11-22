@@ -602,6 +602,51 @@ export function verdictLine(odds: GarmentOdds, sizeLabel: string, garment: Pick<
   return { headline, detail, tone: VERDICT_TONE[modal], verdict: modal, closeCall: false };
 }
 
+/** The Fitting room's answer: a headline and one line under it. */
+export interface FittingHeadline {
+  headline: string;
+  /** The selected size's verdict, naming that size when it isn't the suggested one. */
+  line: string;
+  /** The selected size's verdict tone. */
+  tone: FitTone;
+}
+
+/**
+ * True when the suggested size's own verdict is a confident good fit: tone good, its
+ * likeliest verdict at least CERTAINTY.probably ("Very likely …" / "Probably …"), and
+ * not a close call between two sizes.
+ */
+function confidentFit(odds: GarmentOdds, sizeLabel: string, garment: Pick<Garment, 'category' | 'fitIntent'>): boolean {
+  const line = verdictLine(odds, sizeLabel, garment);
+  const likeliest = likeliestVerdict(odds, sizeLabel);
+  return (
+    likeliest !== null &&
+    line.tone === 'good' &&
+    !line.closeCall &&
+    likeliest.size.verdicts[likeliest.modal] >= CERTAINTY.probably
+  );
+}
+
+/**
+ * The headline names the suggested size (`odds.recommended`): "M fits you" only when M's
+ * own verdict is a confident good fit (`confidentFit`), else "Your best bet: M". Under it,
+ * the selected size's verdict headline ("Showing L: Probably roomy" when L isn't the
+ * suggested size). With no suggested size, the size line's fallback ("Size M · we
+ * couldn’t pick one for you") heads it instead.
+ */
+export function fittingHeadline(
+  odds: GarmentOdds,
+  sizeLabel: string,
+  garment: Pick<Garment, 'category' | 'fitIntent'>,
+): FittingHeadline {
+  const shown = verdictLine(odds, sizeLabel, garment);
+  const recommended = odds.recommended;
+  if (!recommended) return { headline: sizeLine(sizeLabel, false), line: shown.headline, tone: shown.tone };
+  const headline = confidentFit(odds, recommended, garment) ? `${recommended} fits you` : `Your best bet: ${recommended}`;
+  const line = sizeLabel === recommended ? shown.headline : `Showing ${sizeLabel}: ${shown.headline}`;
+  return { headline, line, tone: shown.tone };
+}
+
 const MEASURE_NAME: Record<MeasurableKey, string> = {
   chestCm: 'chest',
   waistCm: 'waist',

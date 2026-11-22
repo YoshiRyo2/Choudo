@@ -48,6 +48,8 @@ interface MannequinProps {
    * way; garments lose their front-only details and use their back photo, if any.
    */
   view?: View;
+  /** Draw the height tape up the left edge (default true). Off where the screen shows no numbers. */
+  showHeightTape?: boolean;
   className?: string;
 }
 
@@ -72,6 +74,7 @@ export function Mannequin({
   photos = 'licensed',
   frame = 'canvas',
   view = 'front',
+  showHeightTape = true,
   className,
 }: MannequinProps) {
   const g = useMemo(() => bodyGeometry(body), [body]);
@@ -183,9 +186,10 @@ export function Mannequin({
       role="img"
       aria-label={label}
     >
-      <HeightTape heightCm={body.heightCm} x={VIEW.left + 3} />
+      {showHeightTape && <HeightTape heightCm={body.heightCm} x={VIEW.left + 3} />}
 
-      <line className="mannequin__floor" x1={-40} x2={40} y1={g.y.floor + 0.5} y2={g.y.floor + 0.5} />
+      {/* A rounded stand under the feet: drawing only, below the floor the body stands on. */}
+      <rect className="mannequin__stand" x={-16} y={g.y.floor + 0.4} width={32} height={2.6} rx={1.3} />
 
       {/* A hood lying down sits behind the neck: drawn first, so the neck and head hide its middle. */}
       {topDraw?.hood && top && (
