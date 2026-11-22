@@ -607,19 +607,44 @@ export interface FittingHeadline {
   headline: string;
   /** The selected size's verdict, naming that size when it isn't the suggested one. */
   line: string;
+  /** The selected size's verdict tone. */
   tone: FitTone;
 }
 
 /**
- * "M fits you", then the selected size's verdict headline under it ("Showing L: Probably
- * roomy" when L isn't the suggested size). With no suggested size, the size line's
- * fallback ("Size M · we couldn’t pick one for you") heads it instead.
+ * True when the suggested size's own verdict is a confident good fit: tone good, its
+ * likeliest verdict at least CERTAINTY.probably ("Very likely …" / "Probably …"), and
+ * not a close call between two sizes.
  */
-export function fittingHeadline(recommended: string | null, sizeLabel: string, verdict: VerdictLine): FittingHeadline {
-  const tone = verdict.tone;
-  if (!recommended) return { headline: sizeLine(sizeLabel, false), line: verdict.headline, tone };
-  const line = sizeLabel === recommended ? verdict.headline : `Showing ${sizeLabel}: ${verdict.headline}`;
-  return { headline: `${recommended} fits you`, line, tone };
+function confidentFit(odds: GarmentOdds, sizeLabel: string, garment: Pick<Garment, 'category' | 'fitIntent'>): boolean {
+  const line = verdictLine(odds, sizeLabel, garment);
+  const likeliest = likeliestVerdict(odds, sizeLabel);
+  return (
+    likeliest !== null &&
+    line.tone === 'good' &&
+    !line.closeCall &&
+    likeliest.size.verdicts[likeliest.modal] >= CERTAINTY.probably
+  );
+}
+
+/**
+ * The headline names the suggested size (`odds.recommended`): "M fits you" only when M's
+ * own verdict is a confident good fit (`confidentFit`), else "Your best bet: M". Under it,
+ * the selected size's verdict headline ("Showing L: Probably roomy" when L isn't the
+ * suggested size). With no suggested size, the size line's fallback ("Size M · we
+ * couldn’t pick one for you") heads it instead.
+ */
+export function fittingHeadline(
+  odds: GarmentOdds,
+  sizeLabel: string,
+  garment: Pick<Garment, 'category' | 'fitIntent'>,
+): FittingHeadline {
+  const shown = verdictLine(odds, sizeLabel, garment);
+  const recommended = odds.recommended;
+  if (!recommended) return { headline: sizeLine(sizeLabel, false), line: shown.headline, tone: shown.tone };
+  const headline = confidentFit(odds, recommended, garment) ? `${recommended} fits you` : `Your best bet: ${recommended}`;
+  const line = sizeLabel === recommended ? shown.headline : `Showing ${sizeLabel}: ${shown.headline}`;
+  return { headline, line, tone: shown.tone };
 }
 
 const MEASURE_NAME: Record<MeasurableKey, string> = {

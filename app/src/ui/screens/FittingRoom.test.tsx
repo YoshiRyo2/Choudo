@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { estimateBody, type BodyInput } from '../../domain/body';
 import { preferenceSpec } from '../../domain/fit';
 import { findGarment } from '../../domain/garments';
+import { fittingHeadline } from '../fitText';
 import { garmentOdds } from '../state/odds';
 import type { Outfit } from '../state/stored';
 import { FittingRoom } from './FittingRoom';
@@ -13,7 +14,10 @@ import { FittingRoom } from './FittingRoom';
 const body: BodyInput = { heightCm: 176, weightKg: 85, bodyType: 'mens' };
 const preference = preferenceSpec(null, null);
 const tee = findGarment('gildan-5000')!;
-const recommended = garmentOdds(estimateBody(body), tee, preference).recommended!;
+const odds = garmentOdds(estimateBody(body), tee, preference);
+const recommended = odds.recommended!;
+// "M fits you" or "Your best bet: M", judged on the suggested size whichever is shown.
+const expectedHeadline = fittingHeadline(odds, recommended, tee).headline;
 const other = tee.sizes.map((s) => s.label).find((l) => l !== recommended)!;
 
 const outfitIn = (size: string): Outfit => ({
@@ -51,13 +55,14 @@ const fitSection = () => screen.getByRole('region', { name: 'Fit' });
 describe('FittingRoom', () => {
   it('leads with the suggested size', () => {
     render(<Room size={recommended} />);
-    expect(within(fitSection()).getByText(`${recommended} fits you`)).toBeTruthy();
+    expect(expectedHeadline).toMatch(new RegExp(`^(${recommended} fits you|Your best bet: ${recommended})$`));
+    expect(within(fitSection()).getByText(expectedHeadline)).toBeTruthy();
     expect(within(fitSection()).queryByText(/^Showing /)).toBeNull();
   });
 
   it('names the size shown when another size is picked', () => {
     render(<Room size={other} />);
-    expect(within(fitSection()).getByText(`${recommended} fits you`)).toBeTruthy();
+    expect(within(fitSection()).getByText(expectedHeadline)).toBeTruthy();
     expect(within(fitSection()).getByText(new RegExp(`^Showing ${other}: `))).toBeTruthy();
   });
 

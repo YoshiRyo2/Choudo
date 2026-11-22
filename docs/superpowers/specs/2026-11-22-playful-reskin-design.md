@@ -85,12 +85,15 @@ Numbers keep `font-variant-numeric: tabular-nums` (`.num`) in the same family.
 ## Fitting room layout (phone, top to bottom)
 1. **Garment row.** Garment name (15/700) over brand (14/500, muted). On the right, the
    Front/Back SegmentedControl as a peach-tint pill track, selected segment white.
-2. **Headline.** "{recommended size} fits you" (from `recommendSize` via the garment's odds).
-   Under it, one line from the existing verdict text for the selected size
-   (`verdictLine(...).headline`). When the selected size isn't the recommended one, that
-   line says which size is shown ("Showing L: Probably roomy"). With no recommendation,
-   the existing fallback copy (`sizeLine(size, false)`: "Size M · we couldn’t pick one
-   for you") is the headline, with the verdict line under it. No new verdict wording.
+2. **Headline.** Names the suggested size (`recommendSize` via the garment's odds):
+   "{size} fits you" only when that size's own verdict is a confident good fit (tone good,
+   likeliest verdict ≥ `CERTAINTY.probably`, i.e. "Very likely …" / "Probably …", and not a
+   close call); otherwise "Your best bet: {size}". It is judged on the suggested size even
+   when another size is selected. Under it, one line from the existing verdict text for the
+   selected size (`verdictLine(...).headline`). When the selected size isn't the suggested
+   one, that line says which size is shown ("Showing L: Probably roomy"). With no
+   suggestion, the existing fallback copy (`sizeLine(size, false)`: "Size M · we couldn’t
+   pick one for you") is the headline, with the verdict line under it. No new verdict wording.
 3. **Mannequin** on a 316 px `--peach-soft` circle; no height tape on this screen.
 4. **SizePicker**: round pills 48 px tall; selected = ink fill, white text. The fit dot
    and the "Suggested" tag stay.
@@ -114,8 +117,8 @@ there are swapped for flat fills and borders (an anti-goal fix, not a layout cha
 
 ## Testing
 - `npm run check` and `npm run build` pass; golden files untouched.
-- Pure headline logic (`fittingHeadline` in `fitText.ts`) unit-tested: recommended,
-  non-recommended and no-recommendation cases.
+- Pure headline logic (`fittingHeadline` in `fitText.ts`) unit-tested: likely fit, "Might"
+  fit, close call, bad tone, another size selected, and no recommendation.
 - Component tests (jsdom + Testing Library) for the Fitting room headline cases and for
   opening and closing Fit details.
 - 390 px screenshots of every screen in the PR.

@@ -648,30 +648,64 @@ describe('headlineSize', () => {
 });
 
 describe('fittingHeadline', () => {
-  const line = (headline: string, tone: 'good' | 'warn' | 'bad' | 'unknown' = 'good') =>
-    ({ headline, detail: null, tone, verdict: 'fits', closeCall: false }) as const;
+  // Chart order S, M, L; M is the suggested size unless a test says otherwise.
+  const suggestM = (m: Partial<Record<Verdict, number>>, l: Partial<Record<Verdict, number>> = { roomier: 0.9, fits: 0.1 }) => ({
+    ...oddsOf(sizeOdds('S', { 'too-tight': 0.9, fits: 0.1 }), sizeOdds('M', m), sizeOdds('L', l)),
+    recommended: 'M',
+  });
 
-  it('leads with the suggested size and its verdict', () => {
-    expect(fittingHeadline('M', 'M', line('Very likely fits how you like'))).toEqual({
+  it('says "M fits you" when M very likely or probably fits', () => {
+    const veryLikely = suggestM({ fits: 0.8, roomier: 0.2 });
+    expect(fittingHeadline(veryLikely, 'M', top)).toEqual({
       headline: 'M fits you',
       line: 'Very likely fits how you like',
       tone: 'good',
     });
+    expect(fittingHeadline(suggestM({ fits: 0.6, roomier: 0.4 }), 'M', top).headline).toBe('M fits you');
   });
 
-  it('names the size shown when it is not the suggested one', () => {
-    expect(fittingHeadline('M', 'L', line('Probably a bit roomier than you like', 'warn'))).toEqual({
+  it('judges the headline on the suggested size, naming the size shown when it is another', () => {
+    const odds = suggestM({ fits: 0.8, roomier: 0.2 });
+    expect(fittingHeadline(odds, 'L', top)).toEqual({
       headline: 'M fits you',
-      line: 'Showing L: Probably a bit roomier than you like',
+      line: `Showing L: ${verdictLine(odds, 'L', top).headline}`,
+      tone: verdictLine(odds, 'L', top).tone,
+    });
+  });
+
+  it('says "Your best bet" when the suggested size only might fit', () => {
+    const odds = suggestM({ fits: 0.45, roomier: 0.3, snugger: 0.25 });
+    expect(verdictLine(odds, 'M', top).headline).toBe('Might fit how you like');
+    expect(fittingHeadline(odds, 'M', top)).toEqual({ headline: 'Your best bet: M', line: 'Might fit how you like', tone: 'good' });
+    // Still judged on M when a likely-fitting size is selected instead.
+    expect(fittingHeadline(odds, 'S', top).headline).toBe('Your best bet: M');
+  });
+
+  it('says "Your best bet" on a close call, even when the suggested size probably fits', () => {
+    const odds = suggestM({ fits: 0.55, snugger: 0.45 }, { fits: 0.45, roomier: 0.55 });
+    expect(verdictLine(odds, 'M', top).closeCall).toBe(true);
+    expect(fittingHeadline(odds, 'M', top)).toEqual({
+      headline: 'Your best bet: M',
+      line: 'Could go either way: M or L',
       tone: 'warn',
     });
   });
 
+  it('says "Your best bet" when the suggested size likely won’t fit', () => {
+    const odds = suggestM({ 'too-tight': 0.7, fits: 0.3 });
+    expect(fittingHeadline(odds, 'M', top)).toEqual({
+      headline: 'Your best bet: M',
+      line: verdictLine(odds, 'M', top).headline,
+      tone: 'bad',
+    });
+  });
+
   it('falls back to the size line when no size could be picked', () => {
-    expect(fittingHeadline(null, 'S', line('Can’t check this fit', 'unknown'))).toEqual({
+    const odds = { ...suggestM({ fits: 0.8, roomier: 0.2 }), recommended: null };
+    expect(fittingHeadline(odds, 'S', top)).toEqual({
       headline: 'Size S · we couldn’t pick one for you',
-      line: 'Can’t check this fit',
-      tone: 'unknown',
+      line: verdictLine(odds, 'S', top).headline,
+      tone: verdictLine(odds, 'S', top).tone,
     });
   });
 });

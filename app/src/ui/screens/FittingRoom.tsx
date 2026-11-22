@@ -199,7 +199,7 @@ export function FittingRoom({
 
       {active && (
         <section className="fitting__answer" aria-label="Fit">
-          <FitAnswer garment={active.garment} size={active.size} recommended={active.recommended} odds={active.odds} />
+          <FitAnswer garment={active.garment} size={active.size} odds={active.odds} />
         </section>
       )}
 
