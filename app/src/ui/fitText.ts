@@ -602,6 +602,26 @@ export function verdictLine(odds: GarmentOdds, sizeLabel: string, garment: Pick<
   return { headline, detail, tone: VERDICT_TONE[modal], verdict: modal, closeCall: false };
 }
 
+/** The Fitting room's answer: a headline and one line under it. */
+export interface FittingHeadline {
+  headline: string;
+  /** The selected size's verdict, naming that size when it isn't the suggested one. */
+  line: string;
+  tone: FitTone;
+}
+
+/**
+ * "M fits you", then the selected size's verdict headline under it ("Showing L: Probably
+ * roomy" when L isn't the suggested size). With no suggested size, the size line's
+ * fallback ("Size M · we couldn’t pick one for you") heads it instead.
+ */
+export function fittingHeadline(recommended: string | null, sizeLabel: string, verdict: VerdictLine): FittingHeadline {
+  const tone = verdict.tone;
+  if (!recommended) return { headline: sizeLine(sizeLabel, false), line: verdict.headline, tone };
+  const line = sizeLabel === recommended ? verdict.headline : `Showing ${sizeLabel}: ${verdict.headline}`;
+  return { headline: `${recommended} fits you`, line, tone };
+}
+
 const MEASURE_NAME: Record<MeasurableKey, string> = {
   chestCm: 'chest',
   waistCm: 'waist',

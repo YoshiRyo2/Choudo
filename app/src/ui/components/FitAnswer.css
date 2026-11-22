@@ -1,0 +1,41 @@
+.fit-answer {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fit-answer__headline {
+  margin: 0;
+  font-size: var(--type-headline);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+/* The fallback is a sentence, not a size: title size so it doesn't shout. */
+.fit-answer__headline.is-fallback {
+  font-size: var(--type-title);
+  line-height: 1.2;
+}
+
+/* Text stays ink; the dot carries the fit colour (fit colours are for fit results only). */
+.fit-answer__line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--step-0);
+  font-weight: 500;
+  color: var(--ink);
+}
+.fit-answer__dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  transform: translateY(-1px);
+}
+.fit-answer__dot.tone-unknown {
+  background: transparent;
+  border: 2px solid currentColor;
+}

@@ -21,7 +21,8 @@ well-named modules over clever ones.
 
 ## Stack
 - React + TypeScript + Vite (web app, mobile-first), in `app/`.
-- Vitest for unit tests (`*.test.ts` next to the code they test).
+- Vitest for unit tests (`*.test.ts` next to the code they test); component tests are `*.test.tsx`
+  with `// @vitest-environment jsdom` + Testing Library (`ui/test/dom.ts` fills jsdom gaps).
 - Mannequin is a 2D parametric SVG — no Three.js until a real body model is worth it.
 - No state library, no UI kit. Plain React state, a small `localStorage` hook, plain CSS.
 
@@ -60,7 +61,7 @@ app/src/
     components/  Mannequin/ (pure geometry.ts, topShape.ts, templates/pants.ts + skirt.ts + jacket.ts + dress.ts + leggings.ts, photoWarp.ts,
                  view.ts: Front/Back is a drawing option only — same body, same fit, same pins + SVG),
                  SwipeCard/ (pure swipe.ts),
-                 FitStrip (size row + verdict line under the stage), sizeRow.ts (pure),
+                 FitAnswer ("M fits you" + verdict line over the stage), sizeRow.ts (pure),
                  GarmentIcon (card picture: photo or flat drawing; garmentThumb.ts picks, pure),
                  GarmentCarousel, GarmentBadge, SizePicker, FitReadout, FitSheet, Sheet (<dialog>), TabBar, NameForm,
                  AboutSheet (from the body screen and the Closet header),
@@ -70,7 +71,7 @@ app/src/
                  odds.ts (cached sampleFit), fitTests.ts (Test mode records + CSV)
     fitText.ts   all user-facing fit wording
     focus.ts     refocus after a remount without a tap-drawn ring (`[data-pointer-focus]`)
-    styles.css   design tokens (colours, type scale)
+    styles.css   design tokens (colours, type scale; spec: docs/superpowers/specs/2026-11-22-playful-reskin-design.md)
   dev/landmarks/ dev-only landmark picker (/dev/landmarks), tops and pants: suggest.ts (landmarks
                  from the outline), seedWrite.ts (writes one "image" into seed.json), pickerModel.ts
                  (a kit per template: place order, labels, diagram)

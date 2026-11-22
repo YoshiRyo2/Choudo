@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react';
 import { estimateBody, type BodyInput } from '../../domain/body';
 import {
   fitAllSizes,
-  measurementHint,
   type Anchor,
   type GarmentFit,
   type GarmentOdds,
@@ -11,16 +10,15 @@ import {
 } from '../../domain/fit';
 import { catalogueFor, findGarment, GARMENTS, type CatalogueScope, type Garment, type GarmentCategory } from '../../domain/garments';
 import { catalogueToggle, emptyCategoryText } from '../catalogueText';
-import { layerNoteLines } from '../fitText';
-import { FitReadout } from '../components/FitReadout';
+import { FitAnswer } from '../components/FitAnswer';
 import { FitSheet } from '../components/FitSheet';
-import { FitStrip } from '../components/FitStrip';
 import { GarmentCarousel } from '../components/GarmentCarousel';
 import { Mannequin, type WornGarment } from '../components/Mannequin/Mannequin';
 import type { View } from '../components/Mannequin/view';
 import { NameForm } from '../components/NameForm';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Sheet } from '../components/Sheet';
+import { SizePicker } from '../components/SizePicker';
 import { Wordmark } from '../components/Wordmark';
 import { clickedByPointer, refocus } from '../focus';
 import { makeId } from '../state/closet';
@@ -125,16 +123,8 @@ export function FittingRoom({
   const tab: GarmentCategory = browsing === 'onepiece' && !hasDresses ? 'top' : browsing;
   const active = { top, bottom, outer, onepiece }[tab];
   const activeUnder = tab === 'outer' ? under : undefined;
+  // The zones, tape scales, cm and odds live in this sheet: the screen itself shows no numbers.
   const [showDetails, setShowDetails] = useState(false);
-  const activeGarment = active?.garment;
-  const activeRecommended = active?.recommended ?? null;
-  // Re-runs the sampler a few times, so only when the garment, body or preference changes.
-  const hint = useMemo(
-    () => (activeGarment ? measurementHint(model, activeGarment, preference, { current: activeRecommended, under: activeUnder }) : null),
-    [model, activeGarment, preference, activeRecommended, activeUnder],
-  );
-  const layerNotes =
-    outer && tab === 'outer' ? layerNoteLines(model, under, { garment: outer.garment, sizeLabel: outer.size }, units) : [];
 
   function chooseGarment(id: string) {
     const garment = findGarment(id);
@@ -186,7 +176,35 @@ export function FittingRoom({
         </button>
       </header>
 
+      <div className="fitting__garment">
+        {active ? (
+          <div className="fitting__garment-name">
+            <p className="fitting__name">{active.garment.name}</p>
+            <p className="fitting__brand">{active.garment.brand}</p>
+          </div>
+        ) : (
+          <span />
+        )}
+        <SegmentedControl
+          label="View"
+          hideLabel
+          value={view}
+          options={[
+            { value: 'front', label: 'Front' },
+            { value: 'back', label: 'Back' },
+          ]}
+          onChange={setView}
+        />
+      </div>
+
+      {active && (
+        <section className="fitting__answer" aria-label="Fit">
+          <FitAnswer garment={active.garment} size={active.size} recommended={active.recommended} odds={active.odds} />
+        </section>
+      )}
+
       <section className="fitting__stage" aria-label="Mannequin">
+        <div className="fitting__circle" aria-hidden="true" />
         <Mannequin
           body={model.measurements}
           top={worn(top)}
@@ -195,19 +213,9 @@ export function FittingRoom({
           outer={worn(outer)}
           frame="body"
           view={view}
+          showHeightTape={false}
+          className="fitting__figure"
         />
-        <div className="fitting__view">
-          <SegmentedControl
-            label="View"
-            hideLabel
-            value={view}
-            options={[
-              { value: 'front', label: 'Front' },
-              { value: 'back', label: 'Back' },
-            ]}
-            onChange={setView}
-          />
-        </div>
         <button type="button" className="fitting__save" aria-label="Save outfit" title="Save outfit" onClick={() => setSaving('naming')}>
           {/* A bookmark with a plus: keep this outfit. */}
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -217,16 +225,19 @@ export function FittingRoom({
       </section>
 
       {active && (
-        <section className="fitting__strip" aria-label="Size and fit">
-          <FitStrip
-            garment={active.garment}
+        <section className="fitting__sizes" aria-label="Size">
+          <SizePicker
+            key={active.garment.id}
+            layout="row"
             fits={active.fits}
-            size={active.size}
+            selected={active.size}
             recommended={active.recommended}
             odds={active.odds}
-            onSelectSize={chooseSize}
-            onDetails={() => setShowDetails(true)}
+            onSelect={chooseSize}
           />
+          <button type="button" className="button button--ink-outline fitting__details" onClick={() => setShowDetails(true)}>
+            See fit details
+          </button>
         </section>
       )}
 
@@ -304,20 +315,6 @@ export function FittingRoom({
           <button type="button" className="button button--outline button--small fitting__take-off" onClick={takeOffJacket}>
             Take off the jacket
           </button>
-        )}
-
-        {active && (
-          <FitReadout
-            garment={active.garment}
-            fit={active.fit}
-            units={units}
-            odds={active.odds}
-            preference={preference}
-            hint={hint}
-            summary={false}
-            layerNotes={layerNotes}
-            onEditBody={onEditBody}
-          />
         )}
 
         {/* import.meta.env.DEV here, not only in App, so the build drops the panel's code. */}

@@ -14,6 +14,7 @@ import {
   personalOddsText,
   preferenceNote,
   verdictLine,
+  fittingHeadline,
   headlineSize,
   sizeTone,
   formatDiff,
@@ -643,5 +644,34 @@ describe('headlineSize', () => {
     const line = verdictLine(sampleFit(body, garment, preferenceSpec(null, null)), '8', garment);
     expect(line.headline).toBe('Could go either way: 8 or 10');
     expect(headlineSize(line, '8')).toBeNull();
+  });
+});
+
+describe('fittingHeadline', () => {
+  const line = (headline: string, tone: 'good' | 'warn' | 'bad' | 'unknown' = 'good') =>
+    ({ headline, detail: null, tone, verdict: 'fits', closeCall: false }) as const;
+
+  it('leads with the suggested size and its verdict', () => {
+    expect(fittingHeadline('M', 'M', line('Very likely fits how you like'))).toEqual({
+      headline: 'M fits you',
+      line: 'Very likely fits how you like',
+      tone: 'good',
+    });
+  });
+
+  it('names the size shown when it is not the suggested one', () => {
+    expect(fittingHeadline('M', 'L', line('Probably a bit roomier than you like', 'warn'))).toEqual({
+      headline: 'M fits you',
+      line: 'Showing L: Probably a bit roomier than you like',
+      tone: 'warn',
+    });
+  });
+
+  it('falls back to the size line when no size could be picked', () => {
+    expect(fittingHeadline(null, 'S', line('Can’t check this fit', 'unknown'))).toEqual({
+      headline: 'Size S · we couldn’t pick one for you',
+      line: 'Can’t check this fit',
+      tone: 'unknown',
+    });
   });
 });

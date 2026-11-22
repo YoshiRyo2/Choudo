@@ -12,7 +12,7 @@ export default defineConfig(({ command, isPreview }) => ({
   plugins: [react(), landmarksDevServer(), leaveOutLocalPhotos(), stampServiceWorkerPlugin()],
   server: { host: true }, // expose on LAN so you can open it on a phone
   test: {
-    include: ['src/**/*.test.ts', 'build/**/*.test.ts', 'scripts/**/*.test.mjs'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'build/**/*.test.ts', 'scripts/**/*.test.mjs'],
     environment: 'node',
   },
 }));
