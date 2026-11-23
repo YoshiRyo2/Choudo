@@ -35,9 +35,16 @@ export interface HeadAnchor {
   w: number;
 }
 
-/** The anchor for the body geometry's head ellipse: same centre line, bottom on its chin, its half width. */
+/**
+ * How much bigger the mascot head is drawn than the body geometry's head ellipse.
+ * A skin setting only: the head grows up and out from the chin, never down into the
+ * neck, and nothing about the body changes.
+ */
+export const HEAD_SCALE = 1.15;
+
+/** The anchor for the body geometry's head ellipse: same centre line, bottom on its chin, its half width × HEAD_SCALE. */
 export function headAnchor(head: { cx: number; cy: number; rx: number; ry: number }): HeadAnchor {
-  return { x: head.cx, bottom: head.cy + head.ry, w: head.rx };
+  return { x: head.cx, bottom: head.cy + head.ry, w: head.rx * HEAD_SCALE };
 }
 
 export interface HeadShape {
@@ -55,7 +62,7 @@ export interface HeadShape {
 const r2 = (v: number) => Math.round(v * 100) / 100;
 const pt = (x: number, y: number) => `${r2(x)} ${r2(y)}`;
 
-/** One head, laid out in units of the anchor's w. Every head stays within 2.96 w of its bottom (the old head's height). */
+/** One head, laid out in units of the anchor's w. Every head stays within 2.96 w of its bottom (the old head's height × HEAD_SCALE, via headAnchor). */
 export function headShape(kind: HeadKind, { x, bottom, w }: HeadAnchor): HeadShape {
   const circle = (dx: number, up: number, r: number): Circle => ({ cx: r2(x + dx * w), cy: r2(bottom - up * w), r: r2(r * w) });
   if (kind === 'cloud') {

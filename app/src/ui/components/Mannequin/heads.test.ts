@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../../../domain/body';
 import { bodyGeometry } from './geometry';
-import { faceShape, HEAD_KINDS, headAnchor, headShape, headTop, isHeadKind } from './heads';
+import { faceShape, HEAD_KINDS, HEAD_SCALE, headAnchor, headShape, headTop, isHeadKind, type HeadShape } from './heads';
 
 const bodies = [
   estimateBody({ heightCm: 152, weightKg: 48, bodyType: 'womens' }).measurements,
@@ -10,7 +10,28 @@ const bodies = [
 ];
 
 describe('mascot heads', () => {
-  it.each(HEAD_KINDS)('the %s head sits on the neck and stays within the old head’s height', (kind) => {
+  /** The lowest point a head reaches (largest y). */
+  const headBottom = (shape: HeadShape) =>
+    Math.max(...shape.puffs.map((c) => c.cy + c.r), ...shape.ears.map(({ outer: e }) => e.cy + Math.max(e.rx, e.ry)));
+
+  it('draws the head HEAD_SCALE times the body geometry’s head', () => {
+    expect(HEAD_SCALE).toBe(1.15);
+    const g = bodyGeometry(bodies[1]!);
+    expect(headAnchor(g.head).w).toBeCloseTo(g.head.rx * HEAD_SCALE, 6);
+  });
+
+  it.each(HEAD_KINDS)('the %s head keeps its bottom on the chin: it grows up and out, never down into the neck', (kind) => {
+    for (const body of bodies) {
+      const g = bodyGeometry(body);
+      const chin = g.head.cy + g.head.ry;
+      const shape = headShape(kind, headAnchor(g.head));
+      expect(headAnchor(g.head).bottom).toBe(chin);
+      expect(headBottom(shape)).toBeCloseTo(chin, 1);
+      expect(headBottom(shape)).toBeLessThanOrEqual(chin + 0.01);
+    }
+  });
+
+  it.each(HEAD_KINDS)('the %s head sits on the neck and stays within the old head’s height × HEAD_SCALE', (kind) => {
     for (const body of bodies) {
       const g = bodyGeometry(body);
       const shape = headShape(kind, headAnchor(g.head));
@@ -19,8 +40,9 @@ describe('mascot heads', () => {
       expect(face.cx).toBeCloseTo(g.head.cx, 1);
       expect(face.cy + face.r).toBeCloseTo(g.head.cy + g.head.ry, 0);
       expect(face.cy + face.r).toBeGreaterThan(g.y.chin - 2);
-      // No taller than the head it replaces: the figure's height stays the body's.
-      expect(headTop(shape)).toBeGreaterThanOrEqual(g.head.cy - g.head.ry - 0.01);
+      // No taller than the head it replaces, scaled up from the chin by HEAD_SCALE.
+      const chin = g.head.cy + g.head.ry;
+      expect(headTop(shape)).toBeGreaterThanOrEqual(chin - 2 * g.head.ry * HEAD_SCALE - 0.01);
     }
   });
 
