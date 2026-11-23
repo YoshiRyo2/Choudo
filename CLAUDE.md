@@ -337,7 +337,7 @@ npm run dist:check # after npm run build: URLs under /Choudo/, sw.js, no dev pag
 npm run fit:report # fit-test report from ../data/fit_tests.csv (or a path after --)
 npm run photos     # cut garment photos out into public/garments/ (commit the PNG)
                    # then place landmarks at http://localhost:5173/dev/landmarks?id=<garment>
-npm run icons      # favicon, Apple touch and manifest icons from public/choudo-app-icon-1024.png
+npm run icons      # favicon, Apple touch and manifest icons from the SVG masters in app/icons/
 npm run build      # typecheck + production build (base /Choudo/; vite preview serves it there)
 ```
 CI and cloud sessions install with `npm ci --ignore-scripts` then `npm rebuild esbuild`
