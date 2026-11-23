@@ -154,6 +154,16 @@ its bottom on `cy + ry` (the chin, so it overlaps the neck's top), and sized in 
 `w = g.head.rx`, so it scales with the head the geometry already uses. Everything fits in
 the old head's height (`2 × ry ≈ 2.96 w`), so the figure is no taller.
 
+**`HEAD_SCALE = 1.15`** (in `heads.ts`, applied in `headAnchor`: `w = g.head.rx × HEAD_SCALE`;
+2026-11-23). The head is drawn 15 % bigger than the body geometry's head. Its bottom stays on
+the chin, so it grows up and out, never down into the neck. The face, blush, ears, leaf and
+crease grow with it, the outline widths don't (non-scaling stroke), and the head picker
+icons keep their size. A head now reaches up to `old head height × HEAD_SCALE` above the
+chin, about 3 cm above the body's height line. The SVG overflows visibly, and the viewBox,
+the body and the garments are unchanged (`skin.test.tsx`). At 390 px it stays clear of the
+stamp, the picker and the headline, and inside the Discover and Closet cards (screens:
+`head-scale-*.jpg`).
+
 | Head  | Drawing |
 |-------|---------|
 | cloud | four overlapping `--surface` circles (a face circle and three puffs) with **one** ink outline round the group: the circles are drawn once with a 4.4 px ink stroke, then again filled on top, so only the outer edge shows (2.2 px). |
