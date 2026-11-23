@@ -172,10 +172,43 @@
   text-overflow: ellipsis;
 }
 
-/* A 44 px icon button in the stage's top-right corner. */
-.fitting__save {
+/* The ちょうど stamp in the stage's top-right corner, just outside the peach circle so it
+   lands on --bg (stamp ink is 4.5:1 there, not on peach-soft). */
+.fitting__stamp {
+  position: absolute;
+  top: 2px;
+  right: 10px;
+}
+
+/* The head picker: three 44 px round buttons down the stage's left edge. */
+.fitting__heads {
   position: absolute;
   top: 0;
+  left: 16px;
+  display: grid;
+  gap: 8px;
+}
+.fitting__head {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 2px var(--ink);
+  cursor: pointer;
+}
+/* The chosen head: an ink disc (the drawing's own fills keep it readable). */
+.fitting__head[aria-pressed='true'] {
+  background: var(--ink);
+}
+
+/* A 44 px icon button in the stage's bottom-right corner (the stamp has the top right). */
+.fitting__save {
+  position: absolute;
+  bottom: 0;
   right: 16px;
   display: grid;
   place-items: center;
@@ -198,6 +231,8 @@
 }
 @media (min-width: 820px) {
   .fitting__save { right: 0; }
+  .fitting__stamp { right: 0; }
+  .fitting__heads { left: 0; }
 }
 
 /* The compact Show chip in the carousel header: looks 32 px tall, takes taps

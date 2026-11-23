@@ -27,6 +27,8 @@ export const STORAGE_KEYS = {
   catalogue: 'choudo.catalogue.v1',
   /** Results recorded in Test mode. v2: each prediction's body uses `bodyType`. */
   fitTests: 'choudo.fitTests.v3',
+  /** The mascot head on the mannequin: "cloud", "peach" or "bunny" (a drawing choice only). */
+  head: 'choudo.head.v1',
 } as const;
 
 /** Display units. Metric = cm + kg, imperial = in + lb. Storage is always metric. */
@@ -247,6 +249,8 @@ export function isAnchor(v: unknown): v is Anchor | null {
 
 export const isFitStyle = (v: unknown): v is FitStyle | null =>
   v === null || (typeof v === 'string' && (FIT_STYLES as readonly string[]).includes(v));
+
+export { isHeadKind } from '../components/Mannequin/heads';
 
 export const isBoolean = (v: unknown): v is boolean => typeof v === 'boolean';
 

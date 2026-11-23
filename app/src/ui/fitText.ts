@@ -647,6 +647,14 @@ export function fittingHeadline(
   return { headline, line, tone: shown.tone };
 }
 
+/**
+ * The ちょうど stamp's rule: the size shown is the suggested size and the headline says
+ * "{size} fits you" (the same `confidentFit` test `fittingHeadline` uses).
+ */
+export function isJustRight(odds: GarmentOdds, sizeLabel: string, garment: Pick<Garment, 'category' | 'fitIntent'>): boolean {
+  return odds.recommended === sizeLabel && confidentFit(odds, sizeLabel, garment);
+}
+
 const MEASURE_NAME: Record<MeasurableKey, string> = {
   chestCm: 'chest',
   waistCm: 'waist',

@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import type { BodyInput } from './domain/body';
 import { preferenceSpec, type Anchor, type FitStyle } from './domain/fit';
 import { findGarment, type CatalogueScope, type Garment } from './domain/garments';
+import type { HeadKind } from './ui/components/Mannequin/heads';
+import { MascotHeadContext } from './ui/components/Mannequin/MascotHead';
 import { TabBar, type Tab } from './ui/components/TabBar';
 import { DEV_TOOLS, devToolsOn } from './ui/devTools';
 import { fitReferenceLine } from './ui/fitText';
@@ -21,6 +23,7 @@ import {
   isCatalogueScope,
   isFitStyle,
   isFitTestList,
+  isHeadKind,
   isOutfit,
   isStoredBody,
   isUnitSystem,
@@ -36,6 +39,16 @@ import {
  * localStorage — nothing leaves the device.
  */
 export function App() {
+  // The mascot head is a drawing choice: every Mannequin reads it from the context.
+  const [head, setHead] = usePersistentState<HeadKind>(STORAGE_KEYS.head, 'cloud', isHeadKind);
+  return (
+    <MascotHeadContext.Provider value={head}>
+      <Screens head={head} onHeadChange={setHead} />
+    </MascotHeadContext.Provider>
+  );
+}
+
+function Screens({ head, onHeadChange }: { head: HeadKind; onHeadChange: (head: HeadKind) => void }) {
   const [body, setBody] = usePersistentState<BodyInput | null>(STORAGE_KEYS.body, null, isStoredBody);
   const [units, setUnits] = usePersistentState<UnitSystem>(STORAGE_KEYS.units, 'metric', isUnitSystem);
   const [outfit, setOutfit] = usePersistentState<Outfit>(STORAGE_KEYS.outfit, EMPTY_OUTFIT, isOutfit);
@@ -135,6 +148,8 @@ export function App() {
           nextOutfitName={nextOutfitName(closet.outfits)}
           onUnitsChange={setUnits}
           onEditBody={editBody}
+          head={head}
+          onHeadChange={onHeadChange}
           testing={
             devToolsOn(testMode, DEV_TOOLS)
               ? {

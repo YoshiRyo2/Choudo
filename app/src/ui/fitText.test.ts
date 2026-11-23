@@ -15,6 +15,7 @@ import {
   preferenceNote,
   verdictLine,
   fittingHeadline,
+  isJustRight,
   headlineSize,
   sizeTone,
   formatDiff,
@@ -707,5 +708,32 @@ describe('fittingHeadline', () => {
       line: verdictLine(odds, 'S', top).headline,
       tone: verdictLine(odds, 'S', top).tone,
     });
+  });
+});
+
+describe('isJustRight (the ちょうど stamp)', () => {
+  const suggestM = (m: Partial<Record<Verdict, number>>, l: Partial<Record<Verdict, number>> = { roomier: 0.9, fits: 0.1 }) => ({
+    ...oddsOf(sizeOdds('S', { 'too-tight': 0.9, fits: 0.1 }), sizeOdds('M', m), sizeOdds('L', l)),
+    recommended: 'M',
+  });
+
+  it('is true only for the suggested size when the headline says it fits', () => {
+    const odds = suggestM({ fits: 0.8, roomier: 0.2 });
+    expect(fittingHeadline(odds, 'M', top).headline).toBe('M fits you');
+    expect(isJustRight(odds, 'M', top)).toBe(true);
+    // Another size shown under "M fits you": no stamp.
+    expect(isJustRight(odds, 'L', top)).toBe(false);
+  });
+
+  it('is false whenever the headline is "Your best bet" or the fallback', () => {
+    const might = suggestM({ fits: 0.45, roomier: 0.3, snugger: 0.25 });
+    const close = suggestM({ fits: 0.55, snugger: 0.45 }, { fits: 0.45, roomier: 0.55 });
+    const wontFit = suggestM({ 'too-tight': 0.7, fits: 0.3 });
+    for (const odds of [might, close, wontFit]) {
+      expect(fittingHeadline(odds, 'M', top).headline).toBe('Your best bet: M');
+      expect(isJustRight(odds, 'M', top)).toBe(false);
+    }
+    const none = { ...suggestM({ fits: 0.8, roomier: 0.2 }), recommended: null };
+    expect(isJustRight(none, 'M', top)).toBe(false);
   });
 });

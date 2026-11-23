@@ -1,8 +1,10 @@
-import { useId, useMemo } from 'react';
+import { useContext, useId, useMemo } from 'react';
 import type { BodyMeasurements } from '../../../domain/body';
-import type { GarmentFit, ZoneFit } from '../../../domain/fit';
+import type { FitTone, GarmentFit, ZoneFit } from '../../../domain/fit';
 import { pantsLandmarks, templateOf, topLandmarks, type Garment } from '../../../domain/garments';
 import { bodyGeometry, type Marker } from './geometry';
+import { headAnchor, type HeadKind } from './heads';
+import { MascotHead, MascotHeadContext } from './MascotHead';
 import { affineToSvg, warpPantsPieces, warpPieces, type WarpPiece, type WarpRegion } from './photoWarp';
 import { dressShape } from './templates/dress';
 import { jacketShape } from './templates/jacket';
@@ -50,6 +52,10 @@ interface MannequinProps {
   view?: View;
   /** Draw the height tape up the left edge (default true). Off where the screen shows no numbers. */
   showHeightTape?: boolean;
+  /** The mascot head (default: the stored choice, from MascotHeadContext). A skin: the body is the same under every head. */
+  head?: HeadKind;
+  /** The face's fit tone (default unknown: a neutral face). No face from the back. */
+  face?: FitTone;
   className?: string;
 }
 
@@ -75,9 +81,13 @@ export function Mannequin({
   frame = 'canvas',
   view = 'front',
   showHeightTape = true,
+  head: headProp,
+  face = 'unknown',
   className,
 }: MannequinProps) {
   const g = useMemo(() => bodyGeometry(body), [body]);
+  const storedHead = useContext(MascotHeadContext);
+  const head = headProp ?? storedHead;
 
   // A dress is drawn as its bodice (in the top's place) and a skirt from the seam (templates/dress.ts).
   const dressSize = onepiece?.garment.sizes.find((s) => s.label === onepiece.sizeLabel);
@@ -207,8 +217,9 @@ export function Mannequin({
           <ellipse key={i} {...foot} />
         ))}
         <rect x={-g.half.neck * 0.8} y={g.y.chin - 2} width={g.half.neck * 1.6} height={6} rx={2} />
-        <ellipse cx={g.head.cx} cy={g.head.cy} rx={g.head.rx} ry={g.head.ry} />
       </g>
+      {/* The mascot head over the neck, where the head ellipse was: laid out from g.head, never feeding back into the body. */}
+      <MascotHead kind={head} face={view === 'back' ? null : face} at={headAnchor(g.head)} className="mannequin__head" />
       <line className="mannequin__seam" x1={0} x2={0} y1={g.y.neckBase + 4} y2={g.y.crotch - 4} />
 
       {bottomDraw && bottom && (
