@@ -1,20 +1,83 @@
 # Garment photo sources
 
-Product photos used as garment textures. **They are not committed**: we don't hold
-the rights to redistribute them, so this folder and `public/garments/` are
-git-ignored. Without a photo the app draws the garment in its flat colour.
+Source photos for garment textures. **They are not committed**: product photos aren't
+ours to redistribute, and full-size phone photos of your own clothes are personal (and
+carry EXIF). This folder is git-ignored.
 
-To use a photo locally:
+The cut-outs that `npm run photos` makes in `public/garments/` **are committed**, so a
+fresh clone shows them. `npm run data:check` fails if a garment's image is missing or
+under 800 px wide. The exception is a `"licence": "local-only"` photo, which never ships
+in the production build and isn't checked. A cut-out from a photo we don't hold the
+rights to, like `gildan-5000-front.png` (a retailer's model shot), is local-only and also
+listed in `app/.gitignore`. Without its photo, the app draws the garment in its flat colour.
 
-1. Save it here under the name given in `scripts/garment-photos.json`
-   (e.g. `gildan-5000.webp` — the front view of the model shot on the product page).
-2. Run `npm run photos` to cut the garment out into `public/garments/`.
-3. `npm run photos -- --overlay` also writes `…-overlay.png` with the landmarks
-   from `seed.json` drawn on, to check them by eye.
+## Taking the photo
 
-The landmark pixel positions in `seed.json` refer to the cut-out PNG, so if you
-change the crop or the `bleed` in `garment-photos.json`, re-check them with the
-overlay. (`bleed` pads the garment by smearing its edge colours outward, so the
-cut-out isn't a clean silhouette; that's on purpose. The Mannequin warps the
-photo onto each size's outline, and the padding gives a slightly larger outline
-cloth at its edges instead of a gap.)
+- Lay the shirt **flat, front up**, smoothed out, sleeves straight out from the body
+  (not folded under). Long sleeves can angle down; keep the cuffs in the frame.
+- Shoot from **straight above**, so the shirt isn't a trapezoid. Stand over it.
+- A **plain floor or sheet that contrasts with the shirt** is best (a white tee on a
+  dark floor, a black one on a light sheet). Wood grain and rugs are fine; the
+  remover copes, it just has to work harder.
+- Keep **other clothes, feet and shadows** away from the shirt's edges.
+- Use the **original file** (full resolution, straight off the phone). Don't crop or
+  screenshot it; the script reads the EXIF orientation.
+
+## Cutting it out: `npm run photos`
+
+1. Save the photo here as `<garment-id>.jpg`. JPEG, PNG and WebP work. An iPhone's
+   HEIC doesn't, so export it as JPEG first (or set Camera → Formats → Most Compatible).
+2. Add it to `scripts/garment-photos.json`:
+
+   ```json
+   { "id": "ryo-black-henley", "source": "photo-sources/ryo-black-henley.jpg", "rotate": 90 }
+   ```
+
+   `rotate` (degrees clockwise, after EXIF) is only needed if the collar isn't at the
+   top: photos taken sideways usually need `90` or `270`.
+3. Run `npm run photos -- <garment-id>` (or no id for every photo). It writes
+   `public/garments/<garment-id>-front.png`, about 20 seconds per photo. Commit that
+   PNG (unless it's from a photo we don't hold the rights to: list it in `app/.gitignore`).
+
+The first run downloads the background-removal model (224 MB, once) into
+`app/.models/` (git-ignored). It's **BiRefNet-lite**, run locally with ONNX
+Runtime: MIT licence for the code and the weights, so fine for a commercial app.
+Nothing is uploaded anywhere.
+
+What the script does to each photo:
+
+- turns it upright (EXIF orientation, then `rotate`)
+- finds the garment with the model, keeps the biggest piece, fills holes
+- crops to it and shrinks the PNG to at most `maxSide` (900) px
+- trims `erode` (3) px off the edge, so no floor shows at the outline
+- pads `pad` (24) px round it with the nearest garment colour, fading into
+  the shirt's median colour
+
+The padding is on purpose. The mannequin stretches the photo onto each size's
+outline, and those never match the photo's exactly, so this keeps every edge in the
+shirt's own colour.
+
+`method: "colour"` is the older colour-matching cut-out (`gildan-5000`). Use it for a
+solid-colour garment **worn by a model**, where the AI cut-out would keep the person.
+
+`npm run photos -- --overlay` also writes `…-overlay.png` with the saved landmarks
+drawn on, for a quick check.
+
+## Placing the landmarks: `/dev/landmarks`
+
+Run `npm run dev` and open <http://localhost:5173/dev/landmarks?id=garment-id>.
+The page only exists on the dev server, not in the built app.
+
+- The 13 points start where the garment's outline suggests: collar, front neck,
+  shoulders, sleeve-opening corners, armpits, hem corners. Usually you only nudge them.
+  **Front neck** is always a guess, because the outline shows the back of the neck.
+- **Click** the photo to place the highlighted point (the diagram shows which).
+  **Drag** a point to move it, or use the **arrow keys** (shift moves 10 px).
+- "Left" and "right" are as you look at the photo.
+- The two mannequins show the photo warped onto the smallest and largest size as
+  you go. A one-size garment gets a made-up bigger size for the preview.
+- **Save to seed.json** writes the garment's `"image"` entry and nothing else.
+  **Copy JSON** copies it instead.
+
+The landmarks are pixels of the PNG. If you change `rotate`, `maxSide`, `erode` or `pad`
+and re-run `npm run photos`, place them again.

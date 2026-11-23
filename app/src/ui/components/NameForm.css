@@ -1,0 +1,30 @@
+.name-form {
+  display: grid;
+  gap: 6px;
+}
+.name-form__label {
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+.name-form__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.name-form__input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border: 1.5px solid var(--field-edge);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+}
+.name-form__input:focus {
+  border-color: var(--focus);
+  outline: none;
+}
+.name-form .button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

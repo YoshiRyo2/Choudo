@@ -8,28 +8,46 @@
 .sizes__legend {
   padding: 0;
   margin-bottom: 8px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .sizes__row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding-bottom: 14px; /* room for the "Suggested" caption */
+  /* Even rows; the gap and top padding leave room for the "Suggested" tag that
+     sits on a chip's top edge, wherever it wraps. */
+  gap: 12px 8px;
+  padding-top: 8px;
 }
+
+/* One row that scrolls sideways (the fitting room's fit strip). The row is the
+   chips' offsetParent, so the selected chip can be centred by its offsetLeft. */
+.sizes--row .sizes__row {
+  position: relative;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  /* Bleed to the screen edges, keeping the first chip in line with the text. */
+  margin: 0 -16px;
+  padding: 8px 16px 2px;
+  scroll-padding-inline: 16px;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.sizes--row .sizes__row::-webkit-scrollbar { display: none; }
+.sizes--row .size-chip { flex: none; }
 
 .size-chip {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-width: 52px;
-  min-height: 44px;
-  padding: 0 12px;
+  min-width: 64px;
+  min-height: 48px;
+  padding: 0 16px;
   justify-content: center;
-  background: var(--paper-raised);
-  border: 1.5px solid var(--line);
-  border-radius: var(--radius-s);
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-pill);
   cursor: pointer;
 }
 
@@ -44,7 +62,7 @@
 .size-chip.is-selected {
   background: var(--ink);
   border-color: var(--ink);
-  color: var(--paper-raised);
+  color: var(--surface);
 }
 
 .size-chip:has(input:focus-visible) {
@@ -53,8 +71,8 @@
 }
 
 .size-chip__label {
-  font-size: var(--step-1);
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 800;
 }
 
 .size-chip__dot {
@@ -68,16 +86,25 @@
   border: 1.5px solid currentColor;
 }
 .size-chip.is-selected .size-chip__dot {
-  box-shadow: 0 0 0 1.5px var(--paper-raised);
+  box-shadow: 0 0 0 1.5px var(--surface);
 }
 
+/* A small tag across the suggested chip's top edge (the chip's accessible name
+   says "suggested size" separately, so this is hidden from screen readers). */
 .size-chip__suggested {
   position: absolute;
-  top: 100%;
+  top: 0;
   left: 50%;
-  transform: translate(-50%, 2px);
-  font-size: 0.7rem;
-  font-weight: 600;
+  transform: translate(-50%, -50%);
+  padding: 0 5px;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  line-height: 15px;
+  letter-spacing: 0.02em;
   white-space: nowrap;
-  color: var(--ink);
+  color: var(--stamp);
+  background: var(--surface);
+  border: 1.5px solid var(--stamp);
+  border-radius: var(--radius-pill);
+  pointer-events: none;
 }

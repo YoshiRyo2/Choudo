@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody, type BodyModel } from '../body';
 import { findGarment, normalizeGarment, type Garment, type SeedGarment } from '../garments';
-import { inToCm } from '../units';
-import { fitAllSizes, fitGarment, labelGirth, labelLength, recommendSize } from './fitEngine';
-import { BOTTOM_WAIST, INSEAM, TOP_CHEST } from './rules';
+import { cmToIn, inToCm } from '../units';
+import { fitAllSizes, fitGarment, labelGirth, labelLength } from './fitEngine';
+import { BOTTOM_WAIST, INSEAM, TOP_CHEST, WOMENS_TOP_CHEST } from './rules';
+import { UNKNOWN_CHEST_TEE } from '../garments/testFixtures';
 
 /** A body with exact, entered measurements so tests don't depend on the estimator. */
 function bodyWith(m: Partial<BodyModel['measurements']>): BodyModel {
-  const model = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens' });
+  const model = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
   return { ...model, measurements: { ...model.measurements, ...m } };
 }
 
@@ -21,7 +22,8 @@ const seedTeeBase: SeedGarment = {
   color: '#000000',
   sleeve: 'short',
   stretch: 'none',
-  chart: { unit: 'in', girth: 'flat' },
+  fitIntent: 'regular',
+  chart: { unit: 'in', girth: 'flat', lengthDefinition: 'hps' },
   source: { placeholder: true },
   sizes: [],
 };
@@ -35,6 +37,39 @@ function seedTee(chestFlatIn: number): Garment {
 }
 
 const chestOf = (fit: ReturnType<typeof fitGarment>) => fit.zones.find((z) => z.zone === 'chest')!;
+
+describe('women’s top thresholds (by the garment’s sizing)', () => {
+  it.each([
+    [-1.01, 'tight'],
+    [-1.0, 'fitted'],
+    [1.0, 'fitted'],
+    [1.01, 'relaxed'],
+    [3.0, 'relaxed'],
+    [3.01, 'loose'],
+  ] as const)('ease %s in -> %s', (easeIn, expected) => {
+    expect(labelGirth(inToCm(easeIn), WOMENS_TOP_CHEST)).toBe(expected);
+  });
+
+  it('runs closer to the body than men’s, which are unchanged', () => {
+    expect(WOMENS_TOP_CHEST.fittedMax).toBeLessThan(TOP_CHEST.fittedMax);
+    expect(WOMENS_TOP_CHEST.relaxedMax).toBeLessThan(TOP_CHEST.relaxedMax);
+    expect(WOMENS_TOP_CHEST.tightBelow).toBe(TOP_CHEST.tightBelow);
+    expect(cmToIn(TOP_CHEST.tightBelow)).toBeCloseTo(-1);
+    expect(cmToIn(TOP_CHEST.fittedMax)).toBeCloseTo(2);
+    expect(cmToIn(TOP_CHEST.relaxedMax)).toBeCloseTo(4);
+  });
+
+  it('a women’s tee uses them; a unisex tee keeps the men’s on any body', () => {
+    // 1.5 in of ease: relaxed in a women’s cut, fitted in a men’s or unisex one.
+    const womens = estimateBody({ heightCm: 165, weightKg: 60, bodyType: 'womens', overrides: { chestCm: inToCm(36) } });
+    const tee = (sizing: 'womens' | 'unisex' | 'mens') =>
+      normalizeGarment({ ...seedTeeBase, sizing, sizes: [{ label: 'M', measurements: { chest: 18.75, length: 25 } }] });
+    expect(chestOf(fitGarment(womens, tee('womens'), 'M')).label).toBe('relaxed');
+    expect(chestOf(fitGarment(womens, tee('unisex'), 'M')).label).toBe('fitted');
+    expect(chestOf(fitGarment(womens, tee('mens'), 'M')).label).toBe('fitted');
+    expect(fitGarment(womens, tee('womens'), 'M').bodyType).toBe('womens');
+  });
+});
 
 describe('girth labels (ported from tests/test_fit.py)', () => {
   // Same boundaries as the Python suite, which works in inches.
@@ -98,8 +133,14 @@ describe('fitGarment', () => {
     expect(fit.overall).toBe('good');
   });
 
-  it('never guesses an unverified chest (Lands’ End)', () => {
-    const fit = fitGarment(body, findGarment('landsend-super-t')!, 'M');
+  it('scores the Lands’ End chest as a full circumference, not doubled', () => {
+    const chest = chestOf(fitGarment(body, findGarment('landsend-super-t')!, 'M'));
+    expect(chest.diffCm).toBeCloseTo(inToCm(44 - 38));
+    expect(chest.label).toBe('loose');
+  });
+
+  it('never guesses an unverified chest', () => {
+    const fit = fitGarment(body, UNKNOWN_CHEST_TEE, 'M');
     const chest = chestOf(fit);
     expect(chest.label).toBe('unknown');
     expect(chest.diffCm).toBeNull();
@@ -115,13 +156,22 @@ describe('fitGarment', () => {
     expect(fit.zones.every((z) => z.diffCm !== null)).toBe(true);
   });
 
-  it('scores waist, hips and inseam for bottoms', () => {
+  it('scores waist, hips, thigh, rise, inseam and leg opening for jeans', () => {
     const fit = fitGarment(body, findGarment('corvo-slim-jean')!, '32x30');
-    expect(fit.zones.map((z) => [z.zone, z.label])).toEqual([
-      ['waist', 'fitted'], // 84 vs 84
-      ['hips', 'fitted'], // 100 vs 100
-      ['inseam', 'short'], // 76 vs 80
+    expect(fit.zones.map((z) => [z.zone, z.label, z.landing])).toEqual([
+      ['waist', 'fitted', undefined], // 84 vs about 84.6 where the band sits
+      ['hips', 'fitted', undefined], // 100 vs 100
+      ['thigh', 'fitted', undefined], // 59.5 vs 62.8, inside the stretch allowance
+      ['rise', 'noted', 'high'], // 25.5 vs a 26.75 front rise
+      ['inseam', 'short', undefined], // 76 vs 80
+      ['legOpening', 'noted', 'slim'], // 36 vs a 34.5 heel
     ]);
+  });
+
+  it('leaves the leg zones unknown on a chart without them', () => {
+    const fit = fitGarment(body, findGarment('fieldline-slim-chino')!, '32');
+    expect(fit.zones.filter((z) => z.label === 'unknown').map((z) => z.zone)).toEqual(['thigh', 'rise', 'legOpening']);
+    expect(fit.overall).not.toBe('unknown');
   });
 
   it('flags a much-too-short length as bad, a little short as warn', () => {
@@ -135,7 +185,7 @@ describe('fitGarment', () => {
     const measured = estimateBody({
       heightCm: 176,
       weightKg: 85,
-      sizing: 'mens',
+      bodyType: 'mens',
       overrides: { chestCm: 96 },
     });
     const fit = fitGarment(measured, findGarment('knightweave-tee')!, 'M');
@@ -148,7 +198,8 @@ describe('fitGarment', () => {
       const g = findGarment(id)!;
       for (const fit of fitAllSizes(body, g)) {
         for (const z of fit.zones) {
-          if (z.diffCm === null) continue;
+          // Landing zones say where an edge ends; they have no scale of bands.
+          if (z.diffCm === null || z.kind === 'landing') continue;
           const band = z.bands.find((b) => z.diffCm! >= b.from && z.diffCm! <= b.to);
           expect(band?.label, `${id} ${fit.sizeLabel} ${z.zone}`).toBe(z.label);
           expect(band?.tone).toBe(z.tone);
@@ -157,55 +208,42 @@ describe('fitGarment', () => {
     }
   });
 
+  it('only scores a top length measured from the high point of the shoulder', () => {
+    const body = bodyWith({ chestCm: inToCm(38), torsoLengthCm: 72 });
+    const lengthOf = (def: 'hps' | 'center_back' | 'unknown') => {
+      const tee = normalizeGarment({
+        ...seedTeeBase,
+        chart: { ...seedTeeBase.chart, lengthDefinition: def },
+        sizes: [{ label: 'M', measurements: { chest: 19, length: 29 } }],
+      });
+      return fitGarment(body, tee, 'M').zones.find((z) => z.zone === 'length')!;
+    };
+    expect(lengthOf('hps').label).not.toBe('unknown');
+    expect(lengthOf('center_back')).toMatchObject({ label: 'unknown', diffCm: null });
+    expect(lengthOf('center_back').note).toMatch(/back of the neck/);
+    expect(lengthOf('unknown').note).toMatch(/doesn't say where length/);
+  });
+
+  it('passes each zone the origin of the garment number', () => {
+    const tee = normalizeGarment({
+      ...seedTeeBase,
+      sizes: [{ label: 'M', measurements: { chest: 19, length: { value: 29, origin: 'estimated', how: 'test' } } }],
+    });
+    const fit = fitGarment(bodyWith({}), tee, 'M');
+    expect(fit.zones.find((z) => z.zone === 'chest')?.garmentOrigin).toBe('chart');
+    expect(fit.zones.find((z) => z.zone === 'length')?.garmentOrigin).toBe('estimated');
+  });
+
   it('throws for a size the garment does not have', () => {
     expect(() => fitGarment(body, findGarment('knightweave-tee')!, 'XXXL')).toThrow();
   });
 
-  it('runs for every garment and size in the seed without unknowns on placeholder data', () => {
-    const avg = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens' });
+  it('runs for every garment and size in the seed without unknown required zones on placeholder data', () => {
+    const avg = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
     for (const id of ['fieldline-boxy-tee', 'fieldline-jogger', 'corvo-relaxed-jean']) {
       for (const fit of fitAllSizes(avg, findGarment(id)!)) {
-        expect(fit.zones.every((z) => z.label !== 'unknown')).toBe(true);
+        expect(fit.zones.every((z) => z.optional || z.label !== 'unknown')).toBe(true);
       }
     }
-  });
-});
-
-describe('recommendSize', () => {
-  it('picks the Knightweave size closest to ~1 in of chest ease', () => {
-    const body = bodyWith({ chestCm: inToCm(38), torsoLengthCm: 72 });
-    expect(recommendSize(body, findGarment('knightweave-tee')!)).toBe('M');
-    // L is 44 in: exactly 1 in of ease on a 43 in chest. XL (48 in) would be loose.
-    const bigger = bodyWith({ chestCm: inToCm(43), torsoLengthCm: 76 });
-    expect(recommendSize(bigger, findGarment('knightweave-tee')!)).toBe('L');
-  });
-
-  it('skips tight sizes and picks the matching inseam', () => {
-    const jean = findGarment('corvo-slim-jean')!;
-    const body = bodyWith({ waistCm: 83, hipsCm: 99, inseamCm: 81 });
-    // 30x32 has 95 cm hips on a 99 cm seat: tight even with stretch.
-    const small = fitGarment(body, jean, '30x32');
-    expect(small.zones.find((z) => z.zone === 'hips')?.label).toBe('tight');
-    // 32x30 fits the waist but is 5 cm short; 32x32 matches the inseam.
-    expect(recommendSize(body, jean)).toBe('32x32');
-  });
-
-  it('breaks a tie toward the roomier size', () => {
-    // S and M miss the ideal ease (1 in) by the same 3 cm, S under and M over.
-    const tee = normalizeGarment({
-      ...seedTeeBase,
-      chart: { unit: 'cm', girth: 'circumference' },
-      sizes: [
-        { label: 'S', measurements: { chest: 100, length: 72 } },
-        { label: 'M', measurements: { chest: 106, length: 72 } },
-      ],
-    });
-    const body = bodyWith({ chestCm: 100 - TOP_CHEST.ideal + 3, torsoLengthCm: 71 });
-    expect(recommendSize(body, tee)).toBe('M');
-  });
-
-  it('returns null when no girth can be scored (unverified chart)', () => {
-    const body = bodyWith({ chestCm: 100 });
-    expect(recommendSize(body, findGarment('landsend-super-t')!)).toBeNull();
   });
 });

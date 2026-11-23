@@ -1,0 +1,231 @@
+/* Dev-only landmark picker. Uses the app's tokens from ui/styles.css. */
+.picker {
+  padding: 16px 20px 32px;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+.picker__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  margin-bottom: 16px;
+}
+.picker__sides {
+  display: inline-flex;
+  gap: 4px;
+}
+.picker__sides button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line, #c9ced6);
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+.picker__sides button.is-active {
+  background: var(--ink, #1b2433);
+  color: var(--surface);
+}
+
+.picker__head h1 {
+  font-family: var(--font-text);
+  font-size: var(--step-2);
+  margin: 0;
+}
+.picker__head select {
+  font: inherit;
+  padding: 4px 8px;
+}
+.picker__muted {
+  color: var(--muted);
+}
+.picker__bad {
+  color: var(--fit-bad);
+}
+.picker__body {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) 280px;
+  grid-template-areas: 'photo side' 'preview side';
+  gap: 16px 20px;
+  align-items: start;
+}
+@media (min-width: 1400px) {
+  .picker__body {
+    grid-template-columns: minmax(320px, 620px) 300px minmax(360px, 1fr);
+    grid-template-areas: 'photo side preview';
+  }
+}
+@media (max-width: 720px) {
+  .picker__body {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'photo' 'side' 'preview';
+  }
+}
+.picker__photo {
+  grid-area: photo;
+}
+.picker__side {
+  grid-area: side;
+}
+.picker__photo svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: crosshair;
+  touch-action: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+}
+.picker__checker {
+  fill: #e4e7ec;
+}
+.picker__outline {
+  fill: none;
+  stroke: var(--focus);
+  stroke-dasharray: 6 4;
+  vector-effect: non-scaling-stroke;
+}
+.picker__pt {
+  fill: var(--brand);
+  stroke: var(--ink);
+  cursor: grab;
+}
+.picker__pt.is-active {
+  fill: var(--fit-bad);
+  stroke: #fff;
+}
+.picker__guide {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 12px;
+  align-items: start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 12px;
+}
+.picker__guide p {
+  margin: 0;
+  font-size: var(--step--1);
+}
+.picker__tee {
+  fill: var(--form);
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+.picker__dot {
+  fill: #fff;
+  stroke: var(--ink);
+  stroke-width: 0.8;
+}
+.picker__dot.is-placed {
+  fill: var(--brand);
+}
+.picker__dot.is-active {
+  fill: var(--fit-bad);
+}
+.picker__list {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  font-size: var(--step--1);
+}
+.picker__list button {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 3px 8px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+.picker__list button:hover {
+  background: var(--line);
+}
+.picker__list button.is-active {
+  background: var(--ink);
+  color: #fff;
+}
+.picker__xy {
+  font-family: var(--font-text);
+}
+.picker__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.picker__actions button {
+  font: inherit;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.picker__actions button:first-child {
+  background: var(--ink);
+  color: #fff;
+}
+.picker__actions button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.picker__problems {
+  color: var(--fit-bad);
+  font-size: var(--step--1);
+  padding-left: 18px;
+}
+.picker__warn {
+  font-size: var(--step--1);
+  color: var(--fit-warn);
+}
+.picker__status {
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+.picker__preview {
+  grid-area: preview;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+/*
+ * The mannequin's canvas is 124 cm wide from x = -62. Show just the top half,
+ * x -50..50 cm and y 8..118 cm (head to wrist), by scaling it up inside a clipped frame.
+ */
+.picker__frame {
+  aspect-ratio: 100 / 110;
+  overflow: hidden;
+}
+.picker__frame .mannequin {
+  width: 124%;
+  height: auto;
+  margin: -8% 0 0 -12%;
+}
+/* Pants: the frame shows the waist down, legs and all. */
+.picker__frame--pants {
+  aspect-ratio: 100 / 92;
+}
+.picker__frame--pants .mannequin {
+  width: 100%;
+  margin: -44% 0 0 0;
+}
+.picker__preview figure {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  padding: 8px;
+  text-align: center;
+}
+.picker__preview figcaption {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--muted);
+}

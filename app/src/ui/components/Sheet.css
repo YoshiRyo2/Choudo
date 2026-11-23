@@ -1,0 +1,70 @@
+.sheet {
+  width: 100%;
+  max-width: 560px;
+  max-height: 100dvh;
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+.sheet::backdrop {
+  background: var(--scrim);
+}
+
+.sheet__panel {
+  display: grid;
+  gap: 18px;
+  max-height: 88dvh;
+  overflow-y: auto;
+  padding: 18px 16px calc(20px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+}
+
+.sheet__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.sheet__brand {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+.sheet__name { font-size: var(--type-title); font-weight: 800; }
+.sheet__close {
+  margin-left: auto;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 0;
+  border-radius: 50%;
+  background: var(--peach-tint);
+  color: var(--ink);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* The main action stays in reach while the fit details scroll under it. */
+.sheet__actions {
+  position: sticky;
+  bottom: calc(-20px - env(safe-area-inset-bottom));
+  display: grid;
+  margin: 0 -16px calc(-20px - env(safe-area-inset-bottom));
+  padding: 10px 16px calc(14px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  box-shadow: 0 -1px 0 var(--line);
+}
+
+@media (min-width: 600px) {
+  .sheet { margin: auto; }
+  .sheet__panel { border-radius: var(--radius-sheet); }
+}
+
+.sheet__note {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--muted);
+}

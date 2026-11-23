@@ -8,8 +8,8 @@
  * changes; it reads the same BodyMeasurements / Garment / SizeMeasurements.
  */
 
-import type { BodyMeasurements } from '../../../domain/body';
-import type { Garment, GarmentType, SizeMeasurements } from '../../../domain/garments';
+import type { BodyMeasurements, BodyType } from '../../../domain/body';
+import { hpsBelowTopCm } from '../../../domain/fit/tops';
 
 export interface Pt {
   x: number;
@@ -70,6 +70,12 @@ export const halfWidth = {
   chest: (c: number) => c / 5.4,
   waist: (c: number) => c / 5.65,
   hips: (c: number) => c / 5.5,
+  /**
+   * A leg (thigh, knee, calf; and a trouser leg round it): a little deeper than wide
+   * where the thighs press together, depth/width ≈ 1.15, so C ≈ π(w + d)/2 gives
+   * w ≈ C / 3.38. Skin only: it turns an engine circumference into a front width.
+   */
+  leg: (c: number) => c / 6.75,
 };
 
 // ---------- body ----------
@@ -102,20 +108,45 @@ export interface BodyGeometry {
   head: { cx: number; cy: number; rx: number; ry: number };
   /** Right arm (mirror for the left), with the elbow's distance down it. */
   arm: Limb & { elbowCm: number };
-  /** Right leg centre line at knee and ankle (mirror for the left). */
-  leg: { kneeX: number; kneeHalf: number; ankleX: number; ankleHalf: number };
+  /** Right leg: centre line and half-width at the thigh, knee, calf and ankle (mirror for the left). */
+  leg: {
+    thighY: number;
+    thighX: number;
+    thighHalf: number;
+    kneeX: number;
+    kneeHalf: number;
+    calfY: number;
+    calfHalf: number;
+    ankleX: number;
+    ankleHalf: number;
+  };
   /** Right-side torso outline, top to bottom, for width lookups. */
   outline: Pt[];
   paths: { torso: string; arms: [string, string]; feet: { cx: number; cy: number; rx: number; ry: number }[] };
 }
 
+/**
+ * What differs between the men's and women's silhouettes. The widths still come
+ * from the body's own chest/bust, waist and hips; this only shapes the curves.
+ *  - chestY: the fullest point of the chest / bust, as a fraction of height.
+ *  - underBust: a point between bust and waist (t down from the bust, how far in
+ *    towards the waist width), so a fuller bust curves in beneath it. null = none.
+ *  - hipCurve: how far towards the hip width the outline is half way down from
+ *    the waist (higher = rounder hips).
+ *  - neck, upperArm: width multipliers for a slighter neck and upper arm.
+ */
+const SILHOUETTE: Record<BodyType, { chestY: number; underBust: { t: number; in: number } | null; hipCurve: number; neck: number; upperArm: number }> = {
+  mens: { chestY: 0.27, underBust: null, hipCurve: 0.75, neck: 1, upperArm: 1 },
+  womens: { chestY: 0.28, underBust: { t: 0.28, in: 0.55 }, hipCurve: 0.88, neck: 0.88, upperArm: 0.9 },
+};
+
 export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
+  const shape = SILHOUETTE[m.bodyType];
   const H = m.heightCm;
   const s = H / 176; // general scale vs. the reference body
-  const girthScale = m.hipsCm / 103;
 
   const half = {
-    neck: 6 * Math.sqrt(m.chestCm / 104),
+    neck: 6 * Math.sqrt(m.chestCm / 104) * shape.neck,
     shoulder: m.shoulderWidthCm / 2,
     chest: halfWidth.chest(m.chestCm),
     waist: halfWidth.waist(m.waistCm),
@@ -124,41 +155,60 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
   // Shoulders never narrower than the chest beneath them.
   half.shoulder = Math.max(half.shoulder, half.chest + 1.5);
 
-  const hip = 0.49 * H;
-  const knee = 0.72 * H;
+  // Heights come from the body model (skin rule): navel (waist), the fullest seat
+  // (hip line), the crotch (inseam) and the knee. estimateBody keeps them in order.
   const y = {
     chin: 0.125 * H,
     neckBase: 0.155 * H,
-    hps: 0.165 * H,
+    // The engine's HPS height (domain/fit/tops.ts), where dress hems hang from.
+    hps: hpsBelowTopCm(m),
     shoulder: 0.19 * H,
     armpit: 0.235 * H,
-    chest: 0.27 * H,
-    waist: 0.385 * H,
-    hip,
-    // Entered inseams can be anything plausible; keep the crotch between hip and knee.
-    crotch: Math.min(Math.max(H - m.inseamCm, hip + 3), knee - 12),
-    knee,
-    ankle: 0.955 * H,
+    chest: shape.chestY * H,
+    waist: H - m.waistHeightCm,
+    hip: H - m.hipHeightCm,
+    crotch: H - m.inseamCm,
+    knee: H - m.kneeHeightCm,
+    // The body model's ankle bone, where a full-length legging ends.
+    ankle: H - m.ankleHeightCm,
     floor: H,
   };
 
   const head = { cx: 0, cy: 0.064 * H, rx: 7.6 * s, ry: 0.064 * H };
 
-  const legHalfAtCrotch = half.hip * 0.5;
+  // Legs: widths from the body's thigh, knee and calf girths. The thighs fill the
+  // hips side by side (pressed together at the middle, never past the hip line's
+  // width); the knees, calves and ankles stand slightly apart so each leg reads.
+  const thighHalf = Math.min(halfWidth.leg(m.thighCm), (half.hip + 0.5) / 2);
+  const kneeHalf = halfWidth.leg(m.kneeCm);
   const leg = {
-    kneeX: half.hip * 0.42 + 0.5,
-    kneeHalf: Math.max(5, 6.2 * girthScale ** 0.9 * s),
-    ankleX: half.hip * 0.38 + 0.5,
-    ankleHalf: 3.6 * s,
+    thighY: y.crotch + 5,
+    thighX: Math.max(thighHalf, half.hip - thighHalf),
+    thighHalf,
+    kneeX: Math.max(half.hip * 0.42 + 0.9, kneeHalf + 0.3),
+    kneeHalf,
+    calfY: lerp(y.knee, y.ankle, 0.3),
+    calfHalf: halfWidth.leg(m.calfCm),
+    ankleX: half.hip * 0.38 + 1.4,
+    ankleHalf: 3.1 * s,
   };
+  const calfX = lerp(leg.kneeX, leg.ankleX, 0.3);
 
+  // A simple dress-form torso: sloping shoulders, chest, an in-curve to the
+  // waist and out again over the hips. Extra points keep the curves soft.
   const outline: Pt[] = [
     { x: half.neck, y: y.chin + 1 },
     { x: half.neck, y: y.neckBase },
+    { x: lerp(half.neck, half.shoulder, 0.55), y: lerp(y.neckBase, y.shoulder, 0.7) },
     { x: half.shoulder - 1.5, y: y.shoulder },
     { x: half.chest + 0.8, y: y.armpit },
     { x: half.chest, y: y.chest },
+    ...(shape.underBust
+      ? [{ x: lerp(half.chest, half.waist, shape.underBust.in), y: lerp(y.chest, y.waist, shape.underBust.t) }]
+      : []),
+    { x: lerp(half.chest, half.waist, 0.65), y: lerp(y.chest, y.waist, 0.5) },
     { x: half.waist, y: y.waist },
+    { x: lerp(half.waist, half.hip, shape.hipCurve), y: lerp(y.waist, y.hip, 0.5) },
     { x: half.hip, y: y.hip },
     { x: half.hip * 0.97, y: y.crotch },
   ];
@@ -167,13 +217,15 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
   // inside of the right leg, down the inside of the left, up the left side.
   const right: Pt[] = [
     ...outline.slice(0, -1),
-    { x: legHalfAtCrotch * 2 - 0.5, y: y.crotch + 4 },
+    { x: leg.thighX + leg.thighHalf, y: leg.thighY },
     { x: leg.kneeX + leg.kneeHalf, y: y.knee },
+    { x: calfX + leg.calfHalf, y: leg.calfY },
     { x: leg.ankleX + leg.ankleHalf, y: y.ankle, corner: true },
     { x: leg.ankleX - leg.ankleHalf, y: y.ankle, corner: true },
+    { x: calfX - leg.calfHalf * 0.9, y: leg.calfY },
     { x: leg.kneeX - leg.kneeHalf, y: y.knee },
-    { x: 1.2, y: y.crotch + 3 },
-    { x: 0, y: y.crotch, corner: true },
+    { x: leg.thighX - leg.thighHalf, y: leg.thighY },
+    { x: 0, y: y.crotch + 1.5, corner: true },
   ];
   const torsoPts = mirrored(right).filter((p, i, all) => !(i > 0 && p.x === 0 && all[i - 1]!.x === 0));
   // The neck top is a straight edge (the head covers it).
@@ -181,12 +233,13 @@ export function bodyGeometry(m: BodyMeasurements): BodyGeometry {
   torsoPts[torsoPts.length - 1] = { ...torsoPts[torsoPts.length - 1]!, corner: true };
 
   const armTop: Pt = { x: half.shoulder - 4.2, y: y.shoulder + 3 };
-  const wristX = Math.max(half.hip, half.waist) + 5.5;
+  // Arms hang a little away from the waist so the torso's shape shows.
+  const wristX = Math.max(half.hip, half.waist) + 6;
   const armBottom = { x: wristX, y: armTop.y + m.armLengthCm * 0.97 };
   const arm = {
     top: armTop,
     bottom: armBottom,
-    halfTop: 5.2 * Math.sqrt(m.chestCm / 104),
+    halfTop: 5.2 * Math.sqrt(m.chestCm / 104) * shape.upperArm,
     halfBottom: 2.8 * s,
     // The upper arm is a little over half of shoulder-to-wrist.
     elbowCm: 0.53 * Math.hypot(armBottom.x - armTop.x, armBottom.y - armTop.y),
@@ -219,7 +272,9 @@ export function bodyHalfAt(g: BodyGeometry, y: number): number {
   return xAt(
     [
       { x: g.half.hip * 0.97, y: g.y.crotch },
+      { x: g.leg.thighX + g.leg.thighHalf, y: g.leg.thighY },
       { x: g.leg.kneeX + g.leg.kneeHalf, y: g.y.knee },
+      { x: lerp(g.leg.kneeX, g.leg.ankleX, 0.3) + g.leg.calfHalf, y: g.leg.calfY },
       { x: g.leg.ankleX + g.leg.ankleHalf, y: g.y.ankle },
     ],
     y,
@@ -285,71 +340,4 @@ export interface Marker {
   y: number;
 }
 
-export interface BottomShape {
-  body: string;
-  markers: Partial<Record<'waist' | 'hips' | 'inseam', Marker>>;
-  /** The hem would reach past the floor — drawn bunched at the ankle. */
-  pooled: boolean;
-  approximate: boolean;
-}
-
-/** Half the leg opening, by cut. */
-const HEM_HALF: Record<GarmentType, number> = {
-  jeans: 9.5,
-  chinos: 9,
-  joggers: 6.5,
-  trousers: 12.5,
-  tee: 9,
-  'long-sleeve-tee': 9,
-  polo: 9,
-  'button-up': 9,
-};
-
-export function bottomShape(g: BodyGeometry, garment: Garment, size: SizeMeasurements): BottomShape {
-  const approximate = !garment.girthVerified;
-  // Pants sit a little below the natural waist.
-  const bandY = lerp(g.y.waist, g.y.hip, 0.25);
-  const bandHalf = Math.max(
-    approximate || size.waist === undefined ? 0 : halfWidth.waist(size.waist),
-    bodyHalfAt(g, bandY) + 0.5,
-  );
-  const hipHalf = Math.max(
-    approximate || size.hips === undefined ? 0 : halfWidth.hips(size.hips),
-    g.half.hip + 0.6,
-  );
-  const crotchY = g.y.crotch + 2;
-  const inseam = size.inseam ?? g.y.floor - crotchY;
-  const rawHem = crotchY + inseam;
-  const pooled = rawHem > g.y.floor - 0.5;
-  const hemY = Math.min(rawHem, g.y.floor - 0.5);
-  const hemHalf = Math.max(HEM_HALF[garment.type] + (pooled ? 1.2 : 0), g.leg.ankleHalf + 1.5);
-  const kneeHalf = Math.max((hipHalf / 2 + hemHalf) / 2, g.leg.kneeHalf + 1);
-
-  const t = Math.min(1, Math.max(0, (hemY - g.y.knee) / (g.y.ankle - g.y.knee)));
-  const hemX = hemY > g.y.knee ? lerp(g.leg.kneeX, g.leg.ankleX, t) : g.leg.kneeX;
-
-  const right: Pt[] = [
-    { x: bandHalf, y: bandY, corner: true },
-    { x: hipHalf, y: g.y.hip },
-    { x: hipHalf - 0.4, y: crotchY + 3 },
-  ];
-  if (hemY > g.y.knee + 4) right.push({ x: g.leg.kneeX + kneeHalf, y: g.y.knee });
-  right.push(
-    { x: hemX + hemHalf, y: hemY, corner: true },
-    { x: hemX - hemHalf, y: hemY, corner: true },
-  );
-  if (hemY > g.y.knee + 4) right.push({ x: Math.max(0.6, g.leg.kneeX - kneeHalf), y: g.y.knee });
-  right.push({ x: 0, y: crotchY, corner: true });
-
-  const left = [...right].reverse().map((p) => ({ ...p, x: -p.x })).slice(1); // skip duplicate crotch point
-  return {
-    body: smoothPath([...right, ...left], true),
-    markers: {
-      waist: { x: bandHalf, y: bandY },
-      hips: { x: hipHalf, y: g.y.hip },
-      inseam: { x: hemX + hemHalf, y: hemY },
-    },
-    pooled,
-    approximate,
-  };
-}
+// Pants are drawn by templates/pants.ts (pantsShape).

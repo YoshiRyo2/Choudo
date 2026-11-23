@@ -1,37 +1,63 @@
 #!/usr/bin/env node
 /**
- * Build step for garment photo textures: cut a solid-colour garment out of a
- * product photo and save it as a transparent PNG under public/garments/.
+ * Build step for garment photo textures: cut a garment out of a photo and save it
+ * as a PNG under public/garments/.
  *
- *   npm run photos              # cut out every photo whose source file is present
- *   npm run photos -- --overlay # also draw each garment's landmarks from seed.json
- *                               # onto a copy (…-overlay.png) for checking by eye
+ *   npm run photos                     # cut out every photo whose source file is present
+ *   npm run photos -- ryo-black-henley # just these garment ids
+ *   npm run photos -- --overlay        # also draw each garment's landmarks from seed.json
+ *                                      # onto a copy (…-overlay.png) for checking by eye
  *
- * Photos are not committed (we don't hold the rights), so sources live in
- * photo-sources/ and outputs in public/garments/, both git-ignored. Without the
- * PNG the app simply draws the garment in its flat colour.
+ * Source photos live in photo-sources/ and aren't committed (we don't hold the
+ * rights, or they're personal). The PNGs in public/garments/ are committed, except
+ * ones from a photo we don't hold the rights to, which app/.gitignore lists.
+ * Without the PNG the app simply draws the garment in its flat colour.
  *
- * The cut-out keeps pixels whose hue and saturation match the garment — a model's
- * skin is the same hue as an orange tee but far less saturated — then keeps only
- * the region connected to a seed point on the garment and fills small holes.
+ * Two ways to cut out, per photo in garment-photos.json:
  *
- * Optionally (`bleed` in the config) the garment's edge colours are smeared
- * outward that many pixels, filling the background, the neck opening and any
- * notches where hands covered the hem. The app warps the photo onto outlines
- * that never match the photo's exactly; the bleed means a slightly larger
- * outline still gets cloth texture at its edges instead of a gap.
+ *  - "ai" (the default): a background-removal model run locally (see
+ *    photo-model.mjs for which and why). For a garment laid flat, any colour,
+ *    on any reasonably plain floor. Steps: EXIF orientation, optional `rotate`,
+ *    the model's mask, keep the biggest piece and fill holes, crop to it,
+ *    downscale so the PNG's longest side is at most `maxSide`, erode the mask
+ *    `erode` px (drops the fringe where garment meets floor), then pad `pad` px
+ *    outside it with the nearest garment pixel's colour.
+ *  - "colour": the older colour-matching cut-out, for a solid-colour garment
+ *    worn by a model (a person would survive the AI cut-out). Keeps pixels whose
+ *    hue and saturation match the garment near a seed point.
+ *
+ * Either way the edges end up in the garment's own colour. The app warps the
+ * photo onto outlines that never match the photo's exactly, so this keeps
+ * every size's outline the shirt's colour rather than floor or a shaded band.
  */
 
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { boundingBox, cleanCutOut, largestRegion, medianColour, outputScale, threshold } from './photo-mask.mjs';
+import { ensureModel, segment } from './photo-model.mjs';
+import { overlayOutline } from './photo-overlay.mjs';
 
 const APP = join(dirname(fileURLToPath(import.meta.url)), '..');
 const config = JSON.parse(await readFile(join(APP, 'scripts/garment-photos.json'), 'utf8'));
 const seed = JSON.parse(await readFile(join(APP, 'src/domain/garments/seed.json'), 'utf8'));
-const withOverlay = process.argv.includes('--overlay');
+const args = process.argv.slice(2);
+const withOverlay = args.includes('--overlay');
+const only = args.filter((a) => !a.startsWith('--'));
+const DEFAULTS = { maxSide: 900, erode: 3, pad: 24, ...config.defaults };
+const MODEL_FILE = join(APP, '.models/birefnet-lite.onnx');
+/** Full-resolution photos are first shrunk to this longest side (px). */
+const WORK_SIDE = 2400;
+/** A photo entry's side: "back" for a back photo, else the front. */
+const sideOf = (photo) => (photo.side === 'back' ? 'back' : 'front');
+const outPath = (photo) => photo.out ?? `public/garments/${photo.id}-${sideOf(photo)}.png`;
+/** The seed's photo entry for this side: "image" or "backImage". */
+const seedImage = (photo) => {
+  const g = seed.garments.find((x) => x.id === photo.id);
+  return sideOf(photo) === 'back' ? g?.backImage : g?.image;
+};
 
 /** RGB 0–255 -> hue (degrees), saturation and value (0–1). */
 function hsv(r, g, b) {
@@ -51,7 +77,7 @@ function hsv(r, g, b) {
 
 const hueDistance = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
 
-async function cutOut(photo) {
+async function colourCutOut(photo) {
   const { data, info } = await sharp(join(APP, photo.source))
     .extract(photo.crop)
     .removeAlpha()
@@ -115,74 +141,128 @@ async function cutOut(photo) {
       out[di + 3] = mask[(y + y0) * w + x + x0] ? 255 : 0;
     }
   }
-  if (bleed > 0) bleedOut(out, ow, oh, bleed);
-  const file = join(APP, photo.out);
+  const lm = seedImage(photo)?.landmarks;
+  const neck = lm && (lm.neckFront ?? lm.neckBack);
+  settleEdges(out, ow, oh, {
+    colour: median,
+    bleed,
+    fade: photo.fade ?? 0,
+    // The neck opening, from the landmarks if we have them.
+    keep: lm && neck && { x0: lm.collarLeft.x - 6, x1: lm.collarRight.x + 6, y1: neck.y + 4 },
+  });
+  const file = join(APP, outPath(photo));
+  // A fresh clone may not have public/garments/ if no cut-out is committed yet.
+  await mkdir(dirname(file), { recursive: true });
   await sharp(out, { raw: { width: ow, height: oh, channels: 4 } }).png().toFile(file);
   const hex = `#${median.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
-  console.log(`${photo.id}: wrote ${photo.out} (${ow}×${oh}, garment from ${x0 + m},${y0 + m} in the crop), garment colour ${hex}`);
+  console.log(`${photo.id}: wrote ${outPath(photo)} (${ow}×${oh}, garment from ${x0 + m},${y0 + m} in the crop), garment colour ${hex}`);
+  return file;
+}
+
+/** The AI cut-out: see the header. */
+async function aiCutOut(photo) {
+  const opts = { ...DEFAULTS, ...photo };
+  const started = Date.now();
+  // Orientation first, then the photo's own rotation (two passes: sharp keeps one rotate per pipeline).
+  const upright = await sharp(join(APP, photo.source)).autoOrient().toBuffer();
+  const turned = opts.rotate ? await sharp(upright).rotate(opts.rotate).toBuffer() : upright;
+  // A phone photo is ~12 MP; the model sees 1024 px and the PNG is at most maxSide,
+  // so anything past a few thousand px only slows the clean-up down.
+  const { data: rgb, info } = await sharp(turned)
+    .resize({ width: WORK_SIDE, height: WORK_SIDE, fit: 'inside', withoutEnlargement: true })
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const { width: w, height: h } = info;
+
+  const alpha = await segment(await ensureModel(MODEL_FILE), rgb, w, h);
+  const box = boundingBox(largestRegion(threshold(alpha), w, h), w, h);
+  if (!box) throw new Error(`${photo.id}: no garment found in ${photo.source}`);
+
+  // Crop to the garment, shrink, and leave a margin for the padding to grow into.
+  const margin = opts.pad + 4;
+  const scale = outputScale(box, opts.maxSide, margin);
+  const gw = Math.max(1, Math.round(box.width * scale));
+  const gh = Math.max(1, Math.round(box.height * scale));
+  const shrink = (input, channels) => {
+    const img = sharp(input, { raw: { width: w, height: h, channels } })
+      .extract(box)
+      .resize(gw, gh, { fit: 'fill' })
+      .extend({ top: margin, bottom: margin, left: margin, right: margin, background: { r: 0, g: 0, b: 0 } });
+    // sharp widens a one-channel image to RGB unless told otherwise.
+    return (channels === 1 ? img.extractChannel(0) : img).raw().toBuffer();
+  };
+  const [smallRgb, smallAlpha] = await Promise.all([shrink(rgb, 3), shrink(alpha, 1)]);
+  const ow = gw + 2 * margin;
+  const oh = gh + 2 * margin;
+  const { rgba, mask } = cleanCutOut(smallRgb, 3, smallAlpha, ow, oh, { erodePx: opts.erode, padPx: opts.pad });
+
+  const file = join(APP, outPath(photo));
+  await mkdir(dirname(file), { recursive: true });
+  await sharp(rgba, { raw: { width: ow, height: oh, channels: 4 } }).png().toFile(file);
+  const secs = ((Date.now() - started) / 1000).toFixed(0);
+  console.log(`${photo.id}: wrote ${outPath(photo)} (${ow}×${oh}) in ${secs}s, garment colour ${medianColour(rgba, mask)}`);
   return file;
 }
 
 /**
- * Grow opaque pixels outward one ring at a time, `rings` times. Each new pixel
- * takes the average colour of its opaque 8-neighbours.
+ * Settle the garment's edges into its own flat colour.
+ *
+ * Near its outline a photographed shirt is shaded (it curves away from the
+ * camera) and the hem may be shadowed by hands. Stretched onto a big size those
+ * edges read as a dark band, so within `fade` px of the outline the photo blends
+ * into the garment's median colour, and the `bleed` px of padding outside the
+ * garment is that flat colour. The neck opening is left alone so the collar
+ * keeps its detail.
  */
-function bleedOut(rgba, w, h, rings) {
-  // The garment's outermost pixels are usually in shadow, and smearing them
-  // makes dark streaks; start from a little way inside the edge instead.
-  const EDGE = 3;
-  const garment = new Uint8Array(w * h);
-  for (let i = 0; i < w * h; i++) garment[i] = rgba[i * 4 + 3] ? 1 : 0;
-  for (let k = 0; k < EDGE; k++) {
-    const edge = [];
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const i = y * w + x;
-        if (rgba[i * 4 + 3] && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => !rgba[((y + dy) * w + x + dx) * 4 + 3])) edge.push(i);
-      }
-    }
-    for (const i of edge) rgba[i * 4 + 3] = 0;
+function settleEdges(rgba, w, h, { colour, bleed, fade, keep }) {
+  const inGarment = (i) => rgba[i * 4 + 3] > 0;
+  const kept = (i) => {
+    if (!keep) return false;
+    const x = i % w;
+    const y = (i - x) / w;
+    return x >= keep.x0 && x <= keep.x1 && y <= keep.y1;
+  };
+  // Distance (4-connected steps) from the outline: inward for garment pixels, outward for the rest.
+  const dist = new Int32Array(w * h).fill(-1);
+  let ring = [];
+  for (let i = 0; i < w * h; i++) {
+    if (inGarment(i)) continue;
+    const x = i % w;
+    const y = (i - x) / w;
+    const touches = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
+      const nx = x + dx, ny = y + dy;
+      return nx >= 0 && ny >= 0 && nx < w && ny < h && inGarment(ny * w + nx);
+    });
+    if (touches && !kept(i)) { dist[i] = 0; ring.push(i); }
   }
-  rings += EDGE;
-  for (let ring = 0; ring < rings; ring++) {
-    const fills = [];
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        if (rgba[(y * w + x) * 4 + 3]) continue;
-        let [r, g, b, n] = [0, 0, 0, 0];
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const nx = x + dx, ny = y + dy;
-            if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
-            const j = (ny * w + nx) * 4;
-            if (!rgba[j + 3]) continue;
-            r += rgba[j]; g += rgba[j + 1]; b += rgba[j + 2]; n++;
-          }
-        }
-        if (n) fills.push([(y * w + x) * 4, r / n, g / n, b / n]);
+  for (let d = 1; d <= Math.max(bleed, fade) && ring.length; d++) {
+    const next = [];
+    for (const i of ring) {
+      const x = i % w;
+      const y = (i - x) / w;
+      for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const j = ny * w + nx;
+        if (dist[j] !== -1) continue;
+        // Inward steps only through the garment, outward ones only outside it.
+        if (inGarment(j) !== inGarment(i) && dist[i] !== 0) continue;
+        dist[j] = d;
+        next.push(j);
       }
     }
-    for (const [i, r, g, b] of fills) {
-      rgba[i] = r; rgba[i + 1] = g; rgba[i + 2] = b; rgba[i + 3] = 255;
-    }
+    ring = next;
   }
-  // Soften the smeared part (outside the original garment) so it reads as plain cloth.
-  for (let pass = 0; pass < 3; pass++) {
-    const copy = Uint8ClampedArray.from(rgba);
-    for (let y = 2; y < h - 2; y++) {
-      for (let x = 2; x < w - 2; x++) {
-        if (garment[y * w + x] || !rgba[(y * w + x) * 4 + 3]) continue;
-        for (let c = 0; c < 3; c++) {
-          let sum = 0, n = 0;
-          for (let dy = -2; dy <= 2; dy++) {
-            for (let dx = -2; dx <= 2; dx++) {
-              const j = ((y + dy) * w + x + dx) * 4;
-              if (copy[j + 3]) { sum += copy[j + c]; n++; }
-            }
-          }
-          rgba[(y * w + x) * 4 + c] = sum / n;
-        }
-      }
+  const smooth = (t) => t * t * (3 - 2 * t);
+  for (let i = 0; i < w * h; i++) {
+    const d = dist[i];
+    const k = i * 4;
+    if (inGarment(i)) {
+      if (d < 1 || d > fade) continue;
+      const t = smooth(d / fade);
+      for (let c = 0; c < 3; c++) rgba[k + c] = Math.round(colour[c] + (rgba[k + c] - colour[c]) * t);
+    } else if (d >= 0 && d <= bleed) {
+      rgba[k] = colour[0]; rgba[k + 1] = colour[1]; rgba[k + 2] = colour[2]; rgba[k + 3] = 255;
     }
   }
 }
@@ -210,18 +290,13 @@ function flood(grid, w, h, starts, test) {
 
 /** Draw the garment's seed.json landmarks on a copy of the cut-out. */
 async function overlay(photo, file) {
-  const garment = seed.garments.find((g) => g.id === photo.id);
-  const lm = garment?.image?.landmarks;
+  const lm = seedImage(photo)?.landmarks;
   if (!lm) {
     console.log(`${photo.id}: no landmarks in seed.json yet, skipping overlay`);
     return;
   }
   const { width, height } = await sharp(file).metadata();
-  const pt = (name) => lm[name];
-  const outline = [
-    'collarRight', 'shoulderRight', 'sleeveOuterRight', 'sleeveInnerRight', 'armpitRight', 'hemRight',
-    'hemLeft', 'armpitLeft', 'sleeveInnerLeft', 'sleeveOuterLeft', 'shoulderLeft', 'collarLeft', 'neckFront',
-  ].map((n) => `${pt(n).x},${pt(n).y}`).join(' ');
+  const outline = overlayOutline(lm);
   const marks = Object.entries(lm).map(([name, { x, y }]) => {
     const right = name.endsWith('Right');
     const centre = !right && !name.endsWith('Left');
@@ -245,11 +320,21 @@ async function overlay(photo, file) {
   console.log(`${photo.id}: wrote ${target.slice(APP.length + 1)}`);
 }
 
+const unknown = only.filter((id) => !config.photos.some((p) => p.id === id));
+if (unknown.length) {
+  console.error(`Not in scripts/garment-photos.json: ${unknown.join(', ')}`);
+  process.exit(1);
+}
 for (const photo of config.photos) {
+  if (only.length && !only.includes(photo.id)) continue;
   if (!existsSync(join(APP, photo.source))) {
     console.log(`${photo.id}: ${photo.source} not found, skipping (the app falls back to flat colour)`);
     continue;
   }
-  const file = await cutOut(photo);
+  const file = photo.method === 'colour' ? await colourCutOut(photo) : await aiCutOut(photo);
   if (withOverlay) await overlay(photo, file);
+  if (!seedImage(photo)?.landmarks) {
+    const tab = sideOf(photo) === 'back' ? '&side=back' : '';
+    console.log(`  next: place its landmarks at http://localhost:5173/dev/landmarks?id=${photo.id}${tab} (npm run dev)`);
+  }
 }

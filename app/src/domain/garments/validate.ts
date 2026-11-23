@@ -1,0 +1,296 @@
+/**
+ * Structural checks on seed rows: required fields, well-formed values,
+ * provenance and photo entries. Pure; no seed import.
+ */
+
+import { categorySpec, GARMENT_TYPES, isGarmentType, pantsLandmarks, photoLandmarkNames, topLandmarks } from './categories';
+import { chartDefinition } from './chart';
+import { GIRTH_KEYS, MEASUREMENT_KEYS } from './normalize';
+import {
+  DEFINITION_VALUES,
+  GARMENT_SIZINGS,
+  GARMENT_WEIGHTS,
+  GIRTH_METHODS,
+  MEASUREMENT_ORIGINS,
+  PHOTO_LICENCES,
+  SOURCE_TIERS,
+  STRETCHES,
+  type DefinitionName,
+  type FitIntent,
+  type GarmentImage,
+  type PhotoSide,
+  type LengthDefinition,
+  type MeasuredValue,
+  type PantsLandmarkName,
+  type SeedGarment,
+  type TopLandmarkName,
+} from './types';
+
+type XY = { x: number; y: number };
+
+/**
+ * Structural problems with one seed garment (empty = OK): missing or malformed
+ * fields. Each one blocks the garment. Messages don't name the garment.
+ */
+export function validateGarment(g: SeedGarment): string[] {
+  const problems: string[] = [];
+  // Everything below reads the type's template, so an unknown type stops here.
+  if (!isGarmentType(g.type)) return [`type must be one of ${GARMENT_TYPES.join(', ')}`];
+  const spec = categorySpec(g);
+  if (g.category !== spec.category) problems.push(`a ${g.type} is ${spec.category === 'outer' ? 'an' : 'a'} ${spec.category}, not a ${g.category}`);
+  if (!g.brand || !g.name) problems.push('missing brand or name');
+  if (!/^#[0-9a-f]{6}$/i.test(g.color)) problems.push('color must be #rrggbb');
+  if (!GARMENT_SIZINGS.includes(g.sizing)) problems.push('sizing must be "mens", "womens" or "unisex"');
+  if (spec.sleeve === 'required' && !g.sleeve) problems.push(spec.category === 'onepiece' ? `a ${g.type} needs a sleeve type` : 'tops need a sleeve type');
+  if (spec.sleeve === 'forbidden' && g.sleeve) problems.push("bottoms can't have a sleeve");
+  if (spec.category === 'top' && g.ankleZip !== undefined) problems.push("tops can't have an ankle zip");
+  if ((spec.category === 'outer' || spec.category === 'onepiece') && g.ankleZip !== undefined) problems.push(`a ${g.type} can't have an ankle zip`);
+  problems.push(...validateStretch(g.stretch));
+  if (g.weight !== undefined && !GARMENT_WEIGHTS.includes(g.weight)) {
+    problems.push(`weight must be one of ${GARMENT_WEIGHTS.join(', ')}`);
+  }
+  problems.push(...validateProvenance(g));
+  if (g.sizes.length === 0) problems.push('no sizes');
+  if (g.image !== undefined) {
+    problems.push(...validateImage(g.image, g).map((p) => `image: ${p}`));
+  }
+  if (g.backImage !== undefined) {
+    problems.push(...validateImage(g.backImage, g, 'back').map((p) => `backImage: ${p}`));
+  }
+
+  const labels = new Set<string>();
+  for (const size of g.sizes) {
+    const at = `size ${size.label}`;
+    if (labels.has(size.label)) problems.push(`${at}: duplicate size label`);
+    labels.add(size.label);
+
+    for (const key of spec.checks.required) {
+      if (size.measurements[key] === undefined) problems.push(`${at}: missing ${key}`);
+    }
+    for (const [key, raw] of Object.entries(size.measurements)) {
+      problems.push(...validateValue(raw).map((p) => `${at}: ${key} ${p}`));
+    }
+  }
+  return problems;
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const SNAPSHOT_FILE = /^chart-snapshots\/[\w.-]+\.(pdf|png|jpe?g|webp|html?)$/i;
+const FIT_INTENTS: readonly FitIntent[] = ['slim', 'regular', 'relaxed', 'oversized'];
+
+/** Problems with where a garment's numbers came from (empty = OK). */
+export function validateProvenance(g: SeedGarment): string[] {
+  const problems: string[] = [];
+  const { source, chart, audit } = g;
+  if (!FIT_INTENTS.includes(g.fitIntent)) problems.push(`fitIntent must be one of ${FIT_INTENTS.join(', ')}`);
+
+  if (source.placeholder) {
+    if (source.tier !== undefined) problems.push('placeholder data has no source tier');
+  } else {
+    if (source.tier === undefined || !SOURCE_TIERS.includes(source.tier)) {
+      problems.push('real (non-placeholder) data needs a source tier, A to G');
+    }
+    // A user-measured garment (E) has no page to cite; every other tier does.
+    if (source.tier !== 'E' && !source.url) problems.push('real (non-placeholder) data must cite a source url');
+    if (!source.capturedOn) problems.push('real (non-placeholder) data needs capturedOn');
+  }
+  if (source.capturedOn !== undefined && !ISO_DATE.test(source.capturedOn)) {
+    problems.push(`capturedOn must be YYYY-MM-DD, got "${source.capturedOn}"`);
+  }
+  if (source.snapshot !== undefined && !SNAPSHOT_FILE.test(source.snapshot)) {
+    problems.push(`snapshot must be a pdf/image/html file under chart-snapshots/, got "${source.snapshot}"`);
+  }
+
+  problems.push(...validateChart(chart));
+  if (chart.hipsBelowWaist !== undefined) {
+    if (categorySpec(g).template !== 'skirt') problems.push('only skirts give chart.hipsBelowWaist');
+    else if (typeof chart.hipsBelowWaist !== 'number' || !(chart.hipsBelowWaist > 0)) {
+      problems.push('chart.hipsBelowWaist must be a positive number');
+    }
+  }
+  if (chart.definitions?.waistSeam !== undefined && categorySpec(g).template !== 'dress') {
+    problems.push('only dresses give chart.definitions.waistSeam');
+  }
+  const length = chartDefinition(chart, 'length');
+  const spec = categorySpec(g);
+  if (spec.lengthDefinition === 'required') {
+    const allowed: readonly LengthDefinition[] = spec.lengthDefinitions ?? [];
+    if (length === undefined || !allowed.includes(length)) {
+      const who = spec.category === 'top' ? 'tops' : `a ${g.type}`;
+      problems.push(`${who} need${spec.category === 'top' ? '' : 's'} chart.lengthDefinition (${allowed.join(', ')})`);
+    }
+  } else if (length !== undefined) {
+    problems.push('bottoms have no top length: leave out chart.lengthDefinition');
+  }
+
+  if (audit !== undefined) {
+    if (!g.sizes.some((s) => s.label === audit.measuredSize)) {
+      problems.push(`audit measuredSize "${audit.measuredSize}" is not one of the garment's sizes`);
+    }
+    if (!ISO_DATE.test(audit.measuredOn)) problems.push(`audit measuredOn must be YYYY-MM-DD, got "${audit.measuredOn}"`);
+    if (typeof audit.afterWash !== 'boolean') problems.push('audit afterWash must be true or false');
+    if (audit.unit !== 'cm' && audit.unit !== 'in') problems.push('audit unit must be cm or in');
+    const entries = Object.entries(audit.measurements);
+    if (entries.length === 0) problems.push('audit has no measurements');
+    for (const [key, v] of entries) {
+      if (typeof v !== 'number' || !(v > 0)) problems.push(`audit ${key} must be a positive number`);
+    }
+  }
+  return problems;
+}
+
+/** Problems with a garment's stretch: one level, or `{ default, <measurement>: level }`. */
+export function validateStretch(stretch: unknown): string[] {
+  const levels = STRETCHES.join(', ');
+  if (typeof stretch === 'string') return STRETCHES.includes(stretch as never) ? [] : [`stretch must be one of ${levels}`];
+  if (typeof stretch !== 'object' || stretch === null) return [`stretch must be one of ${levels}`];
+  const problems: string[] = [];
+  for (const [key, level] of Object.entries(stretch)) {
+    if (key !== 'default' && !MEASUREMENT_KEYS.includes(key as never)) problems.push(`stretch: "${key}" isn't a measurement`);
+    else if (!STRETCHES.includes(level as never)) problems.push(`stretch ${key} must be one of ${levels}`);
+  }
+  if (!('default' in stretch)) problems.push('a per-measurement stretch needs a "default"');
+  return problems;
+}
+
+/** Problems with a chart's girth method and definitions. */
+export function validateChart(chart: SeedGarment['chart']): string[] {
+  const problems: string[] = [];
+  const methods = GIRTH_METHODS.join(', ');
+  const girth: unknown = chart.girth;
+  if (typeof girth === 'string') {
+    if (!GIRTH_METHODS.includes(girth as never)) problems.push(`chart.girth must be one of ${methods}`);
+  } else if (typeof girth === 'object' && girth !== null) {
+    for (const [key, method] of Object.entries(girth)) {
+      if (key !== 'default' && !GIRTH_KEYS.includes(key as never)) problems.push(`chart.girth: "${key}" isn't a girth`);
+      else if (!GIRTH_METHODS.includes(method as never)) problems.push(`chart.girth ${key} must be one of ${methods}`);
+    }
+    if (!('default' in girth)) problems.push('a per-girth chart.girth needs a "default"');
+  } else {
+    problems.push(`chart.girth must be one of ${methods}`);
+  }
+
+  for (const [name, value] of Object.entries(chart.definitions ?? {})) {
+    const allowed = DEFINITION_VALUES[name as DefinitionName] as readonly string[] | undefined;
+    if (!allowed) problems.push(`chart.definitions: "${name}" isn't a definition`);
+    else if (!allowed.includes(value as string)) problems.push(`chart.definitions.${name} must be one of ${allowed.join(', ')}`);
+  }
+  // One place per definition, so the two can't disagree.
+  if (chart.definitions?.length !== undefined && chart.lengthDefinition !== undefined) {
+    problems.push('give length in chart.definitions or chart.lengthDefinition, not both');
+  }
+  if (chart.definitions?.sleeve !== undefined && chart.sleeveDefinition !== undefined) {
+    problems.push('give sleeve in chart.definitions or chart.sleeveDefinition, not both');
+  }
+  return problems;
+}
+
+/** Problems with one seed value: a positive number, or `{ value, origin, how? }`. */
+export function validateValue(raw: unknown): string[] {
+  if (typeof raw === 'number') return raw > 0 ? [] : ['must be a positive number'];
+  if (typeof raw !== 'object' || raw === null) return ['must be a positive number'];
+  const { value, origin, how } = raw as Partial<MeasuredValue>;
+  const problems: string[] = [];
+  if (typeof value !== 'number' || !(value > 0)) problems.push('must be a positive number');
+  if (origin === undefined || !MEASUREMENT_ORIGINS.includes(origin)) {
+    problems.push(`origin must be one of ${MEASUREMENT_ORIGINS.join(', ')}`);
+  }
+  if (origin === 'estimated' && !how) problems.push('is estimated: say how in "how"');
+  if (how !== undefined && typeof how !== 'string') problems.push('"how" must be text');
+  return problems;
+}
+
+/** Problems with a garment's photo entry (empty = OK). */
+export function validateImage(image: GarmentImage, g: Pick<SeedGarment, 'type' | 'sizes'>, side: PhotoSide = 'front'): string[] {
+  const problems: string[] = [];
+  // Photos ship with the app; we never hot-link a retailer's image.
+  if (!/^garments\/[\w.-]+\.(png|jpe?g|webp)$/i.test(image.file)) {
+    problems.push(`file must be a png/jpg/webp under garments/, got "${image.file}"`);
+  }
+  if (!(PHOTO_LICENCES as readonly unknown[]).includes(image.licence)) {
+    problems.push(`licence must be one of ${PHOTO_LICENCES.join(', ')}`);
+  }
+  if (image.photographedSize !== null && !g.sizes.some((s) => s.label === image.photographedSize)) {
+    problems.push(`photographedSize "${image.photographedSize}" is not one of the garment's sizes`);
+  }
+  const spec = categorySpec(g);
+  const landmarks = photoLandmarkNames(spec, side);
+  if (landmarks === null) {
+    problems.push('photo textures are only supported for tops and pants');
+    return problems;
+  }
+
+  const lm = image.landmarks as GarmentImage['landmarks'] | undefined;
+  const missing = landmarks.filter((k) => {
+    const p = lm?.[k];
+    return !p || !Number.isFinite(p.x) || !Number.isFinite(p.y) || p.x < 0 || p.y < 0;
+  });
+  if (missing.length > 0) {
+    problems.push(`landmarks need non-negative pixel x/y for ${missing.join(', ')}`);
+    return problems;
+  }
+  // Any other name must be one of the template's optional points (a knit's hoodTop, front only).
+  const optional = side === 'front' ? (spec.optionalLandmarks ?? []) : [];
+  for (const name of Object.keys(lm ?? {})) {
+    if (!(landmarks as readonly string[]).includes(name) && !(optional as readonly string[]).includes(name)) {
+      problems.push(`${name} isn't a landmark for a ${g.type}`);
+    }
+  }
+  const pants = pantsLandmarks(image);
+  if (spec.template === 'pants' && pants) problems.push(...pantsOrder(pants));
+  const top = topLandmarks(image, side);
+  if (spec.category !== 'bottom' && top) problems.push(...topOrder(top, side === 'back' ? 'neckBack' : 'neckFront'));
+  const hood = lm?.hoodTop;
+  if (hood && top && optional.includes('hoodTop') && !(hood.y < Math.min(top.collarLeft.y, top.collarRight.y))) {
+    problems.push('hoodTop must sit above the collar points');
+  }
+  return problems;
+}
+
+/** A top's landmarks must sit the way a tee does: left of right, collar above armpit above hem… */
+function topOrder(l: Record<TopLandmarkName, XY>, neckName: 'neckFront' | 'neckBack'): string[] {
+  const problems: string[] = [];
+  for (const part of ['collar', 'shoulder', 'armpit', 'hem', 'sleeveOuter', 'sleeveInner'] as const) {
+    if (!(l[`${part}Left`].x < l[`${part}Right`].x)) problems.push(`${part}Left must be left of ${part}Right`);
+  }
+  const n = l.neckFront;
+  if (!(n.x > l.collarLeft.x && n.x < l.collarRight.x && n.y > Math.max(l.collarLeft.y, l.collarRight.y))) {
+    problems.push(`${neckName} must sit between the collar points and below them`);
+  }
+  for (const side of ['Left', 'Right'] as const) {
+    const [c, s, a, h] = [l[`collar${side}`], l[`shoulder${side}`], l[`armpit${side}`], l[`hem${side}`]];
+    if (!(c.y < a.y && s.y < a.y && a.y < h.y)) {
+      problems.push(`${side.toLowerCase()} side must run collar/shoulder above armpit above hem`);
+    }
+    const [out, inn] = [l[`sleeveOuter${side}`], l[`sleeveInner${side}`]];
+    const outward = side === 'Left' ? -1 : 1;
+    if (!(out.y > s.y && (out.x - inn.x) * outward > 0)) {
+      problems.push(`${side.toLowerCase()} sleeve opening must sit below the shoulder, outer corner outside the inner`);
+    }
+  }
+  return problems;
+}
+
+/** A pair of pants laid flat: waist above hips above crotch; each leg runs down from hip to knee to hem, outer edge outside. */
+function pantsOrder(l: Record<PantsLandmarkName, XY>): string[] {
+  const problems: string[] = [];
+  if (!(l.waistLeft.x < l.waistMid.x && l.waistMid.x < l.waistRight.x)) problems.push('waistMid must sit between waistLeft and waistRight');
+  if (!(l.hipLeft.x < l.hipRight.x)) problems.push('hipLeft must be left of hipRight');
+  const waistY = Math.max(l.waistLeft.y, l.waistMid.y, l.waistRight.y);
+  const hipY = Math.max(l.hipLeft.y, l.hipRight.y);
+  if (!(l.crotch.y > hipY && l.crotch.x > l.hipLeft.x && l.crotch.x < l.hipRight.x)) {
+    problems.push('crotch must sit between the hips and below them');
+  }
+  for (const side of ['Left', 'Right'] as const) {
+    const lower = side.toLowerCase();
+    const outward = side === 'Left' ? -1 : 1;
+    const [hip, kO, kI, hO, hI] = [l[`hip${side}`], l[`kneeOuter${side}`], l[`kneeInner${side}`], l[`hemOuter${side}`], l[`hemInner${side}`]];
+    if (!(hip.y > waistY && kO.y > hip.y && kI.y > l.crotch.y && hO.y > kO.y && hI.y > kI.y)) {
+      problems.push(`${lower} leg must run waist above hip above knee above hem`);
+    }
+    if (!((kO.x - kI.x) * outward > 0)) problems.push(`${lower} knee: the outer corner must be outside the inner`);
+    if (!((hO.x - hI.x) * outward > 0)) problems.push(`${lower} hem: the outer corner must be outside the inner`);
+  }
+  return problems;
+}
+

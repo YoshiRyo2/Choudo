@@ -10,7 +10,7 @@
  * Pure functions, no React.
  */
 
-import type { TopLandmarkName } from '../../../domain/garments';
+import type { PantsLandmarkName, TopLandmarkName } from '../../../domain/garments';
 import type { Pt } from './geometry';
 
 export interface XY {
@@ -28,10 +28,12 @@ export interface Affine {
   f: number;
 }
 
-export type WarpRegion = 'body' | 'sleeveLeft' | 'sleeveRight';
+export type WarpRegion = 'body' | 'sleeveLeft' | 'sleeveRight' | 'legLeft' | 'legRight';
 
 export interface WarpPiece {
   region: WarpRegion;
+  /** The triangle's corners: landmark names, centre points (`shoulderMid`) or sleeve points (`sleeveO2Right`). */
+  corners: [string, string, string];
   /** Maps photo pixels to mannequin cm. */
   transform: Affine;
   /**
@@ -75,8 +77,36 @@ export function applyAffine(m: Affine, p: XY): XY {
 
 export const affineToSvg = (m: Affine) => `matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})`;
 
-/** Corner names, plus centre points halfway between a left/right pair. */
-type Corner = TopLandmarkName | 'shoulderMid' | 'armpitMid' | 'hemMid';
+/**
+ * Corner names: the landmarks, centre points halfway between a left/right pair,
+ * and points along each sleeve (`sleeveO2Right`: the outer edge, 2 strips down).
+ */
+type Corner = TopLandmarkName | 'shoulderMid' | 'armpitMid' | 'hemMid' | `sleeve${'O' | 'I'}${number}${'Left' | 'Right'}`;
+
+/**
+ * Each sleeve is cut into this many strips along its length, two triangles each.
+ * One quad of two triangles shears the photo's sleeve into chevrons wherever the
+ * sleeve's two ends differ in shape (always, on a long sleeve); strips that
+ * follow the drawn sleeve's edges keep bands across the sleeve straight.
+ */
+export const SLEEVE_STRIPS = 4;
+/**
+ * Strips need a real inner sleeve edge in the photo (armpit to inner corner),
+ * as a garment laid flat has. On a worn tee photographed with the arms down
+ * that edge is a few pixels, so strips would be slivers; such a sleeve stays
+ * one quad. Minimum inner edge, as a fraction of the outer edge.
+ */
+const MIN_INNER_EDGE = 0.3;
+
+/**
+ * A drawn sleeve's two edges, from its root to its opening, SLEEVE_STRIPS + 1
+ * points each: outer from the shoulder seam to the outer corner, inner from the
+ * armpit to the inner corner.
+ */
+export interface SleeveEdges {
+  outer: XY[];
+  inner: XY[];
+}
 
 /**
  * Right half of the shirt body, fanned from the centre line so the left half can
@@ -90,23 +120,72 @@ const BODY_RIGHT: [Corner, Corner, Corner][] = [
   ['armpitMid', 'armpitRight', 'hemRight'],
   ['armpitMid', 'hemRight', 'hemMid'],
 ];
-/** The right sleeve, from the shoulder seam to its opening and back up to the armpit. */
-const SLEEVE_RIGHT: [Corner, Corner, Corner][] = [
-  ['shoulderRight', 'sleeveOuterRight', 'sleeveInnerRight'],
-  ['shoulderRight', 'sleeveInnerRight', 'armpitRight'],
-];
+/** Name of the k-th point along a sleeve edge; the ends are the landmarks themselves. */
+function sleevePoint(edge: 'O' | 'I', k: number, side: 'Left' | 'Right'): Corner {
+  if (k === 0) return edge === 'O' ? `shoulder${side}` : `armpit${side}`;
+  if (k === SLEEVE_STRIPS) return edge === 'O' ? `sleeveOuter${side}` : `sleeveInner${side}`;
+  return `sleeve${edge}${k}${side}`;
+}
+
+/** One sleeve in `strips` strips (1 or SLEEVE_STRIPS) from the root (shoulder seam to armpit) out to the opening. */
+function sleeveTriangles(strips: number, side: 'Left' | 'Right'): [Corner, Corner, Corner][] {
+  const step = SLEEVE_STRIPS / strips;
+  return Array.from({ length: strips }, (_, k) => {
+    const [o0, o1] = [sleevePoint('O', k * step, side), sleevePoint('O', (k + 1) * step, side)];
+    const [i0, i1] = [sleevePoint('I', k * step, side), sleevePoint('I', (k + 1) * step, side)];
+    return [
+      [o0, o1, i1],
+      [o0, i1, i0],
+    ] as [Corner, Corner, Corner][];
+  }).flat();
+}
+
+/** How many strips a photo's sleeve on this side gets: see MIN_INNER_EDGE. */
+export function sleeveStrips(photo: Record<TopLandmarkName, XY>, side: 'Left' | 'Right'): number {
+  const dist = (p: XY, q: XY) => Math.hypot(p.x - q.x, p.y - q.y);
+  const outer = dist(photo[`shoulder${side}`], photo[`sleeveOuter${side}`]);
+  const inner = dist(photo[`armpit${side}`], photo[`sleeveInner${side}`]);
+  return inner >= outer * MIN_INNER_EDGE ? SLEEVE_STRIPS : 1;
+}
 
 const toLeft = (c: Corner): Corner => (c.endsWith('Right') ? (c.replace(/Right$/, 'Left') as Corner) : c);
 
 const mid = (p: XY, q: XY): XY => ({ x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 });
 
-function withMids(points: Record<TopLandmarkName, XY>): Record<Corner, XY> {
+const lerpXY = (p: XY, q: XY, t: number): XY => ({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t });
+
+type Points = Partial<Record<Corner, XY>>;
+
+function withMids(points: Record<TopLandmarkName, XY>): Points {
   return {
     ...points,
     shoulderMid: mid(points.shoulderLeft, points.shoulderRight),
     armpitMid: mid(points.armpitLeft, points.armpitRight),
     hemMid: mid(points.hemLeft, points.hemRight),
   };
+}
+
+/** Points along each sleeve of a flat photo: its edges are straight, so evenly along them. */
+function photoSleeves(points: Record<TopLandmarkName, XY>): Points {
+  const out: Points = {};
+  for (const side of ['Left', 'Right'] as const) {
+    for (let k = 1; k < SLEEVE_STRIPS; k++) {
+      const t = k / SLEEVE_STRIPS;
+      out[sleevePoint('O', k, side)] = lerpXY(points[`shoulder${side}`], points[`sleeveOuter${side}`], t);
+      out[sleevePoint('I', k, side)] = lerpXY(points[`armpit${side}`], points[`sleeveInner${side}`], t);
+    }
+  }
+  return out;
+}
+
+/** Points along one drawn sleeve, from its edges. */
+function drawnSleeve(edges: SleeveEdges, side: 'Left' | 'Right'): Points {
+  const out: Points = {};
+  for (let k = 0; k <= SLEEVE_STRIPS; k++) {
+    out[sleevePoint('O', k, side)] = edges.outer[k];
+    out[sleevePoint('I', k, side)] = edges.inner[k];
+  }
+  return out;
 }
 
 /** Push each point away from the triangle's centroid by `by`. */
@@ -119,27 +198,27 @@ function grow(points: XY[], tri: [XY, XY, XY], by: number): XY[] {
   });
 }
 
-const edgeKey = (a: Corner, b: Corner) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+const edgeKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
 /**
  * Clip outlines for one region's triangles. Edges used by only one triangle are
  * on the outside; their corners are pushed out along the averaged outward
  * normal, so neighbouring pieces stretch out side by side without gaps.
  */
-function regionClips(tris: [Corner, Corner, Corner][], dst: Record<Corner, XY>): XY[][] {
+function regionClips<C extends string>(tris: [C, C, C][], dst: Partial<Record<C, XY>>): XY[][] {
   const uses = new Map<string, number>();
   for (const t of tris) for (let i = 0; i < 3; i++) {
     const k = edgeKey(t[i]!, t[(i + 1) % 3]!);
     uses.set(k, (uses.get(k) ?? 0) + 1);
   }
-  const isOuter = (a: Corner, b: Corner) => uses.get(edgeKey(a, b)) === 1;
+  const isOuter = (a: C, b: C) => uses.get(edgeKey(a, b)) === 1;
 
   // Sum each outer corner's outward edge normals.
-  const normals = new Map<Corner, XY>();
+  const normals = new Map<C, XY>();
   for (const t of tris) for (let i = 0; i < 3; i++) {
     const [a, b, c] = [t[i]!, t[(i + 1) % 3]!, t[(i + 2) % 3]!];
     if (!isOuter(a, b)) continue;
-    const [p, q, r] = [dst[a], dst[b], dst[c]];
+    const [p, q, r] = [dst[a]!, dst[b]!, dst[c]!];
     let n = { x: q.y - p.y, y: p.x - q.x };
     if (n.x * (r.x - p.x) + n.y * (r.y - p.y) > 0) n = { x: -n.x, y: -n.y }; // away from the third corner
     const len = Math.hypot(n.x, n.y) || 1;
@@ -148,18 +227,18 @@ function regionClips(tris: [Corner, Corner, Corner][], dst: Record<Corner, XY>):
       normals.set(v, { x: sum.x + n.x / len, y: sum.y + n.y / len });
     }
   }
-  const pushed = (v: Corner): XY => {
+  const pushed = (v: C): XY => {
     const n = normals.get(v)!;
     const len = Math.hypot(n.x, n.y) || 1;
-    return { x: dst[v].x + (n.x / len) * OUTER_REACH_CM, y: dst[v].y + (n.y / len) * OUTER_REACH_CM };
+    return { x: dst[v]!.x + (n.x / len) * OUTER_REACH_CM, y: dst[v]!.y + (n.y / len) * OUTER_REACH_CM };
   };
 
   return tris.map((t) => {
-    const tri = t.map((n) => dst[n]) as [XY, XY, XY];
+    const tri = t.map((n) => dst[n]!) as [XY, XY, XY];
     const outline: XY[] = [];
     for (let i = 0; i < 3; i++) {
       const [a, b] = [t[i]!, t[(i + 1) % 3]!];
-      outline.push(dst[a]);
+      outline.push(dst[a]!);
       if (isOuter(a, b)) outline.push(pushed(a), pushed(b));
     }
     return grow(outline, tri, SEAM_OVERLAP_CM);
@@ -168,34 +247,138 @@ function regionClips(tris: [Corner, Corner, Corner][], dst: Record<Corner, XY>):
 
 /**
  * Every triangle of the warp, photo landmarks (px) -> shape points (cm).
- * The sleeves use the sleeve's own armpit corner rather than the shirt body's.
+ * The sleeves follow the drawn sleeve's own edges (`sleeves`), which start at
+ * the shoulder seam and the sleeve's own armpit corner rather than the body's.
  */
 export function warpPieces(
   photo: Record<TopLandmarkName, XY>,
   shape: Record<TopLandmarkName, Pt>,
-  sleeveArmpits: { left: XY; right: XY },
+  sleeves: { left: SleeveEdges; right: SleeveEdges },
 ): WarpPiece[] {
-  const src = withMids(photo);
+  const src = { ...withMids(photo), ...photoSleeves(photo) };
   const bodyDst = withMids(shape);
-  const sleeveDst = (side: 'Left' | 'Right'): Record<Corner, XY> => ({
+  const sleeveDst = (side: 'Left' | 'Right'): Points => ({
     ...bodyDst,
-    [`armpit${side}`]: side === 'Left' ? sleeveArmpits.left : sleeveArmpits.right,
+    ...drawnSleeve(side === 'Left' ? sleeves.left : sleeves.right, side),
   });
 
-  const sets: { region: WarpRegion; tris: [Corner, Corner, Corner][]; dst: Record<Corner, XY> }[] = [
+  const sets: { region: WarpRegion; tris: [Corner, Corner, Corner][]; dst: Points }[] = [
     { region: 'body', tris: [...BODY_RIGHT, ...BODY_RIGHT.map((t) => t.map(toLeft) as typeof t)], dst: bodyDst },
-    { region: 'sleeveRight', tris: SLEEVE_RIGHT, dst: sleeveDst('Right') },
-    { region: 'sleeveLeft', tris: SLEEVE_RIGHT.map((t) => t.map(toLeft) as typeof t), dst: sleeveDst('Left') },
+    { region: 'sleeveRight', tris: sleeveTriangles(sleeveStrips(photo, 'Right'), 'Right'), dst: sleeveDst('Right') },
+    { region: 'sleeveLeft', tris: sleeveTriangles(sleeveStrips(photo, 'Left'), 'Left'), dst: sleeveDst('Left') },
   ];
 
   const pieces: WarpPiece[] = [];
   for (const { region, tris, dst } of sets) {
     const clips = regionClips(tris, dst);
     tris.forEach((names, i) => {
-      const from = names.map((n) => src[n]) as [XY, XY, XY];
-      const to = names.map((n) => ({ x: dst[n].x, y: dst[n].y })) as [XY, XY, XY];
+      const from = names.map((n) => src[n]!) as [XY, XY, XY];
+      const to = names.map((n) => ({ x: dst[n]!.x, y: dst[n]!.y })) as [XY, XY, XY];
       const transform = triangleAffine(from, to);
-      if (transform) pieces.push({ region, transform, clip: clips[i]! });
+      if (transform) pieces.push({ region, corners: names, transform, clip: clips[i]! });
+    });
+  }
+  return pieces;
+}
+
+/**
+ * Pieces whose photo triangle and drawn triangle wind opposite ways, so the
+ * photo shows mirrored there: the landmarks disagree with the drawn shape about
+ * which point is above or beside which.
+ */
+export const foldedPieces = (pieces: WarpPiece[]) =>
+  pieces.filter((p) => p.transform.a * p.transform.d - p.transform.b * p.transform.c <= 0);
+
+// ---------- pants ----------
+
+/**
+ * Pants corner names: the landmarks, and points along each leg's edges
+ * (`legO1Right`: the outer edge, one strip down from the hip). A leg's outer edge
+ * runs hip → knee → hem, its inner edge crotch → knee → hem; the knee is always
+ * the middle point, so the photo's knee lands on the drawn knee.
+ */
+type PantsCorner = PantsLandmarkName | `leg${'O' | 'I'}${number}${'Left' | 'Right'}`;
+
+/** The top half of a pair of pants (band to crotch), right side; the left mirrors it. */
+const PANTS_BODY_RIGHT: [PantsCorner, PantsCorner, PantsCorner][] = [
+  ['waistMid', 'waistRight', 'hipRight'],
+  ['waistMid', 'hipRight', 'crotch'],
+];
+
+function legPoint(edge: 'O' | 'I', k: number, side: 'Left' | 'Right'): PantsCorner {
+  const half = SLEEVE_STRIPS / 2;
+  if (k === 0) return edge === 'O' ? `hip${side}` : 'crotch';
+  if (k === half) return edge === 'O' ? `kneeOuter${side}` : `kneeInner${side}`;
+  if (k === SLEEVE_STRIPS) return edge === 'O' ? `hemOuter${side}` : `hemInner${side}`;
+  return `leg${edge}${k}${side}`;
+}
+
+/** A leg in SLEEVE_STRIPS strips, hip/crotch down to the hem, two triangles each (as a sleeve). */
+function legTriangles(side: 'Left' | 'Right'): [PantsCorner, PantsCorner, PantsCorner][] {
+  return Array.from({ length: SLEEVE_STRIPS }, (_, k) => {
+    const [o0, o1, i0, i1] = [legPoint('O', k, side), legPoint('O', k + 1, side), legPoint('I', k, side), legPoint('I', k + 1, side)];
+    return [
+      [o0, o1, i1],
+      [o0, i1, i0],
+    ] as [PantsCorner, PantsCorner, PantsCorner][];
+  }).flat();
+}
+
+/** Points along a flat photo's legs: straight from hip (or crotch) to knee, and knee to hem. */
+function photoLegs(p: Record<PantsLandmarkName, XY>): Partial<Record<PantsCorner, XY>> {
+  const out: Partial<Record<PantsCorner, XY>> = {};
+  const half = SLEEVE_STRIPS / 2;
+  for (const side of ['Left', 'Right'] as const) {
+    for (const [edge, top, knee, hem] of [
+      ['O', p[`hip${side}`], p[`kneeOuter${side}`], p[`hemOuter${side}`]],
+      ['I', p.crotch, p[`kneeInner${side}`], p[`hemInner${side}`]],
+    ] as const) {
+      for (let k = 1; k < SLEEVE_STRIPS; k++) {
+        if (k === half) continue;
+        out[legPoint(edge, k, side)] = k < half ? lerpXY(top, knee, k / half) : lerpXY(knee, hem, (k - half) / half);
+      }
+    }
+  }
+  return out;
+}
+
+/** Points along one drawn leg, from its edges (SLEEVE_STRIPS + 1 points each). */
+function drawnLeg(edges: SleeveEdges, side: 'Left' | 'Right'): Partial<Record<PantsCorner, XY>> {
+  const out: Partial<Record<PantsCorner, XY>> = {};
+  for (let k = 0; k <= SLEEVE_STRIPS; k++) {
+    out[legPoint('O', k, side)] = edges.outer[k];
+    out[legPoint('I', k, side)] = edges.inner[k];
+  }
+  return out;
+}
+
+const toLeftPants = (c: PantsCorner): PantsCorner => (c.endsWith('Right') ? (c.replace(/Right$/, 'Left') as PantsCorner) : c);
+
+/**
+ * Every triangle of a pants warp, photo landmarks (px) -> drawn points (cm): the
+ * top (band to crotch) as two fans mirrored about the centre line, and each leg
+ * in strips that follow the drawn leg's own edges, the same way a long sleeve does.
+ */
+export function warpPantsPieces(
+  photo: Record<PantsLandmarkName, XY>,
+  drawn: Record<PantsLandmarkName, Pt>,
+  legs: { left: SleeveEdges; right: SleeveEdges },
+): WarpPiece[] {
+  const src: Partial<Record<PantsCorner, XY>> = { ...photo, ...photoLegs(photo) };
+  const bodyDst: Partial<Record<PantsCorner, XY>> = { ...drawn };
+  const sets: { region: WarpRegion; tris: [PantsCorner, PantsCorner, PantsCorner][]; dst: Partial<Record<PantsCorner, XY>> }[] = [
+    { region: 'body', tris: [...PANTS_BODY_RIGHT, ...PANTS_BODY_RIGHT.map((t) => t.map(toLeftPants) as typeof t)], dst: bodyDst },
+    { region: 'legRight', tris: legTriangles('Right'), dst: { ...bodyDst, ...drawnLeg(legs.right, 'Right') } },
+    { region: 'legLeft', tris: legTriangles('Left'), dst: { ...bodyDst, ...drawnLeg(legs.left, 'Left') } },
+  ];
+  const pieces: WarpPiece[] = [];
+  for (const { region, tris, dst } of sets) {
+    const clips = regionClips(tris, dst);
+    tris.forEach((names, i) => {
+      const from = names.map((n) => src[n]!) as [XY, XY, XY];
+      const to = names.map((n) => ({ x: dst[n]!.x, y: dst[n]!.y })) as [XY, XY, XY];
+      const transform = triangleAffine(from, to);
+      if (transform) pieces.push({ region, corners: names, transform, clip: clips[i]! });
     });
   }
   return pieces;

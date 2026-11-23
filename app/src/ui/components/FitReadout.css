@@ -43,17 +43,17 @@
 }
 
 .zone__name {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .zone__label {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .zone__diff {
   margin-left: auto;
   font-size: var(--step-1);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .zone__text {
@@ -72,11 +72,15 @@
 
 .zone__numbers .num {
   color: var(--ink);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .zone__est {
   font-style: italic;
+}
+abbr.zone__est {
+  text-decoration: none;
+  cursor: help;
 }
 
 .readout__estimates,
@@ -88,12 +92,20 @@
 }
 
 .readout__source {
+  display: grid;
+  gap: 6px;
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
+.readout__source p {
+  margin: 0;
+}
+.readout__grade .garment-tag {
+  margin-right: 4px;
+}
 
 .readout__source.is-placeholder {
-  color: var(--chalk-warn);
+  color: var(--fit-warn);
 }
 
 .readout__source a,
@@ -119,11 +131,11 @@
   height: auto;
 }
 
-.tape-scale__band.tone-good { fill: var(--chalk-good); }
-.tape-scale__band.tone-warn { fill: var(--chalk-warn); }
-.tape-scale__band.tone-bad { fill: var(--chalk-bad); }
+.tape-scale__band.tone-good { fill: var(--fit-good); }
+.tape-scale__band.tone-warn { fill: var(--fit-warn); }
+.tape-scale__band.tone-bad { fill: var(--fit-bad); }
 
-.tape-scale__tape { fill: var(--tape); }
+.tape-scale__tape { fill: var(--brand); }
 
 .tape-scale__tick {
   stroke: var(--ink);
@@ -131,9 +143,9 @@
 }
 
 .tape-scale__num {
-  font-family: var(--font-numeric);
+  font-family: var(--font-text);
   font-size: 8px;
-  font-weight: 600;
+  font-weight: 700;
   fill: var(--ink);
 }
 
@@ -154,4 +166,61 @@
 .readout__source-note {
   display: block;
   margin-top: 4px;
+}
+
+.readout__pref {
+  margin: 4px 0 0;
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+.readout__details {
+  margin-top: 10px;
+}
+
+.readout__hint {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--peach-tint);
+  border-radius: var(--radius-s);
+  font-weight: 500;
+}
+
+.zone__odds {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font-size: var(--step--1);
+}
+.zone__odds div {
+  display: flex;
+  gap: 8px;
+}
+.zone__odds dt {
+  flex: none;
+  width: 4.5em;
+  color: var(--muted);
+}
+.zone__odds dd {
+  margin: 0;
+  font-size: var(--step-0);
+}
+
+/* A jacket fitted over the top under it: say so, then how the layers sit together. */
+.readout__layer {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+}
+
+.readout__over {
+  margin: 0;
+  font-weight: 700;
+}
+
+.readout__notes {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: var(--step--1);
+  color: var(--muted);
 }

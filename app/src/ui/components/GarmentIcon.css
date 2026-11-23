@@ -1,0 +1,12 @@
+/* A card's garment photo: the whole photo, unaltered, in the drawing's 56 × 60 box.
+   The padding keeps sleeve tips clear of the rounded corners. */
+.garment-icon--photo {
+  display: block;
+  box-sizing: border-box;
+  width: 56px;
+  height: 60px;
+  padding: 2px;
+  object-fit: contain;
+  background: var(--bg);
+  border-radius: var(--radius-s);
+}

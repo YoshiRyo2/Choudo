@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../../../domain/body';
 import { findGarment } from '../../../domain/garments';
-import { bodyGeometry, bodyHalfAt, bottomShape, limbFrame, mirrorPath, smoothPath } from './geometry';
-import { topShape } from './topShape';
+import { bodyGeometry, bodyHalfAt, halfWidth, limbFrame, mirrorPath, smoothPath } from './geometry';
+import { MAX_SIDE_FLARE_CM, topShape } from './topShape';
+import { UNKNOWN_CHEST_TEE } from '../../../domain/garments/testFixtures';
 
 const body = (heightCm: number, weightKg: number) =>
-  estimateBody({ heightCm, weightKg, sizing: 'mens' }).measurements;
+  estimateBody({ heightCm, weightKg, bodyType: 'mens' }).measurements;
 
 describe('bodyGeometry', () => {
   it('scales vertically with height and stands on the floor', () => {
@@ -17,7 +18,7 @@ describe('bodyGeometry', () => {
   });
 
   it('puts the crotch at height minus inseam', () => {
-    const m = estimateBody({ heightCm: 176, weightKg: 85, sizing: 'mens', overrides: { inseamCm: 80 } });
+    const m = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens', overrides: { inseamCm: 80 } });
     expect(bodyGeometry(m.measurements).y.crotch).toBeCloseTo(96);
   });
 
@@ -26,6 +27,47 @@ describe('bodyGeometry', () => {
     const heavy = bodyGeometry(body(176, 110));
     expect(heavy.half.waist).toBeGreaterThan(slim.half.waist);
     expect(bodyHalfAt(heavy, heavy.y.hip)).toBeGreaterThan(bodyHalfAt(slim, slim.y.hip));
+  });
+});
+
+describe('the women’s silhouette', () => {
+  const womens = (overrides?: { chestCm?: number; waistCm?: number; hipsCm?: number }) =>
+    estimateBody({ heightCm: 165, weightKg: 62, bodyType: 'womens', overrides }).measurements;
+
+  it('uses the same component and fields, with a curve in under the bust', () => {
+    const g = bodyGeometry(womens());
+    const men = bodyGeometry({ ...womens(), bodyType: 'mens' });
+    expect(g.outline.length).toBe(men.outline.length + 1);
+    expect(g.y.chest).toBeGreaterThan(men.y.chest);
+    // Under the bust the outline is narrower than a straight chest-to-waist line.
+    const underY = g.y.chest + (g.y.waist - g.y.chest) * 0.28;
+    const straight = g.half.chest + (g.half.waist - g.half.chest) * 0.28;
+    expect(bodyHalfAt(g, underY)).toBeLessThan(straight);
+    // Rounder hips: wider half way between waist and hip than the men’s curve.
+    const midHip = (g.y.waist + g.y.hip) / 2;
+    expect(bodyHalfAt(g, midHip)).toBeGreaterThan(bodyHalfAt(men, midHip));
+    expect(g.half.neck).toBeLessThan(men.half.neck);
+  });
+
+  it('follows the bust, waist and hips it is given', () => {
+    const base = bodyGeometry(womens({ chestCm: 92, waistCm: 74, hipsCm: 100 }));
+    const fuller = bodyGeometry(womens({ chestCm: 104, waistCm: 74, hipsCm: 100 }));
+    const curvier = bodyGeometry(womens({ chestCm: 92, waistCm: 74, hipsCm: 112 }));
+    expect(fuller.half.chest).toBeGreaterThan(base.half.chest);
+    expect(bodyHalfAt(fuller, fuller.y.chest)).toBeGreaterThan(bodyHalfAt(base, base.y.chest));
+    expect(fuller.half.waist).toBeCloseTo(base.half.waist);
+    expect(bodyHalfAt(curvier, curvier.y.hip)).toBeGreaterThan(bodyHalfAt(base, base.y.hip));
+  });
+
+  it('draws a tee over it without cutting into the body', () => {
+    const m = womens();
+    const g = bodyGeometry(m);
+    const tee = findGarment('gildan-5000')!;
+    const shape = topShape(g, tee, tee.sizes[0]!.measurements, m.chestCm);
+    for (const name of ['chest', 'waist'] as const) {
+      const marker = shape.markers[name];
+      if (marker) expect(marker.x).toBeGreaterThan(bodyHalfAt(g, marker.y));
+    }
   });
 });
 
@@ -47,17 +89,8 @@ describe('garment shapes', () => {
   });
 
   it('marks unverified girths as approximate', () => {
-    const le = findGarment('landsend-super-t')!;
-    expect(topShape(g, le, le.sizes[1]!.measurements, 104).approximate).toBe(true);
-  });
-
-  it('puts a short inseam hem above a long one, and pools anything past the floor', () => {
-    const jean = findGarment('corvo-slim-jean')!;
-    const short = bottomShape(g, jean, { waist: 84, hips: 100, inseam: 70 });
-    const long = bottomShape(g, jean, { waist: 84, hips: 100, inseam: 120 });
-    expect(short.markers.inseam!.y).toBeLessThan(long.markers.inseam!.y);
-    expect(long.pooled).toBe(true);
-    expect(long.markers.inseam!.y).toBeLessThanOrEqual(g.y.floor);
+    const tee = UNKNOWN_CHEST_TEE;
+    expect(topShape(g, tee, tee.sizes[1]!.measurements, 104).approximate).toBe(true);
   });
 });
 
@@ -98,6 +131,22 @@ describe('a tee at every size (Gildan 5000, S to 5XL)', () => {
         expect(shape.arms[0]).toMatch(/^M/);
       });
 
+      it.each(shapes)('$size: sleeve tips hang below the shoulder seam', ({ shape }) => {
+        const { seam, sleeveOuterEnd, sleeveInnerEnd } = shape.right;
+        expect(sleeveOuterEnd.y).toBeGreaterThan(seam.y);
+        expect(sleeveInnerEnd.y).toBeGreaterThan(seam.y);
+      });
+
+      it.each(shapes)('$size: sleeves angle down along the arm, not out sideways', ({ shape }) => {
+        const { seam, sleeveOuterEnd } = shape.right;
+        expect(sleeveOuterEnd.x - seam.x).toBeLessThan(0.45 * (sleeveOuterEnd.y - seam.y));
+      });
+
+      it.each(shapes)('$size: side seams fall nearly straight from armpit to hem', ({ shape }) => {
+        const [armpit, ...below] = shape.right.sideSeam;
+        for (const p of below) expect(p.x - armpit!.x).toBeLessThanOrEqual(MAX_SIDE_FLARE_CM + 0.3);
+      });
+
       it('drops the shoulder seam down and out as the size grows, never back in', () => {
         for (let i = 1; i < shapes.length; i++) {
           const prev = shapes[i - 1]!.shape.right.seam;
@@ -135,6 +184,15 @@ describe('a tee at every size (Gildan 5000, S to 5XL)', () => {
     expect(xxl.right.sleeveEndCm).toBeLessThan(limbFrame(g.arm).len);
   });
 
+  it('hugs the body at S: seam on the shoulder point, sides on the chest, strain lines', () => {
+    const g = bodyGeometry(bodies.average);
+    const small = topShape(g, gildan, gildan.sizes[0]!.measurements, bodies.average.chestCm);
+    expect(small.right.seam.x).toBeLessThanOrEqual(g.half.shoulder + 0.5);
+    expect(small.right.seam.y - g.y.shoulder).toBeLessThan(2);
+    expect(small.right.underarm.x).toBeLessThanOrEqual(g.half.chest + 0.5);
+    expect(small.strain.length).toBeGreaterThan(0);
+  });
+
   it('pulls a too-small size tight with strain lines, and gives a big one folds instead', () => {
     const g = bodyGeometry(bodies.large);
     const s = topShape(g, gildan, gildan.sizes[0]!.measurements, bodies.large.chestCm);
@@ -156,5 +214,45 @@ describe('path helpers', () => {
 
   it('mirrors x but not y', () => {
     expect(mirrorPath('M1 2 C3 4 5 6 7 8 Z')).toBe('M-1 2 C-3 4 -5 6 -7 8 Z');
+  });
+});
+
+describe('body heights and legs come from the body model (skin rule)', () => {
+  const BODIES = [
+    { heightCm: 176, weightKg: 85, bodyType: 'mens' as const },
+    { heightCm: 190, weightKg: 80, bodyType: 'mens' as const, overrides: { chestCm: 98, waistCm: 82, inseamCm: 88 } },
+    { heightCm: 165, weightKg: 60, bodyType: 'mens' as const },
+    { heightCm: 163, weightKg: 68, bodyType: 'womens' as const },
+    { heightCm: 170, weightKg: 75, bodyType: 'womens' as const },
+    { heightCm: 158, weightKg: 90, bodyType: 'womens' as const, overrides: { waistCm: 98, hipsCm: 118 } },
+  ];
+
+  it("draws the waist, hip line, crotch and knee at the body's heights", () => {
+    for (const input of BODIES) {
+      const m = estimateBody(input).measurements;
+      const g = bodyGeometry(m);
+      expect(g.y.waist).toBeCloseTo(m.heightCm - m.waistHeightCm);
+      expect(g.y.hip).toBeCloseTo(m.heightCm - m.hipHeightCm);
+      expect(g.y.crotch).toBeCloseTo(m.heightCm - m.inseamCm);
+      expect(g.y.knee).toBeCloseTo(m.heightCm - m.kneeHeightCm);
+    }
+  });
+
+  it('leg widths follow thigh, knee and calf', () => {
+    const m = estimateBody(BODIES[0]!).measurements;
+    const g = bodyGeometry(m);
+    expect(g.leg.thighHalf).toBeCloseTo(halfWidth.leg(m.thighCm));
+    expect(g.leg.kneeHalf).toBeCloseTo(halfWidth.leg(m.kneeCm));
+    expect(g.leg.calfHalf).toBeCloseTo(halfWidth.leg(m.calfCm));
+    const thicker = bodyGeometry({ ...m, thighCm: m.thighCm + 10 });
+    expect(thicker.leg.thighHalf).toBeGreaterThan(g.leg.thighHalf);
+  });
+
+  it('keeps the thighs inside the hips and apart at the middle', () => {
+    for (const input of BODIES) {
+      const g = bodyGeometry(estimateBody(input).measurements);
+      expect(g.leg.thighX + g.leg.thighHalf).toBeLessThanOrEqual(g.half.hip + 0.5);
+      expect(g.leg.thighX - g.leg.thighHalf).toBeGreaterThanOrEqual(0);
+    }
   });
 });
