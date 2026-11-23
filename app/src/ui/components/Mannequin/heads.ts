@@ -40,7 +40,7 @@ export interface HeadAnchor {
  * A skin setting only: the head grows up and out from the chin, never down into the
  * neck, and nothing about the body changes.
  */
-export const HEAD_SCALE = 1.15;
+export const HEAD_SCALE = 1.3;
 
 /** The anchor for the body geometry's head ellipse: same centre line, bottom on its chin, its half width × HEAD_SCALE. */
 export function headAnchor(head: { cx: number; cy: number; rx: number; ry: number }): HeadAnchor {

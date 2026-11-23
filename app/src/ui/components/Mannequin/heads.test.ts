@@ -15,7 +15,7 @@ describe('mascot heads', () => {
     Math.max(...shape.puffs.map((c) => c.cy + c.r), ...shape.ears.map(({ outer: e }) => e.cy + Math.max(e.rx, e.ry)));
 
   it('draws the head HEAD_SCALE times the body geometry’s head', () => {
-    expect(HEAD_SCALE).toBe(1.15);
+    expect(HEAD_SCALE).toBe(1.3);
     const g = bodyGeometry(bodies[1]!);
     expect(headAnchor(g.head).w).toBeCloseTo(g.head.rx * HEAD_SCALE, 6);
   });
