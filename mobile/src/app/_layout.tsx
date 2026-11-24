@@ -1,5 +1,49 @@
+import {
+  MPLUSRounded1c_500Medium,
+  MPLUSRounded1c_700Bold,
+  MPLUSRounded1c_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/m-plus-rounded-1c';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+
+import { runMigrations } from '@/storage/kv';
+import { colors } from '@/theme';
+
+// Before anything reads storage: move data saved under older keys to the current ones.
+runMigrations();
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  // Keys are the family names used in theme/typography.ts.
+  const [fontsLoaded, fontError] = useFonts({
+    MPLUSRounded1c_500Medium,
+    MPLUSRounded1c_700Bold,
+    MPLUSRounded1c_800ExtraBold,
+  });
+  // A font that fails to load falls back to the system font rather than a stuck splash.
+  const ready = fontsLoaded || fontError !== null;
+
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync();
+  }, [ready]);
+
+  if (!ready) return null;
+
+  return (
+    <>
+      <StatusBar style="dark" />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.bg },
+        }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="body" />
+        <Stack.Screen name="fit-reference" />
+      </Stack>
+    </>
+  );
 }
