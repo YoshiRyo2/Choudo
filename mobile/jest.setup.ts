@@ -21,3 +21,6 @@ jest.mock('@expo/ui/community/segmented-control', () => {
   );
   return { __esModule: true, default: SegmentedControl, SegmentedControl };
 });
+
+// Reanimated's test mode: animations jump to their end, useReducedMotion reads false.
+require('react-native-reanimated').setUpTests();

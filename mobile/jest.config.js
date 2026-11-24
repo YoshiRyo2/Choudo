@@ -6,6 +6,8 @@ module.exports = {
   // so Jest sees it at packages/core (outside node_modules) and transforms it anyway.
   preset: 'jest-expo/ios',
   setupFiles: ['<rootDir>/jest.setup.ts'],
+  // Reanimated and Worklets load their web (JS) builds under Jest instead of the native module.
+  resolver: 'react-native-reanimated/jest/resolver',
   transform: {
     // Listed first, so it wins over the preset's image stub (jest/garment-photo-transformer.js).
     '/app/public/garments/.+\\.png$': '<rootDir>/jest/garment-photo-transformer.js',
