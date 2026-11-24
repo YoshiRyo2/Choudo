@@ -22,8 +22,11 @@ import {
   type FormField,
 } from '@choudo/core/ui-logic/screens/bodyFieldErrors';
 
+import { previewBody } from '@choudo/core/ui-logic/screens/bodyPreview';
+
 import { Button } from '@/components/button';
 import { FieldError } from '@/components/field-error';
+import { Mannequin } from '@/components/mannequin';
 import { NumberField } from '@/components/number-field';
 import { Segmented } from '@/components/segmented';
 import { ThemedText } from '@/components/themed-text';
@@ -92,6 +95,7 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
     () => (input && validateBodyInput(input).length === 0 ? estimateBody(input) : null),
     [input],
   );
+  const preview = useMemo(() => previewBody(model, form.bodyType), [model, form.bodyType]);
 
   const metric = form.units === 'metric';
   const lengthUnit = metric ? 'cm' : 'in';
@@ -334,8 +338,15 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
       )}
 
       <View style={styles.preview}>
-        {/* The mannequin arrives in the next update (PR 4). */}
-        <View testID="mannequin-slot" style={styles.slot} accessible={false} />
+        <View
+          style={styles.figure}
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={
+            preview.isDefault ? 'Mannequin preview, a typical body until you enter yours' : 'Mannequin preview of your body'
+          }>
+          <Mannequin body={preview.body} showFit={false} />
+        </View>
         {model ? (
           <EstimateList model={model} units={form.units} />
         ) : (
@@ -387,6 +398,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radius.m,
   },
-  slot: { flex: 1, height: 360, backgroundColor: colors.peachTint, borderRadius: radius.card },
+  figure: { flex: 1, height: 360 },
   caption: { maxWidth: 110 },
 });
