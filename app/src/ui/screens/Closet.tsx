@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { estimateBody, type BodyInput } from '../../domain/body';
-import type { PreferenceSpec } from '../../domain/fit';
-import type { Garment } from '../../domain/garments';
+import { estimateBody, type BodyInput } from '@choudo/core/domain/body';
+import type { PreferenceSpec } from '@choudo/core/domain/fit';
+import type { Garment } from '@choudo/core/domain/garments';
 import { AboutSheet } from '../components/AboutSheet';
 import { FitSheet } from '../components/FitSheet';
 import { SegmentedControl } from '../components/SegmentedControl';

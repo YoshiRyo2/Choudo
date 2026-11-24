@@ -2,7 +2,7 @@
 import '../test/dom';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { VERDICTS, type GarmentOdds, type SizeOdds, type Verdict } from '../../domain/fit';
+import { VERDICTS, type GarmentOdds, type SizeOdds, type Verdict } from '@choudo/core/domain/fit';
 import { FitAnswer } from './FitAnswer';
 
 const tee = { category: 'top', fitIntent: 'regular' } as const;

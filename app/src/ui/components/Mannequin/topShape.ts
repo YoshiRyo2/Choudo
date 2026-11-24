@@ -25,9 +25,9 @@
  * Pure functions, no React. Right side (+x) is built and mirrored for the left.
  */
 
-import type { BodyMeasurements } from '../../../domain/body';
-import { hpsLengthCm, sleeveFromShoulderPointCm } from '../../../domain/fit/tops';
-import { girthKnown, templateOf, type Garment, type SizeMeasurements, type TopLandmarkName } from '../../../domain/garments';
+import type { BodyMeasurements } from '@choudo/core/domain/body';
+import { hpsLengthCm, sleeveFromShoulderPointCm } from '@choudo/core/domain/fit/tops';
+import { girthKnown, templateOf, type Garment, type SizeMeasurements, type TopLandmarkName } from '@choudo/core/domain/garments';
 import { SLEEVE_STRIPS, type SleeveEdges } from './photoWarp';
 import type { View } from './view';
 import {

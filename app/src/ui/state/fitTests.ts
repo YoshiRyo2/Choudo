@@ -4,7 +4,7 @@
  * `npm run fit:report` reads that CSV (see domain/fit/fitTestReport.ts).
  */
 
-import type { BodyInput, BodyModel } from '../../domain/body';
+import type { BodyInput, BodyModel } from '@choudo/core/domain/body';
 import {
   garmentChestTarget,
   FIT_TEST_COLUMNS,
@@ -18,8 +18,8 @@ import {
   type PreferenceSpec,
   type UnderLayer,
   type ZoneOdds,
-} from '../../domain/fit';
-import type { Garment } from '../../domain/garments';
+} from '@choudo/core/domain/fit';
+import type { Garment } from '@choudo/core/domain/garments';
 import type { FitTestPrediction, FitTestRecord, GirthAnswer, LengthAnswer, ZoneChances } from './stored';
 
 /** How an anchor reads in the CSV: "gildan-5000 M" or "measured 53x74 cm". */

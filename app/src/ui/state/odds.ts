@@ -4,9 +4,9 @@
  * re-sampling. The sampler is seeded, so a cached answer is the same answer.
  */
 
-import type { BodyModel } from '../../domain/body';
-import { sampleFit, type GarmentOdds, type PreferenceSpec, type UnderLayer } from '../../domain/fit';
-import type { Garment } from '../../domain/garments';
+import type { BodyModel } from '@choudo/core/domain/body';
+import { sampleFit, type GarmentOdds, type PreferenceSpec, type UnderLayer } from '@choudo/core/domain/fit';
+import type { Garment } from '@choudo/core/domain/garments';
 
 const MAX_ENTRIES = 200;
 const cache = new Map<string, GarmentOdds>();

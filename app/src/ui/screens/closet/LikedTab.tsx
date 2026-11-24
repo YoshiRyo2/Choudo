@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import type { BodyModel } from '../../../domain/body';
-import type { PreferenceSpec } from '../../../domain/fit';
-import { findGarment, type Garment, type GarmentCategory } from '../../../domain/garments';
+import type { BodyModel } from '@choudo/core/domain/body';
+import type { PreferenceSpec } from '@choudo/core/domain/fit';
+import { findGarment, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
 import { GarmentBadge } from '../../components/GarmentBadge';
 import { GarmentIcon } from '../../components/GarmentIcon';
 import { SegmentedControl } from '../../components/SegmentedControl';

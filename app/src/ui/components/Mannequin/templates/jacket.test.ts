@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../../../../domain/body';
-import { hpsLengthCm, layerAllowanceCm, layerGrowCm } from '../../../../domain/fit';
-import { findGarment, type Garment } from '../../../../domain/garments';
-import { JACKET } from '../../../../domain/garments/testFixtures';
+import { estimateBody } from '@choudo/core/domain/body';
+import { hpsLengthCm, layerAllowanceCm, layerGrowCm } from '@choudo/core/domain/fit';
+import { findGarment, type Garment } from '@choudo/core/domain/garments';
+import { JACKET } from '@choudo/core/domain/garments/testFixtures';
 import { bodyGeometry, bodyHalfAt, limbPath } from '../geometry';
 import { DRAPE, topShape } from '../topShape';
 import { envelopeGeometry, jacketShape } from './jacket';

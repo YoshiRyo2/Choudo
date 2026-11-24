@@ -9,9 +9,9 @@
  * the chart. No folds. Dashed only when the chart has no inseam to end the hem.
  */
 
-import type { BodyMeasurements } from '../../../../domain/body';
-import { bandHeight, leggingsHemHeight, riseForBand } from '../../../../domain/fit';
-import { girthKnown, type Garment, type SizeMeasurements } from '../../../../domain/garments';
+import type { BodyMeasurements } from '@choudo/core/domain/body';
+import { bandHeight, leggingsHemHeight, riseForBand } from '@choudo/core/domain/fit';
+import { girthKnown, type Garment, type SizeMeasurements } from '@choudo/core/domain/garments';
 import { bodyHalfAt, halfWidth, lerp, smoothPath, type BodyGeometry, type Pt } from '../geometry';
 import type { SleeveEdges, XY } from '../photoWarp';
 import { edge, type BottomShape } from './pants';

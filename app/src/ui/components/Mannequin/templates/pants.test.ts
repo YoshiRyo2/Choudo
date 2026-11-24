@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../../../../domain/body';
-import { bandHeight, riseForBand } from '../../../../domain/fit';
-import { findGarment, type Garment } from '../../../../domain/garments';
+import { estimateBody } from '@choudo/core/domain/body';
+import { bandHeight, riseForBand } from '@choudo/core/domain/fit';
+import { findGarment, type Garment } from '@choudo/core/domain/garments';
 import { foldedPieces, SLEEVE_STRIPS, warpPantsPieces } from '../photoWarp';
 import { SYNTHETIC_JEANS_LANDMARKS } from '../pantsFixture';
 import { bodyGeometry, halfWidth } from '../geometry';

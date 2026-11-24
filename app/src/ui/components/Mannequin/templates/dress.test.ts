@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../../../../domain/body';
-import { dressHemHeight, dressSeamHeight } from '../../../../domain/fit';
-import { findGarment, normalizeGarment, type SeedGarment } from '../../../../domain/garments';
-import { DRESS_SEED } from '../../../../domain/garments/testFixtures';
+import { estimateBody } from '@choudo/core/domain/body';
+import { dressHemHeight, dressSeamHeight } from '@choudo/core/domain/fit';
+import { findGarment, normalizeGarment, type SeedGarment } from '@choudo/core/domain/garments';
+import { DRESS_SEED } from '@choudo/core/domain/garments/testFixtures';
 import { bodyGeometry, bodyHalfAt, halfWidth } from '../geometry';
 import { dressShape } from './dress';
 

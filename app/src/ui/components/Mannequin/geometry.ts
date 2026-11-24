@@ -8,8 +8,8 @@
  * changes; it reads the same BodyMeasurements / Garment / SizeMeasurements.
  */
 
-import type { BodyMeasurements, BodyType } from '../../../domain/body';
-import { hpsBelowTopCm } from '../../../domain/fit/tops';
+import type { BodyMeasurements, BodyType } from '@choudo/core/domain/body';
+import { hpsBelowTopCm } from '@choudo/core/domain/fit/tops';
 
 export interface Pt {
   x: number;

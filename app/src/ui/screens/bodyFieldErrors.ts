@@ -8,8 +8,8 @@
  * hides at once and waits for the next blur.
  */
 
-import { INPUT_LIMITS, type BodyType } from '../../domain/body';
-import { cmToIn, feetInchesToCm, inToCm, kgToLb, lbToKg } from '../../domain/units';
+import { INPUT_LIMITS, type BodyType } from '@choudo/core/domain/body';
+import { cmToIn, feetInchesToCm, inToCm, kgToLb, lbToKg } from '@choudo/core/domain/units';
 import type { UnitSystem } from '../state/stored';
 import { braSizeProblemText, OVERRIDE_FIELDS, parseNumber, type BodyForm, type OverrideField } from './bodyForm';
 

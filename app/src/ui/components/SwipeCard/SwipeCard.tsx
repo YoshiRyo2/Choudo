@@ -1,7 +1,7 @@
 import { useRef, useState, type PointerEvent } from 'react';
-import type { BodyMeasurements } from '../../../domain/body';
-import type { GarmentFit } from '../../../domain/fit';
-import type { Garment } from '../../../domain/garments';
+import type { BodyMeasurements } from '@choudo/core/domain/body';
+import type { GarmentFit } from '@choudo/core/domain/fit';
+import type { Garment } from '@choudo/core/domain/garments';
 import { sizeLine, type VerdictLine } from '../../fitText';
 import { GarmentBadge } from '../GarmentBadge';
 import { Mannequin } from '../Mannequin/Mannequin';

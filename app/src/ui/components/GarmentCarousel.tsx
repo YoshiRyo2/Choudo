@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import type { Garment } from '../../domain/garments';
+import type { Garment } from '@choudo/core/domain/garments';
 import { GarmentBadge } from './GarmentBadge';
 import { GarmentIcon } from './GarmentIcon';
 import './GarmentCarousel.css';

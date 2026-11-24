@@ -1,7 +1,7 @@
 import { useId, useState, type FormEvent } from 'react';
-import type { BodyType } from '../../domain/body';
-import type { GarmentFit } from '../../domain/fit';
-import type { Garment } from '../../domain/garments';
+import type { BodyType } from '@choudo/core/domain/body';
+import type { GarmentFit } from '@choudo/core/domain/fit';
+import type { Garment } from '@choudo/core/domain/garments';
 import { zoneName } from '../fitText';
 import { ConfirmButton } from '../components/ConfirmButton';
 import { answersFor, csvFileName, fitTestsCsv, testQuestions, type PickedAnswers, type TesterAnswers } from '../state/fitTests';

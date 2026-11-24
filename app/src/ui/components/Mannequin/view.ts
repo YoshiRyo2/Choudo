@@ -1,4 +1,4 @@
-import { canWarp, type Garment, type GarmentImage } from '../../../domain/garments';
+import { canWarp, type Garment, type GarmentImage } from '@choudo/core/domain/garments';
 
 /**
  * Which side of the mannequin is drawn. A drawing option only: the body and the

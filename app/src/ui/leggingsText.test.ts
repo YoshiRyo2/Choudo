@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GarmentFit, ZoneFit } from '../domain/fit';
+import type { GarmentFit, ZoneFit } from '@choudo/core/domain/fit';
 import { bodyPlaceText, describeZone, sourceLine, summarize, zoneLabelText, zoneTitle } from './fitText';
 
 const girth = (over: Partial<ZoneFit>): ZoneFit => ({

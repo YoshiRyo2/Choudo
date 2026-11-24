@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../../domain/body';
-import { FIT_TEST_COLUMNS, fitGarment, preferenceSpec, readFitTestCsv, sampleFit } from '../../domain/fit';
-import { findGarment } from '../../domain/garments';
+import { estimateBody } from '@choudo/core/domain/body';
+import { FIT_TEST_COLUMNS, fitGarment, preferenceSpec, readFitTestCsv, sampleFit } from '@choudo/core/domain/fit';
+import { findGarment } from '@choudo/core/domain/garments';
 import { anchorText, answersFor, csvField, csvFileName, fitTestsCsv, makeFitTest, predictionFor, testQuestions } from './fitTests';
 import { isFitTestList } from './stored';
 

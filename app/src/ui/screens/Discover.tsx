@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { estimateBody, type BodyInput } from '../../domain/body';
-import type { PreferenceSpec } from '../../domain/fit';
-import { catalogueFor, GARMENTS, type CatalogueScope, type Garment } from '../../domain/garments';
+import { estimateBody, type BodyInput } from '@choudo/core/domain/body';
+import type { PreferenceSpec } from '@choudo/core/domain/fit';
+import { catalogueFor, GARMENTS, type CatalogueScope, type Garment } from '@choudo/core/domain/garments';
 import { catalogueOptions, endOfMatchingFeedText } from '../catalogueText';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { FitSheet } from '../components/FitSheet';

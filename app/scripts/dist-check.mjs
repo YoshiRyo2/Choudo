@@ -23,8 +23,8 @@ if (!existsSync(resolve(dist, 'index.html'))) {
 }
 
 const { PAGES_BASE } = await load('build/pagesBase.ts');
-const { SEED_GARMENTS } = await load('src/domain/garments/garments.ts');
-const { localOnlyFiles } = await load('src/domain/garments/photo.ts');
+const { SEED_GARMENTS } = await load('../packages/core/domain/garments/garments.ts');
+const { localOnlyFiles } = await load('../packages/core/domain/garments/photo.ts');
 
 const files = readdirSync(dist, { recursive: true, withFileTypes: true })
   .filter((d) => d.isFile())

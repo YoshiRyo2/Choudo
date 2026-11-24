@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef } from 'react';
-import type { FitTone, GarmentFit, GarmentOdds } from '../../domain/fit';
+import type { FitTone, GarmentFit, GarmentOdds } from '@choudo/core/domain/fit';
 import { centredScrollLeft, chipTone } from './sizeRow';
 import './SizePicker.css';
 

@@ -13,9 +13,9 @@
  * Pure functions, no React. Right side (+x) is built and mirrored for the left.
  */
 
-import type { BodyMeasurements } from '../../../../domain/body';
-import { layerAllowanceCm, layerGrowCm, type UnderLayer } from '../../../../domain/fit';
-import type { Garment, SizeMeasurements } from '../../../../domain/garments';
+import type { BodyMeasurements } from '@choudo/core/domain/body';
+import { layerAllowanceCm, layerGrowCm, type UnderLayer } from '@choudo/core/domain/fit';
+import type { Garment, SizeMeasurements } from '@choudo/core/domain/garments';
 import { bodyHalfAt, limbFrame, limbHalf, limbPath, mirrorPath, smoothPath, xAt, type BodyGeometry, type Pt } from '../geometry';
 import { topShape, type TopShape } from '../topShape';
 import type { View } from '../view';

@@ -2,9 +2,9 @@
  * Keeping the saved outfit valid against the current catalogue and body.
  */
 
-import type { BodyModel } from '../../domain/body';
-import { fitGarment, type GarmentFit, type PreferenceSpec } from '../../domain/fit';
-import { canWarp, findGarment, GARMENTS, type Garment, type GarmentCategory } from '../../domain/garments';
+import type { BodyModel } from '@choudo/core/domain/body';
+import { fitGarment, type GarmentFit, type PreferenceSpec } from '@choudo/core/domain/fit';
+import { canWarp, findGarment, GARMENTS, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
 import { garmentOdds } from './odds';
 import type { Outfit } from './stored';
 

@@ -3,7 +3,7 @@
  * before anything reads storage; safe to run again (it only moves what's left).
  */
 
-import type { BodyInput } from '../../domain/body';
+import type { BodyInput } from '@choudo/core/domain/body';
 import { isFitTestList, isOutfit, isSavedOutfitList, isStoredBody, STORAGE_KEYS, type FitTestRecord, type Outfit, type SavedOutfit } from './stored';
 
 /** Only the bits of Storage we use, so tests can pass a plain object. */

@@ -5,8 +5,8 @@ import {
   type BodyInput,
   type BodyModel,
   type BodyType,
-} from '../../domain/body';
-import { cmToIn, round } from '../../domain/units';
+} from '@choudo/core/domain/body';
+import { cmToIn, round } from '@choudo/core/domain/units';
 import { AboutSheet } from '../components/AboutSheet';
 import { Mannequin } from '../components/Mannequin/Mannequin';
 import { FieldError, NumberInput } from '../components/NumberInput';

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../../domain/body';
-import { preferenceSpec, recommendSize } from '../../domain/fit';
-import { canWarp, findGarment, garmentsByCategory } from '../../domain/garments';
+import { estimateBody } from '@choudo/core/domain/body';
+import { preferenceSpec, recommendSize } from '@choudo/core/domain/fit';
+import { canWarp, findGarment, garmentsByCategory } from '@choudo/core/domain/garments';
 import { defaultSize, firstGarment, resolveOutfit, suggestedFit, wearGarment } from './outfit';
 import { EMPTY_OUTFIT } from './stored';
-import { UNKNOWN_CHEST_TEE } from '../../domain/garments/testFixtures';
+import { UNKNOWN_CHEST_TEE } from '@choudo/core/domain/garments/testFixtures';
 
 const body = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
 const pref = preferenceSpec(null, null);

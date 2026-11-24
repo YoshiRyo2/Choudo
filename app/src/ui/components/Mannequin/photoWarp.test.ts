@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../../../domain/body';
-import { findGarment, PANTS_LANDMARKS, topLandmarks } from '../../../domain/garments';
+import { estimateBody } from '@choudo/core/domain/body';
+import { findGarment, PANTS_LANDMARKS, topLandmarks } from '@choudo/core/domain/garments';
 import { bodyGeometry } from './geometry';
 import { SLEEVE_STRIPS, applyAffine, foldedPieces, sleeveStrips, triangleAffine, warpPantsPieces, warpPieces, type XY } from './photoWarp';
 import { SYNTHETIC_JEANS_LANDMARKS } from './pantsFixture';

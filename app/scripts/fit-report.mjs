@@ -5,7 +5,7 @@
 //   npm run fit:report
 //   npm run fit:report -- path/to/results.csv
 //
-// The maths is pure TypeScript in src/domain/fit/fitTestReport.ts; this script
+// The maths is pure TypeScript in packages/core/domain/fit/fitTestReport.ts; this script
 // only reads the file.
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -22,8 +22,8 @@ if (!existsSync(csvPath)) {
   process.exit(1);
 }
 
-const { readFitTestCsv } = await load('src/domain/fit/fitTestCsv.ts');
-const { buildFitTestReport, formatFitTestReport } = await load('src/domain/fit/fitTestReport.ts');
+const { readFitTestCsv } = await load('../packages/core/domain/fit/fitTestCsv.ts');
+const { buildFitTestReport, formatFitTestReport } = await load('../packages/core/domain/fit/fitTestReport.ts');
 
 try {
   console.log(formatFitTestReport(buildFitTestReport(readFitTestCsv(readFileSync(csvPath, 'utf8')))));

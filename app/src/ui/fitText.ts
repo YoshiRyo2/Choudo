@@ -23,10 +23,10 @@ import {
   type UnderLayer,
   type WornOver,
   type ZoneOdds,
-} from '../domain/fit';
-import { RISE_VERTICAL_RATIO, type BodyModel, type BodyType } from '../domain/body';
-import type { ConfidenceGrade, FitIntent, Garment, GarmentType, SourceTier, TemplateId } from '../domain/garments';
-import { cmToIn } from '../domain/units';
+} from '@choudo/core/domain/fit';
+import { RISE_VERTICAL_RATIO, type BodyModel, type BodyType } from '@choudo/core/domain/body';
+import type { ConfidenceGrade, FitIntent, Garment, GarmentType, SourceTier, TemplateId } from '@choudo/core/domain/garments';
+import { cmToIn } from '@choudo/core/domain/units';
 import type { UnitSystem } from './state/stored';
 
 export const ZONE_NAME: Record<ZoneId, string> = {

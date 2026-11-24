@@ -3,7 +3,7 @@
  * drawing). A skin only: laid out from the head box the body geometry already has
  * (`BodyGeometry.head`), never feeding anything back into the body.
  */
-import type { FitTone } from '../../../domain/fit';
+import type { FitTone } from '@choudo/core/domain/fit';
 
 export const HEAD_KINDS = ['cloud', 'peach', 'bunny'] as const;
 export type HeadKind = (typeof HEAD_KINDS)[number];

@@ -1,4 +1,4 @@
-import type { BodyModel } from '../../../domain/body';
+import type { BodyModel } from '@choudo/core/domain/body';
 import { ConfirmButton } from '../../components/ConfirmButton';
 import { NameForm } from '../../components/NameForm';
 import { nextOutfitName, outfitOf } from '../../state/closet';

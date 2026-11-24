@@ -1,5 +1,5 @@
-import type { FitBand } from '../../domain/fit';
-import { CM_PER_INCH } from '../../domain/units';
+import type { FitBand } from '@choudo/core/domain/fit';
+import { CM_PER_INCH } from '@choudo/core/domain/units';
 import type { UnitSystem } from '../state/stored';
 
 interface TapeScaleProps {

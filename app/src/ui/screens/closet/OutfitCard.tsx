@@ -1,5 +1,5 @@
-import type { BodyMeasurements } from '../../../domain/body';
-import { findGarment } from '../../../domain/garments';
+import type { BodyMeasurements } from '@choudo/core/domain/body';
+import { findGarment } from '@choudo/core/domain/garments';
 import { Mannequin, type WornGarment } from '../../components/Mannequin/Mannequin';
 import type { Outfit } from '../../state/stored';
 

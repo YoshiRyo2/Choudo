@@ -1,5 +1,5 @@
-import type { GarmentFit, GarmentOdds, MeasureHint, PreferenceSpec, ZoneOdds } from '../../domain/fit';
-import { templateOf, type Garment } from '../../domain/garments';
+import type { GarmentFit, GarmentOdds, MeasureHint, PreferenceSpec, ZoneOdds } from '@choudo/core/domain/fit';
+import { templateOf, type Garment } from '@choudo/core/domain/garments';
 import {
   bodyPlaceText,
   describeZone,

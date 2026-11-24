@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../../../../domain/body';
-import { skirtBandHeight, skirtHemHeight, skirtHipHeight } from '../../../../domain/fit';
-import { findGarment, type Garment } from '../../../../domain/garments';
+import { estimateBody } from '@choudo/core/domain/body';
+import { skirtBandHeight, skirtHemHeight, skirtHipHeight } from '@choudo/core/domain/fit';
+import { findGarment, type Garment } from '@choudo/core/domain/garments';
 import { bodyGeometry, bodyHalfAt, halfWidth } from '../geometry';
 import { skirtShape } from './skirt';
 

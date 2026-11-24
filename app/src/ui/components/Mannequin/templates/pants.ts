@@ -9,9 +9,9 @@
  * garment is drawn dashed (`approximate`), like a top with an unverified girth.
  */
 
-import type { BodyMeasurements } from '../../../../domain/body';
-import { bandHeight, riseForBand } from '../../../../domain/fit';
-import { girthKnown, type Garment, type GarmentType, type PantsLandmarkName, type SizeMeasurements } from '../../../../domain/garments';
+import type { BodyMeasurements } from '@choudo/core/domain/body';
+import { bandHeight, riseForBand } from '@choudo/core/domain/fit';
+import { girthKnown, type Garment, type GarmentType, type PantsLandmarkName, type SizeMeasurements } from '@choudo/core/domain/garments';
 import { bodyHalfAt, halfWidth, lerp, smoothPath, type BodyGeometry, type Marker, type Pt } from '../geometry';
 import { SLEEVE_STRIPS, type SleeveEdges, type XY } from '../photoWarp';
 

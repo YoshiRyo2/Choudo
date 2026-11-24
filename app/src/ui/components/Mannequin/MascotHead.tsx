@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import type { FitTone } from '../../../domain/fit';
+import type { FitTone } from '@choudo/core/domain/fit';
 import { faceShape, headShape, type Ellipse, type HeadAnchor, type HeadKind } from './heads';
 
 /** The head every Mannequin draws unless told otherwise; App provides the stored choice. */

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { BodyModel } from '../../../domain/body';
-import { findGarment, type Garment } from '../../../domain/garments';
+import type { BodyModel } from '@choudo/core/domain/body';
+import { findGarment, type Garment } from '@choudo/core/domain/garments';
 import { ConfirmButton } from '../../components/ConfirmButton';
 import { GarmentIcon } from '../../components/GarmentIcon';
 import { NameForm } from '../../components/NameForm';

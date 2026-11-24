@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import type { BodyInput } from './domain/body';
-import { preferenceSpec, type Anchor, type FitStyle } from './domain/fit';
-import { findGarment, type CatalogueScope, type Garment } from './domain/garments';
+import type { BodyInput } from '@choudo/core/domain/body';
+import { preferenceSpec, type Anchor, type FitStyle } from '@choudo/core/domain/fit';
+import { findGarment, type CatalogueScope, type Garment } from '@choudo/core/domain/garments';
 import type { HeadKind } from './ui/components/Mannequin/heads';
 import { MascotHeadContext } from './ui/components/Mannequin/MascotHead';
 import { TabBar, type Tab } from './ui/components/TabBar';

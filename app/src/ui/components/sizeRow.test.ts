@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../../domain/body';
-import { fitAllSizes, preferenceSpec, sampleFit } from '../../domain/fit';
-import { findGarment } from '../../domain/garments';
+import { estimateBody } from '@choudo/core/domain/body';
+import { fitAllSizes, preferenceSpec, sampleFit } from '@choudo/core/domain/fit';
+import { findGarment } from '@choudo/core/domain/garments';
 import { verdictLine } from '../fitText';
 import { centredScrollLeft, chipTone } from './sizeRow';
 

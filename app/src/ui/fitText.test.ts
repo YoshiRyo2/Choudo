@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../domain/body';
-import { fitGarment, preferenceSpec, sampleFit, VERDICTS, type GarmentOdds, type SizeOdds, type Verdict, type ZoneFit, type ZoneOdds } from '../domain/fit';
-import { findGarment, GARMENTS, type GarmentType } from '../domain/garments';
-import { UNKNOWN_CHEST_TEE } from '../domain/garments/testFixtures';
+import { estimateBody } from '@choudo/core/domain/body';
+import { fitGarment, preferenceSpec, sampleFit, VERDICTS, type GarmentOdds, type SizeOdds, type Verdict, type ZoneFit, type ZoneOdds } from '@choudo/core/domain/fit';
+import { findGarment, GARMENTS, type GarmentType } from '@choudo/core/domain/garments';
+import { UNKNOWN_CHEST_TEE } from '@choudo/core/domain/garments/testFixtures';
 import {
   describeZone,
   zoneName,

@@ -3,7 +3,7 @@
  * 900 × 1400 image. Straight legs, a little wider at the hip than the hem, the
  * knees half way from the crotch to the hem.
  */
-import type { PantsLandmarkName } from '../../../domain/garments';
+import type { PantsLandmarkName } from '@choudo/core/domain/garments';
 import type { XY } from './photoWarp';
 
 export const SYNTHETIC_JEANS_PX = { width: 900, height: 1400 };

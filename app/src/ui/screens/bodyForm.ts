@@ -3,7 +3,7 @@
  * conversions to and from the domain's BodyInput (numbers, cm/kg).
  */
 
-import { parseBraSize, type BodyInput, type BodyOverrides, type BodyType, type BraSystem } from '../../domain/body';
+import { parseBraSize, type BodyInput, type BodyOverrides, type BodyType, type BraSystem } from '@choudo/core/domain/body';
 import {
   cmToFeetInches,
   cmToIn,
@@ -12,7 +12,7 @@ import {
   kgToLb,
   lbToKg,
   round,
-} from '../../domain/units';
+} from '@choudo/core/domain/units';
 import type { UnitSystem } from '../state/stored';
 
 export const OVERRIDE_FIELDS = ['chest', 'waist', 'hips', 'inseam'] as const;

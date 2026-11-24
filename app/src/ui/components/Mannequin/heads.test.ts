@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../../../domain/body';
+import { estimateBody } from '@choudo/core/domain/body';
 import { bodyGeometry } from './geometry';
 import { faceShape, HEAD_KINDS, HEAD_SCALE, headAnchor, headShape, headTop, isHeadKind, type HeadShape } from './heads';
 

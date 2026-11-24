@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { estimateBody, type BodyInput } from '../../domain/body';
+import { estimateBody, type BodyInput } from '@choudo/core/domain/body';
 import {
   fitAllSizes,
   type Anchor,
@@ -7,8 +7,8 @@ import {
   type GarmentOdds,
   type PreferenceSpec,
   type UnderLayer,
-} from '../../domain/fit';
-import { catalogueFor, findGarment, GARMENTS, type CatalogueScope, type Garment, type GarmentCategory } from '../../domain/garments';
+} from '@choudo/core/domain/fit';
+import { catalogueFor, findGarment, GARMENTS, type CatalogueScope, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
 import { catalogueToggle, emptyCategoryText } from '../catalogueText';
 import { FitAnswer } from '../components/FitAnswer';
 import { FitSheet } from '../components/FitSheet';

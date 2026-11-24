@@ -2,7 +2,7 @@
  * The size picker's single scrolling row and its chips' dots. Pure.
  */
 
-import type { FitTone, GarmentFit, GarmentOdds } from '../../domain/fit';
+import type { FitTone, GarmentFit, GarmentOdds } from '@choudo/core/domain/fit';
 import { sizeTone } from '../fitText';
 
 /**

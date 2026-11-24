@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../../../domain/body';
-import { findGarment } from '../../../domain/garments';
+import { estimateBody } from '@choudo/core/domain/body';
+import { findGarment } from '@choudo/core/domain/garments';
 import { bodyGeometry, bodyHalfAt, halfWidth, limbFrame, mirrorPath, smoothPath } from './geometry';
 import { MAX_SIDE_FLARE_CM, topShape } from './topShape';
-import { UNKNOWN_CHEST_TEE } from '../../../domain/garments/testFixtures';
+import { UNKNOWN_CHEST_TEE } from '@choudo/core/domain/garments/testFixtures';
 
 const body = (heightCm: number, weightKg: number) =>
   estimateBody({ heightCm, weightKg, bodyType: 'mens' }).measurements;

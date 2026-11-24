@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Garment } from '../../domain/garments';
+import type { Garment } from '@choudo/core/domain/garments';
 import { thumbPhotoSrc } from './garmentThumb';
 import './GarmentIcon.css';
 

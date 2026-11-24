@@ -10,7 +10,7 @@
  * Pure functions, no React.
  */
 
-import type { PantsLandmarkName, TopLandmarkName } from '../../../domain/garments';
+import type { PantsLandmarkName, TopLandmarkName } from '@choudo/core/domain/garments';
 import type { Pt } from './geometry';
 
 export interface XY {

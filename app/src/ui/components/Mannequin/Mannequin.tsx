@@ -1,7 +1,7 @@
 import { useContext, useId, useMemo } from 'react';
-import type { BodyMeasurements } from '../../../domain/body';
-import type { FitTone, GarmentFit, ZoneFit } from '../../../domain/fit';
-import { pantsLandmarks, templateOf, topLandmarks, type Garment } from '../../../domain/garments';
+import type { BodyMeasurements } from '@choudo/core/domain/body';
+import type { FitTone, GarmentFit, ZoneFit } from '@choudo/core/domain/fit';
+import { pantsLandmarks, templateOf, topLandmarks, type Garment } from '@choudo/core/domain/garments';
 import { bodyGeometry, type Marker } from './geometry';
 import { headAnchor, type HeadKind } from './heads';
 import { MascotHead, MascotHeadContext } from './MascotHead';

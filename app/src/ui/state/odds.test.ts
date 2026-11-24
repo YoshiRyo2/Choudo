@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../../domain/body';
-import { preferenceSpec, sampleFit } from '../../domain/fit';
-import { JACKET, KNIT_HOODIE } from '../../domain/garments/testFixtures';
+import { estimateBody } from '@choudo/core/domain/body';
+import { preferenceSpec, sampleFit } from '@choudo/core/domain/fit';
+import { JACKET, KNIT_HOODIE } from '@choudo/core/domain/garments/testFixtures';
 import { garmentOdds } from './odds';
 
 describe('garmentOdds', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../../../../domain/body';
-import { GARMENTS } from '../../../../domain/garments';
+import { estimateBody } from '@choudo/core/domain/body';
+import { GARMENTS } from '@choudo/core/domain/garments';
 import { bodyGeometry } from '../geometry';
 import { topShape } from '../topShape';
 

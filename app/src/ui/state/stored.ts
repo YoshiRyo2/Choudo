@@ -3,9 +3,9 @@
  * back. Bump a key's version when its shape changes.
  */
 
-import { validateBodyInput, type BodyInput } from '../../domain/body';
-import { FIT_STYLES, validateMeasuredAnchor, type Anchor, type FitStyle } from '../../domain/fit';
-import { CATALOGUE_SCOPES, type CatalogueScope } from '../../domain/garments';
+import { validateBodyInput, type BodyInput } from '@choudo/core/domain/body';
+import { FIT_STYLES, validateMeasuredAnchor, type Anchor, type FitStyle } from '@choudo/core/domain/fit';
+import { CATALOGUE_SCOPES, type CatalogueScope } from '@choudo/core/domain/garments';
 
 export const STORAGE_KEYS = {
   /** v2: `sizing` became `bodyType`, plus an optional bra size (migrate.ts moves v1 over). */

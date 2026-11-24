@@ -1,6 +1,6 @@
 import { useId, useMemo, useState, type FormEvent } from 'react';
-import { canAnchor, FIT_STYLES, type Anchor, type FitStyle } from '../../domain/fit';
-import { GARMENTS, type Garment } from '../../domain/garments';
+import { canAnchor, FIT_STYLES, type Anchor, type FitStyle } from '@choudo/core/domain/fit';
+import { GARMENTS, type Garment } from '@choudo/core/domain/garments';
 import { GarmentIcon } from '../components/GarmentIcon';
 import { FieldError, NumberInput } from '../components/NumberInput';
 import { Wordmark } from '../components/Wordmark';

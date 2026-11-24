@@ -7,11 +7,11 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { estimateBody, type BodyInput } from '../../domain/body';
-import { findGarment } from '../../domain/garments';
-import type { Garment, GarmentImage, LandmarkName, PhotoSide } from '../../domain/garments/types';
-import { pantsLandmarks, templateOf, topLandmarks } from '../../domain/garments/categories';
-import { validateImage } from '../../domain/garments/validate';
+import { estimateBody, type BodyInput } from '@choudo/core/domain/body';
+import { findGarment } from '@choudo/core/domain/garments';
+import type { Garment, GarmentImage, LandmarkName, PhotoSide } from '@choudo/core/domain/garments/types';
+import { pantsLandmarks, templateOf, topLandmarks } from '@choudo/core/domain/garments/categories';
+import { validateImage } from '@choudo/core/domain/garments/validate';
 import { licenceForSave } from './seedWrite';
 import { bodyGeometry } from '../../ui/components/Mannequin/geometry';
 import { Mannequin } from '../../ui/components/Mannequin/Mannequin';

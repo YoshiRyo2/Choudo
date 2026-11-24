@@ -9,9 +9,9 @@
  * drawn dashed (`approximate`).
  */
 
-import type { BodyMeasurements } from '../../../../domain/body';
-import { skirtBandHeight, skirtHemHeight, skirtHipHeight } from '../../../../domain/fit';
-import { girthKnown, type Garment, type SizeMeasurements } from '../../../../domain/garments';
+import type { BodyMeasurements } from '@choudo/core/domain/body';
+import { skirtBandHeight, skirtHemHeight, skirtHipHeight } from '@choudo/core/domain/fit';
+import { girthKnown, type Garment, type SizeMeasurements } from '@choudo/core/domain/garments';
 import { bodyHalfAt, halfWidth, lerp, smoothPath, type BodyGeometry, type Marker, type Pt } from '../geometry';
 
 export interface SkirtShape {

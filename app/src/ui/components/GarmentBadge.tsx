@@ -1,4 +1,4 @@
-import type { Garment } from '../../domain/garments';
+import type { Garment } from '@choudo/core/domain/garments';
 import { garmentTag } from '../fitText';
 
 /** "Sample data" for invented rows, otherwise how far to trust the numbers: "From size chart", … */

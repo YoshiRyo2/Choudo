@@ -3,8 +3,8 @@
  * a measured Anchor (cm).
  */
 
-import { ANCHOR_LIMITS, type Anchor } from '../../domain/fit';
-import { cmToIn, inToCm, round } from '../../domain/units';
+import { ANCHOR_LIMITS, type Anchor } from '@choudo/core/domain/fit';
+import { cmToIn, inToCm, round } from '@choudo/core/domain/units';
 import type { UnitSystem } from '../state/stored';
 import { parseNumber } from './bodyForm';
 

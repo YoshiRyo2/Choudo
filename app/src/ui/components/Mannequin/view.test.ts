@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { GarmentImage, PhotoLicence } from '../../../domain/garments';
+import type { GarmentImage, PhotoLicence } from '@choudo/core/domain/garments';
 import { viewPhoto } from './view';
 
 const photo = (licence: PhotoLicence, file = 'garments/a-front.png'): GarmentImage => ({ file, licence, photographedSize: null, landmarks: {} });

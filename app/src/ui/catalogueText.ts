@@ -2,8 +2,8 @@
  * Wording for the catalogue filter ("Women's & unisex" / "All").
  */
 
-import type { BodyType } from '../domain/body';
-import type { CatalogueScope, GarmentCategory } from '../domain/garments';
+import type { BodyType } from '@choudo/core/domain/body';
+import type { CatalogueScope, GarmentCategory } from '@choudo/core/domain/garments';
 
 const BODY_WORD: Record<BodyType, string> = { womens: 'Women’s', mens: 'Men’s' };
 

@@ -2,7 +2,7 @@
  * Which picture a garment card shows: its front photo, or the flat drawing. Pure.
  */
 
-import type { Garment, PhotoLicence } from '../../domain/garments';
+import type { Garment, PhotoLicence } from '@choudo/core/domain/garments';
 
 /**
  * Licences that let a photo be shown as it is. local-only photos are never shown:

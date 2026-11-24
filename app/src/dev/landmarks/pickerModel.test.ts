@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { findGarment } from '../../domain/garments';
-import { PANTS_LANDMARKS, TOP_LANDMARKS } from '../../domain/garments/types';
+import { findGarment } from '@choudo/core/domain/garments';
+import { PANTS_LANDMARKS, TOP_LANDMARKS } from '@choudo/core/domain/garments/types';
 import type { WarpPiece } from '../../ui/components/Mannequin/photoWarp';
 import { DIAGRAM, LANDMARK_LABELS, PICKER_KITS, PLACE_ORDER, SHORT_LABELS, foldWarning, kitFor, nextPoint, previewSizes } from './pickerModel';
 

@@ -4,7 +4,7 @@
  * body comes from estimateBody (skin rule: the drawing never makes up a body).
  */
 
-import { estimateBody, type BodyInput, type BodyMeasurements, type BodyModel, type BodyType } from '../../domain/body';
+import { estimateBody, type BodyInput, type BodyMeasurements, type BodyModel, type BodyType } from '@choudo/core/domain/body';
 
 /**
  * ANSUR II survey means, rounded: the men's reference body in estimateBody

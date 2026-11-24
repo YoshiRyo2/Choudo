@@ -10,9 +10,9 @@
  * ends at the knee, both drawn dashed (`approximate`).
  */
 
-import type { BodyMeasurements } from '../../../../domain/body';
-import { dressHemHeight, dressSeamHeight, hpsLengthCm } from '../../../../domain/fit';
-import { girthKnown, type Garment, type SizeMeasurements } from '../../../../domain/garments';
+import type { BodyMeasurements } from '@choudo/core/domain/body';
+import { dressHemHeight, dressSeamHeight, hpsLengthCm } from '@choudo/core/domain/fit';
+import { girthKnown, type Garment, type SizeMeasurements } from '@choudo/core/domain/garments';
 import { bodyHalfAt, halfWidth, type BodyGeometry, type Marker } from '../geometry';
 import { topShape, type TopShape } from '../topShape';
 import type { View } from '../view';

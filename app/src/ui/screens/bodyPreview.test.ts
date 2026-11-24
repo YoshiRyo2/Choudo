@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../../domain/body';
+import { estimateBody } from '@choudo/core/domain/body';
 import { PREVIEW_BODY, previewBody } from './bodyPreview';
 
 describe('previewBody', () => {
