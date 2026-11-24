@@ -1,7 +1,7 @@
 # Adding a garment by hand
 
 Choudo only trusts numbers it can trace. Every garment row in
-`app/src/domain/garments/seed.json` says where it came from, how the chart measures,
+`packages/core/domain/garments/seed.json` says where it came from, how the chart measures,
 and which numbers (if any) are ours rather than the brand's. Follow this checklist
 for each new garment. It takes about 15 minutes, plus two for a top's photo.
 
@@ -220,7 +220,7 @@ and zones it can't score:
 
   Re-read the chart. If it really says that, leave it and add a note to `source.notes`.
 
-Thresholds live in `app/src/domain/garments/verifyRules.ts`.
+Thresholds live in `packages/core/domain/garments/verifyRules.ts`.
 
 ## 7. Audit (optional, but it's the only way to "Verified")
 

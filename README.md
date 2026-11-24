@@ -87,11 +87,13 @@ To add a garment, follow `docs/adding-garments.md`.
 
 Where things live:
 
-- `app/src/domain/body/` — height + weight -> body measurements (swap the estimator here)
-- `app/src/domain/garments/seed.json` — garment size charts
-- `app/src/domain/fit/` — the fit engine (`rules.ts` thresholds), personal preference
+- `packages/core/domain/body/` — height + weight -> body measurements (swap the estimator here)
+- `packages/core/domain/garments/seed.json` — garment size charts
+- `packages/core/domain/fit/` — the fit engine (`rules.ts` thresholds), personal preference
   (`preference.ts`), sampled odds (`sampleFit.ts`, spreads in `uncertainty.ts`)
+- `packages/core/ui-logic/` — the UI's pure helpers (wording, stored data, mannequin geometry)
 - `app/src/ui/` — screens and components
 
-The original Python chest-fit script is still in `src/` and `tests/` as the reference spec
-(`python -m pytest`). See `CLAUDE.md` for project rules and conventions.
+`packages/core` is shared code with no React or DOM, so the native app can use it too.
+Run `npm install` and `npm run check` from the repo root. See `CLAUDE.md` for project rules
+and conventions.
