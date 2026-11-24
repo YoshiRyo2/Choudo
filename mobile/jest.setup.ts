@@ -12,3 +12,12 @@ jest.mock('expo-sqlite/kv-store', () => {
   };
   return { __esModule: true, default: Storage, Storage };
 });
+
+// The segmented control is SwiftUI on iOS, which Jest can't render: tests get the JS
+// version @expo/ui vendors for the web (same props, a tappable button per segment).
+jest.mock('@expo/ui/community/segmented-control', () => {
+  const { SegmentedControl } = jest.requireActual(
+    '../node_modules/@expo/ui/build/community/segmented-control/vendor/SegmentedControl',
+  );
+  return { __esModule: true, default: SegmentedControl, SegmentedControl };
+});

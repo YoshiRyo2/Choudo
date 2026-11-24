@@ -30,4 +30,6 @@ export const colors = {
   inkDisabled: '#b4aab1',
   /** A field's edge: ink and line half and half, 3:1 on the form fills (styles.css --field-edge). */
   fieldEdge: '#957c84',
+  /** Placeholder text (our estimates): muted at 55% on white (NumberInput.css ::placeholder). */
+  placeholder: '#aea7b2',
 } as const;
