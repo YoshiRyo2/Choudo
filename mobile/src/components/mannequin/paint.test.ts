@@ -47,6 +47,8 @@ test('pins: fit colours, and a hollow ring for unknown', () => {
   expect(paint.pin.warn.circle.fill).toBe(colors.fitWarn);
   expect(paint.pin.bad.line.stroke).toBe(colors.fitBad);
   expect(paint.pin.unknown.circle).toEqual({ fill: colors.bg, stroke: colors.muted, strokeWidth: 0.5 });
+  // The web's line is currentColor under .tone-unknown { color: var(--muted) }.
+  expect(paint.pin.unknown.line.stroke).toBe(colors.muted);
 });
 
 test('drawcords are surface 80% with ink', () => {

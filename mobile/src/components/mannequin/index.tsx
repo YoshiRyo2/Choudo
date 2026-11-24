@@ -20,7 +20,7 @@ import { MascotHeadContext } from './head-context';
 import { HeightTape } from './height-tape';
 import { MascotHead } from './mascot-head';
 import { paint, px } from './paint';
-import { PhotoTexture } from './photo-texture';
+import { PhotoDef, PhotoTexture } from './photo-texture';
 
 export interface WornGarment {
   garment: Garment;
@@ -39,8 +39,8 @@ export interface MannequinProps {
   /** Show coloured fit pins on each zone. */
   showFit?: boolean;
   /**
-   * Which photos to warp: only those whose licence allows it (the app), or any. On the
-   * phone only licensed photos are bundled, so 'all' can't add one that isn't.
+   * Kept for the web's interface (its 'all' is for the dev landmark picker). The phone
+   * only ever warps photos whose licence allows it (canWarp), whichever is passed.
    */
   photos?: 'licensed' | 'all';
   /**
@@ -80,7 +80,6 @@ export function Mannequin({
   onepiece,
   outer,
   showFit = true,
-  photos = 'licensed',
   frame = 'canvas',
   view = 'front',
   showHeightTape = true,
@@ -116,11 +115,11 @@ export function Mannequin({
 
   // A product photo of the side shown, when the garment has one, its licence allows
   // warping and the file is bundled, is warped onto this size's outline over the flat colour.
-  const photo = top ? viewPhoto(top.garment, view, photos) : undefined;
+  const photo = top ? viewPhoto(top.garment, view, 'licensed') : undefined;
   const photoSrc = photo ? photoSource(photo.file) : null;
   const topPhoto = photo ? topLandmarks(photo, view) : null;
   const pieces = topDraw && topPhoto && photoSrc ? warpPieces(topPhoto, topDraw.landmarks, topDraw.sleeveEdges) : null;
-  const bottomPhoto = bottom ? viewPhoto(bottom.garment, view, photos) : undefined;
+  const bottomPhoto = bottom ? viewPhoto(bottom.garment, view, 'licensed') : undefined;
   const bottomSrc = bottomPhoto ? photoSource(bottomPhoto.file) : null;
   const pantsPhoto = bottomPhoto ? pantsLandmarks(bottomPhoto) : null;
   const bottomPieces =
@@ -128,7 +127,12 @@ export function Mannequin({
   const clipId = `mq${useId().replace(/[^\w-]/g, '')}`;
   const texture = (region: WarpRegion, outline: string) =>
     pieces && photoSrc ? (
-      <PhotoTexture id={`${clipId}-${region}`} outline={outline} pieces={pieces.filter((p) => p.region === region)} photo={photoSrc} />
+      <PhotoTexture
+        id={`${clipId}-${region}`}
+        outline={outline}
+        pieces={pieces.filter((p) => p.region === region)}
+        photoId={`${clipId}-photo`}
+      />
     ) : null;
   const bottomTexture = (region: WarpRegion, outline: string) =>
     bottomPieces && bottomSrc ? (
@@ -136,7 +140,7 @@ export function Mannequin({
         id={`${clipId}-bottom-${region}`}
         outline={outline}
         pieces={bottomPieces.filter((p) => p.region === region)}
-        photo={bottomSrc}
+        photoId={`${clipId}-bottom-photo`}
       />
     ) : null;
 
@@ -220,6 +224,7 @@ export function Mannequin({
         {bottomDraw && bottom && (
           <G>
             <Path {...garmentPaint(bottomDraw.approximate, bottom.garment)} fill={bottom.garment.color} d={bottomDraw.body} />
+            {bottomPieces && bottomSrc && <PhotoDef id={`${clipId}-bottom-photo`} photo={bottomSrc} />}
             {/* The top (band to crotch) clipped to the whole outline, each leg to its own. */}
             {bottomTexture('body', bottomDraw.body)}
             {bottomTexture('legRight', bottomDraw.legs.right)}
@@ -232,6 +237,7 @@ export function Mannequin({
         {topDraw && top && (
           <G>
             <Path {...garmentPaint(topApproximate, top.garment)} fill={top.garment.color} d={topDraw.body} />
+            {pieces && photoSrc && <PhotoDef id={`${clipId}-photo`} photo={photoSrc} />}
             {texture('body', topDraw.body)}
             <G>
               {topDraw.folds.map((d, i) => (

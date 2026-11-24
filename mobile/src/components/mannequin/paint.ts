@@ -78,13 +78,13 @@ export const paint = {
   hoodEdge: { fill: 'none', stroke: ink, strokeOpacity: 0.4, strokeWidth: 0.3, strokeLinecap: 'round' as const },
   cord: { fill: 'none', stroke: mixHex(colors.surface, ink, 0.8), strokeWidth: 0.45, strokeLinecap: 'round' as const },
 
-  /** Fit pins. Unknown: a hollow ring, so it reads as "no answer", not broken (its line is the ink text colour). */
+  /** Fit pins. Unknown: a hollow ring, so it reads as "no answer", not broken (its line muted, as .tone-unknown). */
   pin: {
     good: pinTone(colors.fitGood),
     warn: pinTone(colors.fitWarn),
     bad: pinTone(colors.fitBad),
     unknown: {
-      line: { stroke: ink, strokeWidth: 0.45 },
+      line: { stroke: colors.muted, strokeWidth: 0.45 },
       circle: { fill: colors.bg, stroke: colors.muted, strokeWidth: 0.5 },
     },
   },

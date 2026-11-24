@@ -48,7 +48,18 @@ test('a photo top is warped: one image per warp piece', async () => {
   const shape = topShape(bodyGeometry(mens), henley.garment, henley.garment.sizes[0]!.measurements, mens.chestCm, mens, { view: 'front' });
   const pieces = warpPieces(topLandmarks(henley.garment.image!, 'front')!, shape.landmarks, shape.sleeveEdges);
   expect(pieces.length).toBeGreaterThan(0);
-  expect(nodes(tree, 'RNSVGImage')).toHaveLength(pieces.length);
+  // The photo is one image (loaded and decoded once), drawn into each triangle by a <Use>.
+  expect(nodes(tree, 'RNSVGImage')).toHaveLength(1);
+  expect(nodes(tree, 'RNSVGUse')).toHaveLength(pieces.length);
+  const first = pieces[0]!.transform;
+  expect(nodes(tree, 'RNSVGUse')[0]!.props.matrix).toEqual([first.a, first.b, first.c, first.d, first.e, first.f]);
+});
+
+test("a photo whose licence doesn't allow warping is never warped, even with photos='all'", async () => {
+  const henley = findGarment('ryo-black-henley')!;
+  const affiliate = { ...henley, image: { ...henley.image!, licence: 'affiliate-unaltered' as const } };
+  const tree = await draw({ top: { garment: affiliate, sizeLabel: 'Mine' }, photos: 'all' });
+  expect(nodes(tree, 'RNSVGImage')).toHaveLength(0);
 });
 
 test('from the back the henley has no back photo: flat colour, no images', async () => {
