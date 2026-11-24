@@ -34,3 +34,17 @@ test('Edit body in the Fitting room opens the Body screen', async () => {
   await fireEvent.press(screen.getByRole('button', { name: 'Edit body' }));
   expect(screen).toHavePathname('/body');
 });
+
+// Last: it saves through the hooks, and what they save lasts the rest of this file.
+test('first run end to end: Body, then Skip for now on the fit reference, lands in the tabs', async () => {
+  await renderRouter(appDir, { initialUrl: '/' });
+  expect(screen).toHavePathname('/body');
+  await fireEvent.changeText(screen.getByLabelText('Height'), '170');
+  await fireEvent.changeText(screen.getByLabelText('Weight'), '65');
+  await fireEvent.press(screen.getByRole('button', { name: 'Go to fitting room' }));
+  expect(screen).toHavePathname('/fit-reference');
+  await fireEvent.press(screen.getByRole('button', { name: 'Skip for now' }));
+  expect(screen).toHavePathname('/');
+  expect(JSON.parse(Storage.getItemSync(STORAGE_KEYS.body)!)).toMatchObject({ heightCm: 170, weightKg: 65 });
+  expect(Storage.getItemSync(STORAGE_KEYS.anchor)).toBeNull();
+});
