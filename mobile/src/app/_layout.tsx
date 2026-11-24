@@ -41,6 +41,15 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="body" />
         <Stack.Screen name="fit-reference" />
+        <Stack.Screen
+          name="about"
+          options={{
+            presentation: 'formSheet',
+            sheetGrabberVisible: true,
+            sheetAllowedDetents: [0.6, 1],
+            contentStyle: { backgroundColor: colors.bg },
+          }}
+        />
       </Stack>
     </>
   );

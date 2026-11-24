@@ -94,11 +94,20 @@ app/src/
 mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id com.choudo.app)
   src/app/       routes only (Expo Router): _layout.tsx (root Stack: runs migrations, loads the font,
                  holds the splash), (tabs)/ (NativeTabs: Fitting room, Discover, Closet; redirects to
-                 /body until a body is stored), body.tsx, fit-reference.tsx. Placeholders until PR 3+.
+                 /body until a body is stored), body.tsx (first run, or Edit body), fit-reference.tsx
+                 (`?first=1` on first run: no back swipe, always on to the tabs), about.tsx (form sheet).
+                 Tab screens are placeholders until PR 5+.
   src/storage/   kv.ts (expo-sqlite/kv-store as a StorageLike; runMigrations)
-  src/hooks/     use-persistent-state.ts (the web hook's twin on kv), use-body.ts
+  src/hooks/     use-persistent-state.ts (the web hook's twin on kv), use-body.ts, use-units.ts,
+                 use-fit-reference.ts (anchor + fit style together), use-test-mode.ts
   src/theme/     colors, type + fonts (M PLUS Rounded 1c via useFonts), radius, spacing — from styles.css
-  src/components/ themed-text.tsx;  src/screens/ placeholder.tsx
+  src/components/ themed-text, button (`disabled` = the web's aria-disabled: dimmed, still pressable),
+                 number-field (decimal pad, unit inside; also the bra-size text box), field-error,
+                 segmented (@expo/ui's native segmented control; Jest gets its JS twin, jest.setup.ts), wordmark
+  src/screens/   body/ (BodyScreen + estimate-list; a fixed `mannequin-slot` until PR 4),
+                 fit-reference/ (FitReferenceScreen: choose / catalogue / measure / style steps, tee-diagram),
+                 placeholder.tsx. Screens take props and call back; the routes in src/app/ do storage and
+                 navigation. Wording and validation come from @choudo/core, copied from the web screens.
   src/tests/     tests that render routes (not in src/app: expo-router would treat them as routes)
                  Other tests sit next to their code (`*.test.ts(x)`); jest.setup.ts mocks the kv-store.
 app/dev/       landmarks.html + landmarksServer.ts: the picker page and its save endpoint,

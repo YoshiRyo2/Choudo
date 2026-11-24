@@ -1,5 +1,7 @@
 import { catalogueFor, GARMENTS } from '@choudo/core/domain/garments';
+import { router } from 'expo-router';
 
+import { Button } from '@/components/button';
 import { useBody } from '@/hooks/use-body';
 import { Placeholder } from '@/screens/placeholder';
 
@@ -9,7 +11,9 @@ export default function FittingRoom() {
   if (body === null) return null;
   const count = catalogueFor(GARMENTS, body.bodyType, 'matching').length;
   return (
-    <Placeholder title="Fitting room">
+    <Placeholder
+      title="Fitting room"
+      action={<Button variant="outline" size="sm" title="Edit body" onPress={() => router.push('/body')} />}>
       {`${body.heightCm} cm · ${count} garments in your sizing`}
     </Placeholder>
   );

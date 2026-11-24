@@ -26,4 +26,10 @@ export const colors = {
   fitGood: '#2b7353',
   fitWarn: '#a0571a',
   fitBad: '#c2362f',
+  /** A primary button that can't act yet: ink 35% over bg (styles.css .button--primary[aria-disabled]). */
+  inkDisabled: '#b4aab1',
+  /** A field's edge: ink and line half and half, 3:1 on the form fills (styles.css --field-edge). */
+  fieldEdge: '#957c84',
+  /** Placeholder text (our estimates): muted at 55% on white (NumberInput.css ::placeholder). */
+  placeholder: '#aea7b2',
 } as const;
