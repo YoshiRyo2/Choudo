@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { EMPTY_FORM, switchUnits } from '@choudo/core/ui-logic/screens/bodyForm';
 import { fieldErrors } from '@choudo/core/ui-logic/screens/bodyFieldErrors';
 
@@ -68,14 +68,25 @@ test("men's clothes: chest, and no bra size", async () => {
   expect(screen.queryByLabelText('Bra size')).toBeNull();
 });
 
-test('a valid body shows the estimates under the mannequin slot', async () => {
+test('a valid body shows the estimates beside the mannequin', async () => {
   await renderScreen();
   expect(screen.getByText('Enter your height and weight to size it to you.')).toBeTruthy();
   await type('Height', '170');
   await type('Weight', '65');
-  expect(screen.getByTestId('mannequin-slot')).toBeTruthy();
   expect(screen.getByText('Waist')).toBeTruthy();
   expect(screen.getAllByText('estimate').length).toBe(4);
+});
+
+test('the mannequin preview: a typical body until height and weight are valid, then yours', async () => {
+  await renderScreen();
+  const typical = screen.getByLabelText('Mannequin preview, a typical body until you enter yours');
+  expect(within(typical).getByLabelText(/^Mannequin, 176 cm tall/)).toBeTruthy();
+  expect(screen.queryByLabelText('Mannequin preview of your body')).toBeNull();
+  await type('Height', '170');
+  expect(screen.getByLabelText('Mannequin preview, a typical body until you enter yours')).toBeTruthy();
+  await type('Weight', '65');
+  const yours = screen.getByLabelText('Mannequin preview of your body');
+  expect(within(yours).getByLabelText(/^Mannequin, 170 cm tall/)).toBeTruthy();
 });
 
 test('Cancel calls onCancel, not onDone', async () => {

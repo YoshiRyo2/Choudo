@@ -6,6 +6,7 @@
   "scripts": {
     "start": "expo start",
     "ios": "expo start --ios",
+    "photos": "node scripts/garment-photos.mjs",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "check": "npm run typecheck && npm test"
