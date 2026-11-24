@@ -7,6 +7,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { MascotHeadContext } from '@/components/mannequin/head-context';
+import { useHead } from '@/hooks/use-head';
 import { runMigrations } from '@/storage/kv';
 import { colors } from '@/theme';
 
@@ -15,6 +17,7 @@ runMigrations();
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const [head] = useHead();
   // Keys are the family names used in theme/typography.ts.
   const [fontsLoaded, fontError] = useFonts({
     MPLUSRounded1c_500Medium,
@@ -31,7 +34,7 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <>
+    <MascotHeadContext.Provider value={head}>
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -51,6 +54,6 @@ export default function RootLayout() {
           }}
         />
       </Stack>
-    </>
+    </MascotHeadContext.Provider>
   );
 }
