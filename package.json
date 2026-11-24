@@ -1,7 +1,11 @@
 {
   "name": "choudo",
   "private": true,
-  "workspaces": ["packages/core", "app"],
+  "workspaces": [
+    "packages/core",
+    "app",
+    "mobile"
+  ],
   "scripts": {
     "check": "npm run check --workspaces",
     "test": "npm test --workspaces"
