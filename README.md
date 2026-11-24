@@ -60,8 +60,22 @@ From the repo root:
 ```bash
 npm install      # installs packages/core and app together
 npm test         # unit tests: core (body model, garment data, fit engine, UI helpers), then app
-npm run check    # typecheck + tests for core and app + garment data check — run before every commit
+npm run check    # typecheck + tests for core, app and mobile + garment data check — run before every commit
 ```
+
+### The iPhone app
+
+The native app lives in `mobile/` (Expo SDK 58, Expo Router) and uses the same engine from
+`packages/core`. It is a scaffold for now: tabs, theme, storage and placeholder screens. To run
+it on your iPhone, install **Expo Go** from the App Store, then from the repo root:
+
+```bash
+npm install
+cd mobile && npx expo start
+```
+
+Scan the QR code with the iPhone camera (phone and Mac on the same Wi-Fi) and it opens in
+Expo Go. `npm run check` from `mobile/` runs its typecheck and tests.
 
 From `app/`:
 
@@ -101,6 +115,6 @@ Where things live:
 - `packages/core/ui-logic/` — the UI's pure helpers (wording, stored data, mannequin geometry)
 - `app/src/ui/` — screens and components
 
-`packages/core` is shared code with no React or DOM, so the native app can use it too.
+`packages/core` is shared code with no React or DOM, so the native app in `mobile/` uses it too.
 Run `npm install` and `npm run check` from the repo root. See `CLAUDE.md` for project rules
 and conventions.

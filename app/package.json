@@ -20,8 +20,8 @@
   "dependencies": {
     "@choudo/core": "*",
     "@fontsource/m-plus-rounded-1c": "^5.3.0",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.2",
