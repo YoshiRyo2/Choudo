@@ -2,10 +2,10 @@ import { useId, useState, type FormEvent } from 'react';
 import type { BodyType } from '@choudo/core/domain/body';
 import type { GarmentFit } from '@choudo/core/domain/fit';
 import type { Garment } from '@choudo/core/domain/garments';
-import { zoneName } from '../fitText';
+import { zoneName } from '@choudo/core/ui-logic/fitText';
 import { ConfirmButton } from '../components/ConfirmButton';
-import { answersFor, csvFileName, fitTestsCsv, testQuestions, type PickedAnswers, type TesterAnswers } from '../state/fitTests';
-import { CHEST_ANSWERS, LENGTH_ANSWERS, type GirthAnswer, type FitTestRecord, type LengthAnswer } from '../state/stored';
+import { answersFor, csvFileName, fitTestsCsv, testQuestions, type PickedAnswers, type TesterAnswers } from '@choudo/core/ui-logic/state/fitTests';
+import { CHEST_ANSWERS, LENGTH_ANSWERS, type GirthAnswer, type FitTestRecord, type LengthAnswer } from '@choudo/core/ui-logic/state/stored';
 import './FitTestPanel.css';
 
 interface FitTestPanelProps {

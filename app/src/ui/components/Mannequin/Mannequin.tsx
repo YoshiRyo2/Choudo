@@ -2,18 +2,18 @@ import { useContext, useId, useMemo } from 'react';
 import type { BodyMeasurements } from '@choudo/core/domain/body';
 import type { FitTone, GarmentFit, ZoneFit } from '@choudo/core/domain/fit';
 import { pantsLandmarks, templateOf, topLandmarks, type Garment } from '@choudo/core/domain/garments';
-import { bodyGeometry, type Marker } from './geometry';
-import { headAnchor, type HeadKind } from './heads';
+import { bodyGeometry, type Marker } from '@choudo/core/ui-logic/components/Mannequin/geometry';
+import { headAnchor, type HeadKind } from '@choudo/core/ui-logic/components/Mannequin/heads';
 import { MascotHead, MascotHeadContext } from './MascotHead';
-import { affineToSvg, warpPantsPieces, warpPieces, type WarpPiece, type WarpRegion } from './photoWarp';
-import { dressShape } from './templates/dress';
-import { jacketShape } from './templates/jacket';
-import { pantsShape } from './templates/pants';
-import { leggingsShape } from './templates/leggings';
-import { skirtShape } from './templates/skirt';
-import { topShape } from './topShape';
+import { affineToSvg, warpPantsPieces, warpPieces, type WarpPiece, type WarpRegion } from '@choudo/core/ui-logic/components/Mannequin/photoWarp';
+import { dressShape } from '@choudo/core/ui-logic/components/Mannequin/templates/dress';
+import { jacketShape } from '@choudo/core/ui-logic/components/Mannequin/templates/jacket';
+import { pantsShape } from '@choudo/core/ui-logic/components/Mannequin/templates/pants';
+import { leggingsShape } from '@choudo/core/ui-logic/components/Mannequin/templates/leggings';
+import { skirtShape } from '@choudo/core/ui-logic/components/Mannequin/templates/skirt';
+import { topShape } from '@choudo/core/ui-logic/components/Mannequin/topShape';
 import { usePhotoSize, type PhotoSize } from './usePhotoSize';
-import { viewPhoto, type View } from './view';
+import { viewPhoto, type View } from '@choudo/core/ui-logic/components/Mannequin/view';
 import './Mannequin.css';
 
 export interface WornGarment {

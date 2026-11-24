@@ -5,7 +5,7 @@
 
 import { templateOf } from '@choudo/core/domain/garments/categories';
 import type { Garment, GarmentSize, LandmarkName, PantsLandmarkName, PhotoSide, TopBackLandmarkName, TopLandmarkName } from '@choudo/core/domain/garments/types';
-import type { WarpPiece } from '../../ui/components/Mannequin/photoWarp';
+import type { WarpPiece } from '@choudo/core/ui-logic/components/Mannequin/photoWarp';
 import type { XY } from './suggest';
 
 /**

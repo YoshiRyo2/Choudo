@@ -18,5 +18,5 @@
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["domain"]
+  "include": ["domain", "ui-logic"]
 }

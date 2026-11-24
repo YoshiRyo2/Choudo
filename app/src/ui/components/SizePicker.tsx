@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef } from 'react';
 import type { FitTone, GarmentFit, GarmentOdds } from '@choudo/core/domain/fit';
-import { centredScrollLeft, chipTone } from './sizeRow';
+import { centredScrollLeft, chipTone } from '@choudo/core/ui-logic/components/sizeRow';
 import './SizePicker.css';
 
 interface SizePickerProps {

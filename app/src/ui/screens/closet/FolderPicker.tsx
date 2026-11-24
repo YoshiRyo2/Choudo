@@ -1,7 +1,7 @@
 import { NameForm } from '../../components/NameForm';
 import { Sheet } from '../../components/Sheet';
-import { isInFolder } from '../../state/closet';
-import type { Folder, FolderItem } from '../../state/stored';
+import { isInFolder } from '@choudo/core/ui-logic/state/closet';
+import type { Folder, FolderItem } from '@choudo/core/ui-logic/state/stored';
 
 interface FolderPickerProps {
   /** What's being filed, e.g. "Slim Chino". */

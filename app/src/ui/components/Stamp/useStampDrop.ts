@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { claimStampDrop } from '../../state/stampSeen';
+import { claimStampDrop } from '@choudo/core/ui-logic/state/stampSeen';
 
 /**
  * Whether the stamp for `key` (null: no stamp) should play its drop now: true from the

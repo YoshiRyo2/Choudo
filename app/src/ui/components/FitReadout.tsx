@@ -20,9 +20,9 @@ import {
   zoneLabelText,
   zoneTitle,
   objectiveOnly,
-} from '../fitText';
+} from '@choudo/core/ui-logic/fitText';
 import { GarmentBadge } from './GarmentBadge';
-import type { UnitSystem } from '../state/stored';
+import type { UnitSystem } from '@choudo/core/ui-logic/state/stored';
 import { TapeScale } from './TapeScale';
 import './FitReadout.css';
 

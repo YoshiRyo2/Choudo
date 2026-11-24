@@ -2,10 +2,10 @@ import { useRef, useState, type PointerEvent } from 'react';
 import type { BodyMeasurements } from '@choudo/core/domain/body';
 import type { GarmentFit } from '@choudo/core/domain/fit';
 import type { Garment } from '@choudo/core/domain/garments';
-import { sizeLine, type VerdictLine } from '../../fitText';
+import { sizeLine, type VerdictLine } from '@choudo/core/ui-logic/fitText';
 import { GarmentBadge } from '../GarmentBadge';
 import { Mannequin } from '../Mannequin/Mannequin';
-import { DISTANCE_SHARE, swipeOutcome, tilt, type SwipeOutcome } from './swipe';
+import { DISTANCE_SHARE, swipeOutcome, tilt, type SwipeOutcome } from '@choudo/core/ui-logic/components/SwipeCard/swipe';
 import './SwipeCard.css';
 
 interface SwipeCardProps {

@@ -4,8 +4,8 @@ import { findGarment, type Garment } from '@choudo/core/domain/garments';
 import { ConfirmButton } from '../../components/ConfirmButton';
 import { GarmentIcon } from '../../components/GarmentIcon';
 import { NameForm } from '../../components/NameForm';
-import { folderSummary, outfitOf } from '../../state/closet';
-import type { Folder, FolderItem, Outfit, SavedOutfit } from '../../state/stored';
+import { folderSummary, outfitOf } from '@choudo/core/ui-logic/state/closet';
+import type { Folder, FolderItem, Outfit, SavedOutfit } from '@choudo/core/ui-logic/state/stored';
 import { OutfitFigure, outfitLine } from './OutfitCard';
 
 interface FoldersTabProps {

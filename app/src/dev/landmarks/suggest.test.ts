@@ -11,7 +11,7 @@ import {
   type XY,
 } from './suggest';
 import { PANTS_LANDMARKS } from '@choudo/core/domain/garments/types';
-import { SYNTHETIC_JEANS_LANDMARKS, SYNTHETIC_JEANS_OUTLINE, SYNTHETIC_JEANS_PX } from '../../ui/components/Mannequin/pantsFixture';
+import { SYNTHETIC_JEANS_LANDMARKS, SYNTHETIC_JEANS_OUTLINE, SYNTHETIC_JEANS_PX } from '@choudo/core/ui-logic/components/Mannequin/pantsFixture';
 
 const W = 200, H = 200;
 

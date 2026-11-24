@@ -4,9 +4,9 @@ import { GARMENTS, type Garment } from '@choudo/core/domain/garments';
 import { GarmentIcon } from '../components/GarmentIcon';
 import { FieldError, NumberInput } from '../components/NumberInput';
 import { Wordmark } from '../components/Wordmark';
-import { FIT_STYLE_TEXT } from '../fitText';
-import type { UnitSystem } from '../state/stored';
-import { anchorToTeeForm, teeFormToAnchor, type MeasuredTeeForm } from './anchorForm';
+import { FIT_STYLE_TEXT } from '@choudo/core/ui-logic/fitText';
+import type { UnitSystem } from '@choudo/core/ui-logic/state/stored';
+import { anchorToTeeForm, teeFormToAnchor, type MeasuredTeeForm } from '@choudo/core/ui-logic/screens/anchorForm';
 import './AnchorScreen.css';
 
 interface AnchorScreenProps {

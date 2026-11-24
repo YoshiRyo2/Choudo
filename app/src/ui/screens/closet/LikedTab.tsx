@@ -5,9 +5,9 @@ import { findGarment, type Garment, type GarmentCategory } from '@choudo/core/do
 import { GarmentBadge } from '../../components/GarmentBadge';
 import { GarmentIcon } from '../../components/GarmentIcon';
 import { SegmentedControl } from '../../components/SegmentedControl';
-import { sizeLine, verdictLine } from '../../fitText';
-import { garmentOdds } from '../../state/odds';
-import { suggestedFit } from '../../state/outfit';
+import { sizeLine, verdictLine } from '@choudo/core/ui-logic/fitText';
+import { garmentOdds } from '@choudo/core/ui-logic/state/odds';
+import { suggestedFit } from '@choudo/core/ui-logic/state/outfit';
 import { FoldersButton } from './FolderPicker';
 
 type Filter = 'all' | GarmentCategory;

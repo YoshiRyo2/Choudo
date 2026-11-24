@@ -6,10 +6,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { estimateBody, type BodyInput } from '@choudo/core/domain/body';
 import { preferenceSpec } from '@choudo/core/domain/fit';
 import { findGarment } from '@choudo/core/domain/garments';
-import type { HeadKind } from '../components/Mannequin/heads';
-import { fittingHeadline, isJustRight } from '../fitText';
-import { garmentOdds } from '../state/odds';
-import type { Outfit } from '../state/stored';
+import type { HeadKind } from '@choudo/core/ui-logic/components/Mannequin/heads';
+import { fittingHeadline, isJustRight } from '@choudo/core/ui-logic/fitText';
+import { garmentOdds } from '@choudo/core/ui-logic/state/odds';
+import type { Outfit } from '@choudo/core/ui-logic/state/stored';
 import { FittingRoom } from './FittingRoom';
 
 const body: BodyInput = { heightCm: 176, weightKg: 85, bodyType: 'mens' };

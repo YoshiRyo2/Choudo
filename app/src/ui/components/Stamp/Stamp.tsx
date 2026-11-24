@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { STAMP_BOX, STAMP_GLYPHS } from './stampGlyphs';
+import { STAMP_BOX, STAMP_GLYPHS } from '@choudo/core/ui-logic/components/Stamp/stampGlyphs';
 import './Stamp.css';
 
 interface StampProps {

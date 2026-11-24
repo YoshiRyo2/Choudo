@@ -2,18 +2,18 @@ import { useMemo, useState } from 'react';
 import type { BodyInput } from '@choudo/core/domain/body';
 import { preferenceSpec, type Anchor, type FitStyle } from '@choudo/core/domain/fit';
 import { findGarment, type CatalogueScope, type Garment } from '@choudo/core/domain/garments';
-import type { HeadKind } from './ui/components/Mannequin/heads';
+import type { HeadKind } from '@choudo/core/ui-logic/components/Mannequin/heads';
 import { MascotHeadContext } from './ui/components/Mannequin/MascotHead';
 import { TabBar, type Tab } from './ui/components/TabBar';
 import { DEV_TOOLS, devToolsOn } from './ui/devTools';
-import { fitReferenceLine } from './ui/fitText';
+import { fitReferenceLine } from '@choudo/core/ui-logic/fitText';
 import { AnchorScreen } from './ui/screens/AnchorScreen';
 import { BodyScreen } from './ui/screens/BodyScreen';
 import { Closet } from './ui/screens/Closet';
 import { Discover } from './ui/screens/Discover';
 import { FittingRoom } from './ui/screens/FittingRoom';
-import { nextOutfitName } from './ui/state/closet';
-import { wearGarment } from './ui/state/outfit';
+import { nextOutfitName } from '@choudo/core/ui-logic/state/closet';
+import { wearGarment } from '@choudo/core/ui-logic/state/outfit';
 import { useCloset } from './ui/state/useCloset';
 import { usePersistentState } from './ui/state/usePersistentState';
 import {
@@ -31,7 +31,7 @@ import {
   type FitTestRecord,
   type Outfit,
   type UnitSystem,
-} from './ui/state/stored';
+} from '@choudo/core/ui-logic/state/stored';
 
 /**
  * Enter your body once, then move between the fitting room, the Discover feed
