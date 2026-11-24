@@ -54,6 +54,15 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="save-outfit"
+          options={{
+            presentation: 'formSheet',
+            sheetGrabberVisible: true,
+            sheetAllowedDetents: [0.35],
+            contentStyle: { backgroundColor: colors.surface },
+          }}
+        />
+        <Stack.Screen
           name="about"
           options={{
             presentation: 'formSheet',
