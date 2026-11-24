@@ -2,7 +2,7 @@ import type { TextStyle } from 'react-native';
 
 import { colors } from './colors';
 
-/** M PLUS Rounded 1c, as loaded by the expo-font config plugin (app.json). */
+/** M PLUS Rounded 1c, loaded with useFonts in app/_layout.tsx (only these three weights ship). */
 export const fonts = {
   medium: 'MPLUSRounded1c_500Medium',
   bold: 'MPLUSRounded1c_700Bold',

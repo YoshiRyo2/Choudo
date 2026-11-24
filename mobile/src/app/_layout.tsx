@@ -1,9 +1,7 @@
-import {
-  MPLUSRounded1c_500Medium,
-  MPLUSRounded1c_700Bold,
-  MPLUSRounded1c_800ExtraBold,
-  useFonts,
-} from '@expo-google-fonts/m-plus-rounded-1c';
+import { MPLUSRounded1c_500Medium } from '@expo-google-fonts/m-plus-rounded-1c/500Medium';
+import { MPLUSRounded1c_700Bold } from '@expo-google-fonts/m-plus-rounded-1c/700Bold';
+import { MPLUSRounded1c_800ExtraBold } from '@expo-google-fonts/m-plus-rounded-1c/800ExtraBold';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
