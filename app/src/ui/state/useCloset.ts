@@ -10,8 +10,8 @@ import {
   renameFolder,
   saveOutfit,
   toggleInFolder,
-} from './closet';
-import { likedIds, recordSwipe, unlike } from './feed';
+} from '@choudo/core/ui-logic/state/closet';
+import { likedIds, recordSwipe, unlike } from '@choudo/core/ui-logic/state/feed';
 import {
   isFolderList,
   isSavedOutfitList,
@@ -22,7 +22,7 @@ import {
   type Outfit,
   type SavedOutfit,
   type Swipe,
-} from './stored';
+} from '@choudo/core/ui-logic/state/stored';
 import { usePersistentState } from './usePersistentState';
 
 const now = () => new Date().toISOString();

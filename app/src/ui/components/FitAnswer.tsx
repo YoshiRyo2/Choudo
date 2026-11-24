@@ -1,6 +1,6 @@
-import type { GarmentOdds } from '../../domain/fit';
-import type { Garment } from '../../domain/garments';
-import { fittingHeadline } from '../fitText';
+import type { GarmentOdds } from '@choudo/core/domain/fit';
+import type { Garment } from '@choudo/core/domain/garments';
+import { fittingHeadline } from '@choudo/core/ui-logic/fitText';
 import './FitAnswer.css';
 
 interface FitAnswerProps {

@@ -23,7 +23,7 @@
  *    slanted, and long sleeves at any angle.
  */
 
-import type { PantsLandmarkName, PhotoSide, TopBackLandmarkName, TopLandmarkName } from '../../domain/garments/types';
+import type { PantsLandmarkName, PhotoSide, TopBackLandmarkName, TopLandmarkName } from '@choudo/core/domain/garments/types';
 
 export interface XY {
   x: number;

@@ -6,8 +6,15 @@
 import type { BodyInput } from '../../domain/body';
 import { isFitTestList, isOutfit, isSavedOutfitList, isStoredBody, STORAGE_KEYS, type FitTestRecord, type Outfit, type SavedOutfit } from './stored';
 
-/** Only the bits of Storage we use, so tests can pass a plain object. */
-export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+/**
+ * Only the bits of Web Storage we use, so tests can pass a plain object and the
+ * native app can pass its own store.
+ */
+export type StorageLike = {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+};
 
 /** Keys from before v2. They only ever existed under the old app name. */
 export const LEGACY_KEYS = {
@@ -144,7 +151,8 @@ export function migrateAppRename(storage: StorageLike): void {
 /** Run every migration. Storage can be blocked (private mode): then there's nothing to move. */
 export function migrateStorage(given?: StorageLike): void {
   try {
-    const storage = given ?? globalThis.localStorage;
+    // Read inside the try: Safari throws on access when storage is blocked.
+    const storage = given ?? (globalThis as { localStorage?: StorageLike }).localStorage;
     if (!storage) return;
     // Rename first, so a current-version key beats a v1 one, as it did before the rename.
     migrateAppRename(storage);

@@ -1,7 +1,7 @@
-import type { BodyMeasurements } from '../../../domain/body';
-import { findGarment } from '../../../domain/garments';
+import type { BodyMeasurements } from '@choudo/core/domain/body';
+import { findGarment } from '@choudo/core/domain/garments';
 import { Mannequin, type WornGarment } from '../../components/Mannequin/Mannequin';
-import type { Outfit } from '../../state/stored';
+import type { Outfit } from '@choudo/core/ui-logic/state/stored';
 
 /** A garment id + size from an outfit, ready for the mannequin (or undefined if it's gone). */
 function worn(id: string | null, size: string | null): WornGarment | undefined {

@@ -52,14 +52,21 @@ Garment data is a hand-made seed: the Knightweave and Lands' End tees are real (
 
 ## Getting started
 
-The web app lives in `app/` (React + TypeScript + Vite). You need Node 20 or newer.
+The web app lives in `app/` (React + TypeScript + Vite); the fit engine and the UI's pure
+helpers live in `packages/core`. You need Node 20 or newer.
+
+From the repo root:
 
 ```bash
-cd app
-npm install
+npm install      # installs packages/core and app together
+npm test         # unit tests: core (body model, garment data, fit engine, UI helpers), then app
+npm run check    # typecheck + tests for core and app + garment data check — run before every commit
+```
+
+From `app/`:
+
+```bash
 npm run dev      # open the printed URL; use the "Network" URL to try it on your phone
-npm test         # unit tests (body model, garment data, fit engine, UI helpers)
-npm run check    # typecheck + tests + garment data check — run before every commit
 npm run data:check  # just the garment data report (grades, warnings, errors)
 npm run fit:report  # how predictions compare with the fit test (data/fit_tests.csv)
 ```
@@ -87,11 +94,13 @@ To add a garment, follow `docs/adding-garments.md`.
 
 Where things live:
 
-- `app/src/domain/body/` — height + weight -> body measurements (swap the estimator here)
-- `app/src/domain/garments/seed.json` — garment size charts
-- `app/src/domain/fit/` — the fit engine (`rules.ts` thresholds), personal preference
+- `packages/core/domain/body/` — height + weight -> body measurements (swap the estimator here)
+- `packages/core/domain/garments/seed.json` — garment size charts
+- `packages/core/domain/fit/` — the fit engine (`rules.ts` thresholds), personal preference
   (`preference.ts`), sampled odds (`sampleFit.ts`, spreads in `uncertainty.ts`)
+- `packages/core/ui-logic/` — the UI's pure helpers (wording, stored data, mannequin geometry)
 - `app/src/ui/` — screens and components
 
-The original Python chest-fit script is still in `src/` and `tests/` as the reference spec
-(`python -m pytest`). See `CLAUDE.md` for project rules and conventions.
+`packages/core` is shared code with no React or DOM, so the native app can use it too.
+Run `npm install` and `npm run check` from the repo root. See `CLAUDE.md` for project rules
+and conventions.

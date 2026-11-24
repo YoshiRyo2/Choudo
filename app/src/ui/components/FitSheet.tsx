@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import type { BodyModel } from '../../domain/body';
-import { fitAllSizes, measurementHint, type PreferenceSpec, type UnderLayer } from '../../domain/fit';
-import type { Garment } from '../../domain/garments';
-import { garmentOdds } from '../state/odds';
-import type { UnitSystem } from '../state/stored';
-import { layerNoteLines } from '../fitText';
+import type { BodyModel } from '@choudo/core/domain/body';
+import { fitAllSizes, measurementHint, type PreferenceSpec, type UnderLayer } from '@choudo/core/domain/fit';
+import type { Garment } from '@choudo/core/domain/garments';
+import { garmentOdds } from '@choudo/core/ui-logic/state/odds';
+import type { UnitSystem } from '@choudo/core/ui-logic/state/stored';
+import { layerNoteLines } from '@choudo/core/ui-logic/fitText';
 import { FitReadout } from './FitReadout';
 import { Sheet } from './Sheet';
 import { SizePicker } from './SizePicker';

@@ -1,8 +1,8 @@
-import type { BodyModel } from '../../../domain/body';
+import type { BodyModel } from '@choudo/core/domain/body';
 import { ConfirmButton } from '../../components/ConfirmButton';
 import { NameForm } from '../../components/NameForm';
-import { nextOutfitName, outfitOf } from '../../state/closet';
-import type { Outfit, SavedOutfit } from '../../state/stored';
+import { nextOutfitName, outfitOf } from '@choudo/core/ui-logic/state/closet';
+import type { Outfit, SavedOutfit } from '@choudo/core/ui-logic/state/stored';
 import { FoldersButton } from './FolderPicker';
 import { OutfitFigure, outfitLine } from './OutfitCard';
 

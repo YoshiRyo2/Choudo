@@ -3,7 +3,7 @@ import './ui/test/dom';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { App } from './App';
-import { STORAGE_KEYS } from './ui/state/stored';
+import { STORAGE_KEYS } from '@choudo/core/ui-logic/state/stored';
 
 describe('the mascot head choice', () => {
   beforeEach(() => {

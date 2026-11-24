@@ -6,15 +6,15 @@
  *   node scripts/stamp-glyphs.mjs [path/to/ShipporiMinchoB1-ExtraBold.ttf]
  *
  * With no path, the font is fetched from the google/fonts repository (about 15 MB,
- * kept in memory only). Writes src/ui/components/Stamp/stampGlyphs.ts (the path
- * the app draws) and src/ui/components/Stamp/stamp.svg (a reference preview).
+ * kept in memory only). Writes packages/core/ui-logic/components/Stamp/stampGlyphs.ts (the path
+ * the app draws) and packages/core/ui-logic/components/Stamp/stamp.svg (a reference preview).
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import opentype from 'opentype.js';
 
 const FONT_URL = 'https://raw.githubusercontent.com/google/fonts/main/ofl/shipporiminchob1/ShipporiMinchoB1-ExtraBold.ttf';
-const OUT_DIR = new URL('../src/ui/components/Stamp/', import.meta.url);
+const OUT_DIR = new URL('../../packages/core/ui-logic/components/Stamp/', import.meta.url);
 
 /** The stamp's box is 0..100 in both directions; the glyphs sit across its middle. */
 const SIZE = 100;

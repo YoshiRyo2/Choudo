@@ -7,7 +7,7 @@
 //
 //   npm run data:check
 //
-// The checks themselves are pure TypeScript in src/domain/garments (see
+// The checks themselves are pure TypeScript in packages/core/domain/garments (see
 // report.ts and verify.ts); this script only loads them and reads the disk.
 
 import { execFileSync } from 'node:child_process';
@@ -20,8 +20,8 @@ import { runnerImport } from 'vite';
 const appDir = fileURLToPath(new URL('..', import.meta.url));
 const load = async (path) => (await runnerImport(resolve(appDir, path), { configFile: false, logLevel: 'silent' })).module;
 
-const { SEED_GARMENTS } = await load('src/domain/garments/garments.ts');
-const { buildReport, errorCount, formatReport } = await load('src/domain/garments/report.ts');
+const { SEED_GARMENTS } = await load('../packages/core/domain/garments/garments.ts');
+const { buildReport, errorCount, formatReport } = await load('../packages/core/domain/garments/report.ts');
 
 /** true when .gitignore leaves this path out. Without git (say, an unpacked zip), nothing is. */
 function gitIgnored(path) {

@@ -5,14 +5,14 @@ import {
   type BodyInput,
   type BodyModel,
   type BodyType,
-} from '../../domain/body';
-import { cmToIn, round } from '../../domain/units';
+} from '@choudo/core/domain/body';
+import { cmToIn, round } from '@choudo/core/domain/units';
 import { AboutSheet } from '../components/AboutSheet';
 import { Mannequin } from '../components/Mannequin/Mannequin';
 import { FieldError, NumberInput } from '../components/NumberInput';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { Wordmark } from '../components/Wordmark';
-import type { UnitSystem } from '../state/stored';
+import type { UnitSystem } from '@choudo/core/ui-logic/state/stored';
 import {
   braSizeProblemText,
   EMPTY_FORM,
@@ -22,9 +22,9 @@ import {
   switchUnits,
   type BodyForm,
   type OverrideField,
-} from './bodyForm';
-import { ALL_FIELDS, fieldErrors, forgetIfFixed, reveal, shownErrors, type FormField } from './bodyFieldErrors';
-import { previewBody } from './bodyPreview';
+} from '@choudo/core/ui-logic/screens/bodyForm';
+import { ALL_FIELDS, fieldErrors, forgetIfFixed, reveal, shownErrors, type FormField } from '@choudo/core/ui-logic/screens/bodyFieldErrors';
+import { previewBody } from '@choudo/core/ui-logic/screens/bodyPreview';
 import './BodyScreen.css';
 
 interface BodyScreenProps {

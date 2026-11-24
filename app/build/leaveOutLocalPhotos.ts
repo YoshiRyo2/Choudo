@@ -8,10 +8,10 @@
 import { readFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Plugin, ResolvedConfig } from 'vite';
-import { localOnlyFiles } from '../src/domain/garments/photo.ts';
-import type { GarmentImage } from '../src/domain/garments/types.ts';
+import { localOnlyFiles } from '../../packages/core/domain/garments/photo.ts';
+import type { GarmentImage } from '../../packages/core/domain/garments/types.ts';
 
-const SEED = 'src/domain/garments/seed.json';
+const SEED = '../packages/core/domain/garments/seed.json';
 
 export function leaveOutLocalPhotos(): Plugin {
   let config: ResolvedConfig;

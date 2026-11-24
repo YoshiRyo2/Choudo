@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { MAX_NAME_LENGTH } from '../state/closet';
+import { MAX_NAME_LENGTH } from '@choudo/core/ui-logic/state/closet';
 import './NameForm.css';
 
 interface NameFormProps {

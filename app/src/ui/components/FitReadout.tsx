@@ -1,5 +1,5 @@
-import type { GarmentFit, GarmentOdds, MeasureHint, PreferenceSpec, ZoneOdds } from '../../domain/fit';
-import { templateOf, type Garment } from '../../domain/garments';
+import type { GarmentFit, GarmentOdds, MeasureHint, PreferenceSpec, ZoneOdds } from '@choudo/core/domain/fit';
+import { templateOf, type Garment } from '@choudo/core/domain/garments';
 import {
   bodyPlaceText,
   describeZone,
@@ -20,9 +20,9 @@ import {
   zoneLabelText,
   zoneTitle,
   objectiveOnly,
-} from '../fitText';
+} from '@choudo/core/ui-logic/fitText';
 import { GarmentBadge } from './GarmentBadge';
-import type { UnitSystem } from '../state/stored';
+import type { UnitSystem } from '@choudo/core/ui-logic/state/stored';
 import { TapeScale } from './TapeScale';
 import './FitReadout.css';
 

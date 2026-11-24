@@ -1,6 +1,6 @@
 import { createContext } from 'react';
-import type { FitTone } from '../../../domain/fit';
-import { faceShape, headShape, type Ellipse, type HeadAnchor, type HeadKind } from './heads';
+import type { FitTone } from '@choudo/core/domain/fit';
+import { faceShape, headShape, type Ellipse, type HeadAnchor, type HeadKind } from '@choudo/core/ui-logic/components/Mannequin/heads';
 
 /** The head every Mannequin draws unless told otherwise; App provides the stored choice. */
 export const MascotHeadContext = createContext<HeadKind>('cloud');

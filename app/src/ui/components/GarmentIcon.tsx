@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { Garment } from '../../domain/garments';
-import { thumbPhotoSrc } from './garmentThumb';
+import type { Garment } from '@choudo/core/domain/garments';
+import { thumbPhotoSrc } from '@choudo/core/ui-logic/components/garmentThumb';
 import './GarmentIcon.css';
 
 /**

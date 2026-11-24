@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_OUTFIT } from '../../state/stored';
+import { EMPTY_OUTFIT } from '@choudo/core/ui-logic/state/stored';
 import { outfitLine } from './OutfitCard';
 
 describe('outfitLine', () => {

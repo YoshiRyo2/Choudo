@@ -6,7 +6,7 @@
  * Pure: text in, text out. Used by the dev server's save endpoint (vite.config.ts).
  */
 
-import { PANTS_LANDMARKS, TOP_BACK_LANDMARKS, TOP_LANDMARKS, type GarmentImage, type LandmarkName, type PhotoLicence, type PhotoSide } from '../../domain/garments/types';
+import { PANTS_LANDMARKS, TOP_BACK_LANDMARKS, TOP_LANDMARKS, type GarmentImage, type LandmarkName, type PhotoLicence, type PhotoSide } from '@choudo/core/domain/garments/types';
 
 /** Where a JSON value sits in the text: [start, end). Objects also list their members. */
 interface Span {

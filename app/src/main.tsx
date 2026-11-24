@@ -2,7 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { registerServiceWorker } from './ui/registerServiceWorker';
-import { migrateStorage } from './ui/state/migrate';
+import { migrateStorage } from '@choudo/core/ui-logic/state/migrate';
 import './ui/styles.css';
 
 migrateStorage();

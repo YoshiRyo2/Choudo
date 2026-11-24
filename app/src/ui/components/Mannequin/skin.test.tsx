@@ -1,11 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { estimateBody } from '../../../domain/body';
-import type { FitTone } from '../../../domain/fit';
-import { findGarment } from '../../../domain/garments';
-import { HEAD_KINDS, type HeadKind } from './heads';
+import { estimateBody } from '@choudo/core/domain/body';
+import type { FitTone } from '@choudo/core/domain/fit';
+import { findGarment } from '@choudo/core/domain/garments';
+import { HEAD_KINDS, type HeadKind } from '@choudo/core/ui-logic/components/Mannequin/heads';
 import { Mannequin, type WornGarment } from './Mannequin';
-import type { View } from './view';
+import type { View } from '@choudo/core/ui-logic/components/Mannequin/view';
 
 /**
  * The skin rule: the head, face and motion are drawing only. Everything the

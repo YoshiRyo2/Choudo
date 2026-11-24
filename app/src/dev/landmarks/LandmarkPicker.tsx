@@ -7,18 +7,18 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { estimateBody, type BodyInput } from '../../domain/body';
-import { findGarment } from '../../domain/garments';
-import type { Garment, GarmentImage, LandmarkName, PhotoSide } from '../../domain/garments/types';
-import { pantsLandmarks, templateOf, topLandmarks } from '../../domain/garments/categories';
-import { validateImage } from '../../domain/garments/validate';
+import { estimateBody, type BodyInput } from '@choudo/core/domain/body';
+import { findGarment } from '@choudo/core/domain/garments';
+import type { Garment, GarmentImage, LandmarkName, PhotoSide } from '@choudo/core/domain/garments/types';
+import { pantsLandmarks, templateOf, topLandmarks } from '@choudo/core/domain/garments/categories';
+import { validateImage } from '@choudo/core/domain/garments/validate';
 import { licenceForSave } from './seedWrite';
-import { bodyGeometry } from '../../ui/components/Mannequin/geometry';
+import { bodyGeometry } from '@choudo/core/ui-logic/components/Mannequin/geometry';
 import { Mannequin } from '../../ui/components/Mannequin/Mannequin';
-import { foldedPieces, warpPantsPieces, warpPieces } from '../../ui/components/Mannequin/photoWarp';
-import { pantsShape } from '../../ui/components/Mannequin/templates/pants';
-import { topShape } from '../../ui/components/Mannequin/topShape';
-import { STORAGE_KEYS, isStoredBody } from '../../ui/state/stored';
+import { foldedPieces, warpPantsPieces, warpPieces } from '@choudo/core/ui-logic/components/Mannequin/photoWarp';
+import { pantsShape } from '@choudo/core/ui-logic/components/Mannequin/templates/pants';
+import { topShape } from '@choudo/core/ui-logic/components/Mannequin/topShape';
+import { STORAGE_KEYS, isStoredBody } from '@choudo/core/ui-logic/state/stored';
 import { PICKER_KITS, foldWarning, kitFor, nextPoint, previewSizes, type PickerKit } from './pickerModel';
 import { formatImage } from './seedWrite';
 import { alphaMask, insetMask, suggestLandmarks, suggestPantsLandmarks, type XY } from './suggest';

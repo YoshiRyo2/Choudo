@@ -1,5 +1,5 @@
-import type { Garment } from '../../domain/garments';
-import { garmentTag } from '../fitText';
+import type { Garment } from '@choudo/core/domain/garments';
+import { garmentTag } from '@choudo/core/ui-logic/fitText';
 
 /** "Sample data" for invented rows, otherwise how far to trust the numbers: "From size chart", … */
 export function GarmentBadge({ garment, className }: { garment: Pick<Garment, 'source' | 'grade'>; className?: string }) {

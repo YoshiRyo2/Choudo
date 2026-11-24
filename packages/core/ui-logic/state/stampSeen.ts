@@ -6,7 +6,11 @@
 
 export const STAMP_SESSION_KEY = 'choudo.stamped.v1';
 
-export type SessionStore = Pick<Storage, 'getItem' | 'setItem'>;
+/** The bits of Web Storage we use. */
+export type SessionStore = {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+};
 
 /** "gildan-5000|M" */
 export const stampKey = (garmentId: string, size: string): string => `${garmentId}|${size}`;
@@ -44,7 +48,8 @@ export function stampLedger(storage: SessionStore | null) {
 
 function sessionStore(): SessionStore | null {
   try {
-    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
+    // Missing outside a browser (the native app): the ledger then stays in memory.
+    return (globalThis as { sessionStorage?: SessionStore }).sessionStorage ?? null;
   } catch {
     return null;
   }

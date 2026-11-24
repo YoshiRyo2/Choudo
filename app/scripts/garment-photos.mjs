@@ -42,7 +42,7 @@ import { overlayOutline } from './photo-overlay.mjs';
 
 const APP = join(dirname(fileURLToPath(import.meta.url)), '..');
 const config = JSON.parse(await readFile(join(APP, 'scripts/garment-photos.json'), 'utf8'));
-const seed = JSON.parse(await readFile(join(APP, 'src/domain/garments/seed.json'), 'utf8'));
+const seed = JSON.parse(await readFile(join(APP, '../packages/core/domain/garments/seed.json'), 'utf8'));
 const args = process.argv.slice(2);
 const withOverlay = args.includes('--overlay');
 const only = args.filter((a) => !a.startsWith('--'));

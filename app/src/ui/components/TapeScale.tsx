@@ -1,6 +1,6 @@
-import type { FitBand } from '../../domain/fit';
-import { CM_PER_INCH } from '../../domain/units';
-import type { UnitSystem } from '../state/stored';
+import type { FitBand } from '@choudo/core/domain/fit';
+import { CM_PER_INCH } from '@choudo/core/domain/units';
+import type { UnitSystem } from '@choudo/core/ui-logic/state/stored';
 
 interface TapeScaleProps {
   diffCm: number;

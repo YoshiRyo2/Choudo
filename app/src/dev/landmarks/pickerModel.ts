@@ -3,9 +3,9 @@
  * is called, which comes next, and which sizes the live preview shows.
  */
 
-import { templateOf } from '../../domain/garments/categories';
-import type { Garment, GarmentSize, LandmarkName, PantsLandmarkName, PhotoSide, TopBackLandmarkName, TopLandmarkName } from '../../domain/garments/types';
-import type { WarpPiece } from '../../ui/components/Mannequin/photoWarp';
+import { templateOf } from '@choudo/core/domain/garments/categories';
+import type { Garment, GarmentSize, LandmarkName, PantsLandmarkName, PhotoSide, TopBackLandmarkName, TopLandmarkName } from '@choudo/core/domain/garments/types';
+import type { WarpPiece } from '@choudo/core/ui-logic/components/Mannequin/photoWarp';
 import type { XY } from './suggest';
 
 /**

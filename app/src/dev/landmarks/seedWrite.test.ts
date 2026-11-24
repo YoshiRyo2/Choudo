@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { PANTS_LANDMARKS, TOP_BACK_LANDMARKS, TOP_LANDMARKS, type GarmentImage, type TopLandmarkName } from '../../domain/garments/types';
-import SEED from '../../domain/garments/seed.json?raw';
+import { PANTS_LANDMARKS, TOP_BACK_LANDMARKS, TOP_LANDMARKS, type GarmentImage, type TopLandmarkName } from '@choudo/core/domain/garments/types';
+import SEED from '@choudo/core/domain/garments/seed.json?raw';
 import { formatImage, licenceForSave, writeGarmentImage } from './seedWrite';
 
 const image = (file: string, shift = 0): GarmentImage => ({

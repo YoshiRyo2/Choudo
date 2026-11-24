@@ -14,13 +14,13 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { join } from 'node:path';
 import type { Plugin } from 'vite';
-import type { GarmentImage, PhotoSide, SeedGarment } from '../src/domain/garments/types';
+import type { GarmentImage, PhotoSide, SeedGarment } from '../../packages/core/domain/garments/types';
 // App modules are loaded through Vite at request time (ssrLoadModule), not
 // imported here, so the config itself stays plain Node-loadable.
 type SeedWrite = typeof import('../src/dev/landmarks/seedWrite');
-type Validate = typeof import('../src/domain/garments/validate');
+type Validate = typeof import('../../packages/core/domain/garments/validate');
 
-const SEED = 'src/domain/garments/seed.json';
+const SEED = '../packages/core/domain/garments/seed.json';
 const PHOTOS = 'scripts/garment-photos.json';
 
 function send(res: ServerResponse, status: number, body: unknown) {
@@ -71,7 +71,7 @@ export function landmarksDevServer(): Plugin {
           readBody(req)
             .then(async (body) => {
               const { licenceForSave, writeGarmentImage } = (await server.ssrLoadModule('/src/dev/landmarks/seedWrite.ts')) as SeedWrite;
-              const { validateImage } = (await server.ssrLoadModule('/src/domain/garments/validate.ts')) as Validate;
+              const { validateImage } = (await server.ssrLoadModule(join(root, '../packages/core/domain/garments/validate.ts'))) as Validate;
               const { id, file, landmarks, side: sent } = body as { id: string; file: string; landmarks: GarmentImage['landmarks']; side?: PhotoSide };
               const side: PhotoSide = sent === 'back' ? 'back' : 'front';
               const path = join(root, SEED);
