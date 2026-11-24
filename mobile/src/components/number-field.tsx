@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 
 import { colors, fonts, radius, spacing, type } from '@/theme';
 
@@ -7,7 +7,8 @@ import { ThemedText } from './themed-text';
 
 export interface NumberFieldProps {
   label: string;
-  unit: string;
+  /** Printed inside the box after the value; none for a text answer like a bra size. */
+  unit?: string;
   value: string;
   onChangeText: (text: string) => void;
   onBlur?: () => void;
@@ -22,9 +23,12 @@ export interface NumberFieldProps {
   autoFocus?: boolean;
   /** The box gets `${testID}-box`. */
   testID?: string;
+  /** A text answer (the bra size) uses the same box with its own keyboard. */
+  keyboardType?: TextInputProps['keyboardType'];
+  autoCapitalize?: TextInputProps['autoCapitalize'];
 }
 
-/** A number box with its unit printed inside, like a gauge. Decimal pad; a comma is fine. */
+/** A number box with its unit printed inside, like a gauge. Decimal pad by default; a comma is fine. */
 export function NumberField({
   label,
   unit,
@@ -38,6 +42,8 @@ export function NumberField({
   showLabel,
   autoFocus,
   testID,
+  keyboardType = 'decimal-pad',
+  autoCapitalize = 'none',
 }: NumberFieldProps) {
   const [focused, setFocused] = useState(false);
   return (
@@ -67,16 +73,19 @@ export function NumberField({
           }}
           placeholder={placeholder}
           placeholderTextColor={colors.placeholder}
-          keyboardType="decimal-pad"
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
           autoComplete="off"
           autoCorrect={false}
           autoFocus={autoFocus}
           accessibilityLabel={label}
           accessibilityHint={invalid && error ? error : hint}
         />
-        <Text style={styles.unit} accessibilityElementsHidden importantForAccessibility="no">
-          {unit}
-        </Text>
+        {unit && (
+          <Text style={styles.unit} accessibilityElementsHidden importantForAccessibility="no">
+            {unit}
+          </Text>
+        )}
       </View>
     </View>
   );
