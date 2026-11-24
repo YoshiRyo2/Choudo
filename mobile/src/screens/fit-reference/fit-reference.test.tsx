@@ -112,3 +112,15 @@ test('the tee diagram draws', async () => {
   await press('Measure it');
   expect(screen.getByTestId('tee-diagram', { includeHiddenElements: true })).toBeTruthy();
 });
+
+test('a tee we no longer list plus a stated style opens on the question', async () => {
+  await renderScreen({ kind: 'catalogue', garmentId: 'gone-tee', size: 'M' }, 'slim');
+  expect(heading('How do you like tees to fit?')).toBeTruthy();
+});
+
+test('a tee we no longer list: Pick it from our tees starts on the first tee we list, with its sizes', async () => {
+  await renderScreen({ kind: 'catalogue', garmentId: 'gone-tee', size: 'M' });
+  await press('Pick it from our tees');
+  expect(screen.getByRole('radio', { name: `${TEES[0].brand} ${TEES[0].name}` })).toBeChecked();
+  expect(screen.getByRole('radio', { name: TEES[0].sizes[0].label })).toBeTruthy();
+});

@@ -129,10 +129,45 @@ export function inputToForm(input: BodyInput, units: UnitSystem): BodyForm {
   };
 }
 
-/** Switch units without losing what was typed. */
+/**
+ * Switch units without losing what was typed. Each field converts on its own (so a
+ * half-filled form keeps its numbers), rounded as inputToForm does; text that isn't a
+ * number stays as typed.
+ */
 export function switchUnits(form: BodyForm, units: UnitSystem): BodyForm {
   if (form.units === units) return form;
-  const input = formToInput(form);
-  if (input) return { ...inputToForm(input, units), braSize: form.braSize, braSystem: form.braSystem };
-  return { ...EMPTY_FORM, units, bodyType: form.bodyType, braSize: form.braSize, braSystem: form.braSystem };
+  const toMetric = units === 'metric';
+  const show = (n: number) => String(round(n, 1));
+
+  let { heightCm, heightFt, heightIn } = form;
+  const typedCm = toMetric
+    ? (() => {
+        const ft = parseNumber(form.heightFt);
+        return ft === undefined ? undefined : feetInchesToCm(ft, parseNumber(form.heightIn) ?? 0);
+      })()
+    : parseNumber(form.heightCm);
+  if (typedCm !== undefined) {
+    const { feet, inches } = cmToFeetInches(typedCm);
+    heightCm = show(typedCm);
+    heightFt = String(feet);
+    heightIn = String(inches);
+  } else if (toMetric) {
+    heightCm = form.heightFt;
+  } else {
+    heightFt = form.heightCm;
+    heightIn = '';
+  }
+
+  const weightValue = parseNumber(form.weight);
+  const weight =
+    weightValue === undefined ? form.weight : show(toMetric ? lbToKg(weightValue) : kgToLb(weightValue));
+
+  const length = (text: string) => {
+    const v = parseNumber(text);
+    return v === undefined ? text : show(toMetric ? inToCm(v) : cmToIn(v));
+  };
+  const overrides = { ...form.overrides };
+  for (const field of OVERRIDE_FIELDS) overrides[field] = length(form.overrides[field]);
+
+  return { ...form, units, heightCm, heightFt, heightIn, weight, overrides };
 }

@@ -51,6 +51,26 @@ describe('round trips', () => {
     expect(Math.abs(input.heightCm - 176)).toBeLessThanOrEqual(1);
     expect(Math.abs(input.weightKg - 85)).toBeLessThanOrEqual(0.1);
   });
+
+  // Half-filled: each field converts on its own, nothing typed is lost.
+  it('keeps a height typed before the weight', () => {
+    const next = switchUnits({ ...EMPTY_FORM, heightCm: '170' }, 'imperial');
+    expect(next).toMatchObject({ units: 'imperial', heightFt: '5', heightIn: '7', weight: '' });
+    expect(Math.abs(formToInput({ ...next, weight: '150' })!.heightCm - 170)).toBeLessThanOrEqual(1);
+  });
+
+  it('keeps a weight and tape numbers typed before the height', () => {
+    const next = switchUnits(
+      { ...EMPTY_FORM, units: 'imperial', weight: '150', overrides: { ...EMPTY_FORM.overrides, waist: '32' } },
+      'metric',
+    );
+    expect(next).toMatchObject({ units: 'metric', heightCm: '', weight: '68', overrides: { waist: '81.3' } });
+  });
+
+  it('keeps text it cannot read as typed', () => {
+    const next = switchUnits({ ...metric, overrides: { ...EMPTY_FORM.overrides, hips: 'abc' } }, 'imperial');
+    expect(next.overrides.hips).toBe('abc');
+  });
 });
 
 describe('bra size', () => {

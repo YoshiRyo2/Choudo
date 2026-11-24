@@ -32,11 +32,14 @@ const HEADING: Record<Step, string> = {
   style: 'How do you like tees to fit?',
 };
 
-/** The step matching what's stored. A tee we no longer list starts from the three ways in. */
+/** A stored catalogue tee, if we still list it (an old one is treated as none). */
+function listedTee(anchor: Anchor | null) {
+  return anchor?.kind === 'catalogue' && ANCHOR_GARMENTS.some((g) => g.id === anchor.garmentId) ? anchor : null;
+}
+
+/** The step matching what's stored. A tee we no longer list counts as no tee. */
 function firstStep(anchor: Anchor | null, style: FitStyle | null): Step {
-  if (anchor?.kind === 'catalogue') {
-    return ANCHOR_GARMENTS.some((g) => g.id === anchor.garmentId) ? 'catalogue' : 'choose';
-  }
+  if (listedTee(anchor)) return 'catalogue';
   if (anchor?.kind === 'measured') return 'measure';
   return style ? 'style' : 'choose';
 }
@@ -45,7 +48,6 @@ function firstStep(anchor: Anchor | null, style: FitStyle | null): Step {
 export function FitReferenceScreen({ units, anchor, style, onDone, onSkip, skipLabel }: FitReferenceScreenProps) {
   const [step, setStep] = useState<Step>(() => firstStep(anchor, style));
   const back = () => setStep('choose');
-  const catalogueAnchor = anchor?.kind === 'catalogue' && step === 'catalogue' ? anchor : null;
 
   return (
     <ScrollView
@@ -69,7 +71,7 @@ export function FitReferenceScreen({ units, anchor, style, onDone, onSkip, skipL
 
       {step === 'choose' && <ChooseStep onChoose={setStep} />}
       {step === 'catalogue' && (
-        <CatalogueStep initial={catalogueAnchor} onSave={(a) => onDone(a, style)} onBack={back} />
+        <CatalogueStep initial={listedTee(anchor)} onSave={(a) => onDone(a, style)} onBack={back} />
       )}
       {step === 'measure' && <MeasureStep units={units} initial={anchor} onSave={(a) => onDone(a, style)} onBack={back} />}
       {step === 'style' && <StyleStep initial={style} onSave={(s) => onDone(null, s)} onBack={back} />}
