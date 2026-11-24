@@ -71,8 +71,9 @@ packages/core/        shared, no React DOM, no React Native
                       swipe.ts; stampGlyphs.ts; text helpers (fitText, catalogueText);
                       state logic (closet, feed, outfit, odds, fitTests, stampSeen,
                       stored, migrate); screen logic (bodyForm, bodyFieldErrors,
-                      bodyPreview, anchorForm); small helpers (garmentThumb, sizeRow,
-                      motion, focus)
+                      bodyPreview, anchorForm); small helpers (garmentThumb, sizeRow).
+                      Kept at their app/src/ui sub-paths for now, so the move is pure
+                      git mv. motion, focus and devTools stay in app/ (DOM / Vite only)
 app/                  the current Vite site, now importing from packages/core
 mobile/               the new Expo app
 ```
