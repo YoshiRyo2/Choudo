@@ -1,31 +1,38 @@
-import { catalogueFor, GARMENTS } from '@choudo/core/domain/garments';
 import { router } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { useContext } from 'react';
 
 import { Button } from '@/components/button';
-import { useBody } from '@/hooks/use-body';
-import { Placeholder } from '@/screens/placeholder';
-import { spacing } from '@/theme';
+import { MascotHeadContext } from '@/components/mannequin/head-context';
+import { useHead } from '@/hooks/use-head';
+import { useWardrobe } from '@/hooks/use-wardrobe';
+import { FittingRoom } from '@/screens/fitting-room';
 
-// Placeholder until the real Fitting room: shows the shared engine running on the phone.
-export default function FittingRoom() {
-  const [body] = useBody();
-  if (body === null) return null;
-  const count = catalogueFor(GARMENTS, body.bodyType, 'matching').length;
+export default function FittingRoomRoute() {
+  const wardrobe = useWardrobe();
+  const [, setHead] = useHead();
+  // The root layout provides the stored head, so the whole app draws the same one.
+  const head = useContext(MascotHeadContext);
+  if (!wardrobe) return null;
   return (
-    <Placeholder
-      title="Fitting room"
-      action={
-        <View style={styles.actions}>
-          <Button variant="outline" size="sm" title="Edit body" onPress={() => router.push('/body')} />
-          {__DEV__ && <Button variant="quiet" size="sm" title="Mannequin lab" onPress={() => router.push('/dev/mannequin')} />}
-        </View>
-      }>
-      {`${body.heightCm} cm · ${count} garments in your sizing`}
-    </Placeholder>
+    <FittingRoom
+      body={wardrobe.body}
+      model={wardrobe.model}
+      preference={wardrobe.preference}
+      units={wardrobe.units}
+      onUnitsChange={wardrobe.setUnits}
+      outfit={wardrobe.outfit}
+      onOutfitChange={wardrobe.setOutfit}
+      catalogue={wardrobe.catalogue}
+      onCatalogueChange={wardrobe.setCatalogue}
+      shown={wardrobe.shown}
+      head={head}
+      onHeadChange={setHead}
+      onEditBody={() => router.push('/body')}
+      onDetails={(garmentId, size) => router.push({ pathname: '/fit-details', params: { garmentId, size, from: 'fitting' } })}
+      onSaveOutfit={() => router.push('/save-outfit')}
+      devTools={
+        __DEV__ && <Button variant="quiet" size="sm" title="Mannequin lab" onPress={() => router.push('/dev/mannequin')} />
+      }
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  actions: { alignItems: 'center', gap: spacing.sm },
-});

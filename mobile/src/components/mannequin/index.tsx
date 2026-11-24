@@ -197,8 +197,9 @@ export function Mannequin({
   };
 
   return (
-    <RNView style={[{ width: '100%', height: '100%' }, style]} onLayout={onLayout} accessible accessibilityRole="image" accessibilityLabel={label}>
-      <Svg width="100%" height="100%" viewBox={`${VIEW.left} ${VIEW.top} ${VIEW_WIDTH} ${viewHeight}`}>
+    <RNView style={[FILL, style]} onLayout={onLayout} accessible accessibilityRole="image" accessibilityLabel={label}>
+      {/* Mannequin.css: overflow visible, so a fit pin past the view box (a big jacket on a short body) still shows. */}
+      <Svg width="100%" height="100%" viewBox={`${VIEW.left} ${VIEW.top} ${VIEW_WIDTH} ${viewHeight}`} style={SPILL}>
         {showHeightTape && <HeightTape heightCm={body.heightCm} x={VIEW.left + 3} />}
 
         {/* A rounded stand under the feet: drawing only, below the floor the body stands on. */}
@@ -328,5 +329,9 @@ export function Mannequin({
  * Approximate: the width is our guess (girth method unknown) — a clear dash.
  * Estimated: drawn from numbers that include our estimates — a subtler dash.
  */
+/** The figure fills its box, and may spill past it (Mannequin.css overflow: visible). */
+const FILL: ViewStyle = { width: '100%', height: '100%', overflow: 'visible' };
+const SPILL: ViewStyle = { overflow: 'visible' };
+
 const garmentPaint = (approximate: boolean, garment: Pick<Garment, 'grade'>) =>
   approximate ? paint.garmentApproximate : garment.grade === 'estimated' ? paint.garmentEstimated : paint.garment;
