@@ -324,7 +324,7 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
         </div>
 
         <p id={`${formId}-privacy`} className="body-screen__privacy">
-          Saved on this device only. No account, no photos, nothing sent anywhere.{' '}
+          Your measurements stay on this device. No account, no photos.{' '}
           <button type="button" className="body-screen__about" onClick={() => setAbout(true)}>
             About Choudo
           </button>

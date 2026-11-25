@@ -6,7 +6,7 @@ const indexHtml = `<!doctype html><html><head>
 <link rel="icon" href="/Choudo/favicon.ico" />
 <link rel="manifest" href="/Choudo/manifest.webmanifest" />
 <script type="module" crossorigin src="/Choudo/assets/index-abc.js"></script>
-<link rel="stylesheet" href="https://fonts.example.com/x.css" />
+<script data-goatcounter="https://choudo.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head><body></body></html>`;
 const manifest = { start_url: './', icons: [{ src: 'icon-192.png' }, { src: 'icon-512.png' }] };
 const files = [
@@ -18,10 +18,18 @@ const files = [
   'icon-512.png',
   'sw.js',
   'garments/ryo-grey-polo-front.png',
+  'privacy.html',
+  'support.html',
 ];
 const localOnly = ['garments/gildan-5000-front.png', 'garments/ryo-navy-graphic-tee-front.png'];
 const swSource = 'const BUILD = {"cache":"choudo-1a2b3c","precache":["./","assets/index-abc.js"]};';
-const clean = { files, indexHtml, manifest, localOnly, base, swSource };
+const analytics = {
+  script: 'https://gc.zgo.at/count.js',
+  tag: '<script data-goatcounter="https://choudo.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>',
+};
+const page = (title) => `<!doctype html><html><head><title>${title}</title></head><body><a href="./">Open Choudo</a></body></html>`;
+const pages = { 'privacy.html': page('Privacy policy'), 'support.html': page('Support') };
+const clean = { files, indexHtml, manifest, localOnly, base, swSource, analytics, pages };
 
 describe('distProblems', () => {
   it('passes a clean build', () => {
@@ -38,6 +46,25 @@ describe('distProblems', () => {
     expect(distProblems({ ...clean, indexHtml: html })).toEqual([
       'index.html: /Choudo/assets/index-old.js is not in dist/',
       'sw.js does not precache assets/index-old.js',
+    ]);
+  });
+
+  it('allows only GoatCounter’s script from another site and nothing else', () => {
+    const html = indexHtml.replace('</head>', '<link rel="stylesheet" href="https://fonts.example.com/x.css" />\n<script src="//cdn.example.com/a.js"></script>\n</head>');
+    expect(distProblems({ ...clean, indexHtml: html })).toEqual([
+      'index.html: https://fonts.example.com/x.css is on another site (only https://gc.zgo.at/count.js may be)',
+      'index.html: //cdn.example.com/a.js is on another site (only https://gc.zgo.at/count.js may be)',
+    ]);
+  });
+
+  it('flags a production build without the GoatCounter script, or with it twice', () => {
+    const without = indexHtml.replace(analytics.tag, '');
+    expect(distProblems({ ...clean, indexHtml: without })).toEqual([
+      'index.html has the GoatCounter script 0 times, not once (build/goatCounter.ts)',
+    ]);
+    const twice = indexHtml.replace(analytics.tag, analytics.tag + analytics.tag);
+    expect(distProblems({ ...clean, indexHtml: twice })).toEqual([
+      'index.html has the GoatCounter script 2 times, not once (build/goatCounter.ts)',
     ]);
   });
 
@@ -71,5 +98,15 @@ describe('distProblems', () => {
     expect(distProblems({ ...clean, files: [...files, 'garments/ryo-navy-graphic-tee-front.png'] })).toEqual([
       'garments/ryo-navy-graphic-tee-front.png is local-only and must not ship',
     ]);
+  });
+
+  it('flags a missing privacy policy or support page (the App Store links to both)', () => {
+    const without = files.filter((f) => f !== 'privacy.html' && f !== 'support.html');
+    expect(distProblems({ ...clean, files: without, pages: {} })).toEqual(['privacy.html is missing', 'support.html is missing']);
+  });
+
+  it('flags a page that does not link back to the app', () => {
+    const lost = { ...pages, 'support.html': '<!doctype html><html><body>Support</body></html>' };
+    expect(distProblems({ ...clean, pages: lost })).toEqual(['support.html does not link back to the app (href="./")']);
   });
 });

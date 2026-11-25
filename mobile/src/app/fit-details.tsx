@@ -6,6 +6,7 @@ import { wearGarment } from '@choudo/core/ui-logic/state/outfit';
 
 import { useTestMode } from '@/hooks/use-test-mode';
 import { useWardrobe } from '@/hooks/use-wardrobe';
+import { DEV_TOOLS } from '@/utils/dev-tools';
 import { FitDetails } from '@/screens/fit-details';
 
 /** Leave the sheet for whatever is under it (the Fitting room on a cold start). */
@@ -57,8 +58,8 @@ export default function FitDetailsRoute() {
       initialSize={size}
       units={units}
       under={under}
-      // Each zone's chances are for Test mode only (development builds), as on the web.
-      showOdds={__DEV__ && testMode}
+      // Each zone's chances are for Test mode only (development and the preview build), as on the web.
+      showOdds={DEV_TOOLS && testMode}
       actionLabel={(s) => (fromFitting ? (s === size ? 'Done' : `Wear ${s}`) : `Try ${s} in the fitting room`)}
       onAction={(s) => {
         setOutfit(wearGarment(wardrobe.outfit, garment, s));

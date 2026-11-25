@@ -19,6 +19,7 @@ import { Segmented } from '@/components/segmented';
 import { NextCard, SwipeCard } from '@/components/swipe-card';
 import { ThemedText } from '@/components/themed-text';
 import type { Closet } from '@/hooks/use-closet';
+import { usePrefetchOdds } from '@/hooks/use-prefetch-odds';
 import { colors, fonts, spacing, type } from '@/theme';
 
 export interface DiscoverProps {
@@ -35,6 +36,8 @@ export interface DiscoverProps {
   feedKey: number;
   onOpenDetails: (garment: Garment, size: string) => void;
   onOpenCloset: () => void;
+  /** False while another tab is on screen: the next cards' odds wait (default true). */
+  active?: boolean;
 }
 
 /** How long the card takes to fly off before the next one is shown (ms; the web's LEAVE_MS). */
@@ -59,6 +62,7 @@ export function Discover({
   feedKey,
   onOpenDetails,
   onOpenCloset,
+  active = true,
 }: DiscoverProps) {
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
@@ -103,6 +107,9 @@ export function Discover({
     return { garment, ...suggested, verdict };
   }, [garment, model, preference]);
   const hasNext = index + 1 < feed.garments.length;
+  // The next two cards' odds, a tick at a time after this render, so swiping on is instant.
+  const upcoming = useMemo(() => feed.garments.slice(index + 1, index + 3), [feed, index]);
+  usePrefetchOdds(model, preference, upcoming, { active });
 
   function decide(outcome: 'like' | 'pass') {
     if (!current || deciding.current) return;

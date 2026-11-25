@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { BodyModel } from '@choudo/core/domain/body';
 import { fitAllSizes, measurementHint, type PreferenceSpec, type UnderLayer } from '@choudo/core/domain/fit';
 import type { Garment } from '@choudo/core/domain/garments';
 import { garmentOdds } from '@choudo/core/ui-logic/state/odds';
 import type { UnitSystem } from '@choudo/core/ui-logic/state/stored';
 import { layerNoteLines } from '@choudo/core/ui-logic/fitText';
+import { track } from '../analytics';
 import { FitReadout } from './FitReadout';
 import { Sheet } from './Sheet';
 import { SizePicker } from './SizePicker';
@@ -44,6 +45,7 @@ export function FitSheet({
   showOdds = false,
 }: FitSheetProps) {
   const [size, setSize] = useState(initialSize);
+  useEffect(() => track('fit-details-opened'), []);
   const fits = useMemo(() => fitAllSizes(model, garment, under), [model, garment, under]);
   const odds = useMemo(() => garmentOdds(model, garment, preference, under), [model, garment, preference, under]);
   const hint = useMemo(

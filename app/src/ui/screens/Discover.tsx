@@ -13,6 +13,7 @@ import { verdictLine } from '@choudo/core/ui-logic/fitText';
 import { garmentOdds } from '@choudo/core/ui-logic/state/odds';
 import { suggestedFit } from '@choudo/core/ui-logic/state/outfit';
 import type { UnitSystem } from '@choudo/core/ui-logic/state/stored';
+import { track } from '../analytics';
 import type { Closet } from '../state/useCloset';
 import './Discover.css';
 
@@ -70,6 +71,7 @@ export function Discover({
     if (!current || leaving) return;
     setLeaving(outcome);
     closet.swipe(current.garment.id, current.fit.sizeLabel, outcome === 'like');
+    if (outcome === 'like') track('garment-saved');
     window.setTimeout(() => {
       setLeaving(null);
       setIndex((i) => i + 1);

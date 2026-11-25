@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { BodyInput } from '@choudo/core/domain/body';
 import { preferenceSpec, type Anchor, type FitStyle } from '@choudo/core/domain/fit';
 import { findGarment, GARMENTS, publicGarments, type CatalogueScope, type Garment } from '@choudo/core/domain/garments';
 import type { HeadKind } from '@choudo/core/ui-logic/components/Mannequin/heads';
 import { MascotHeadContext } from './ui/components/Mannequin/MascotHead';
+import { track, type TrackEvent } from './ui/analytics';
 import { TabBar, type Tab } from './ui/components/TabBar';
 import { DEV_TOOLS, devToolsOn } from './ui/devTools';
 import { fitReferenceLine } from '@choudo/core/ui-logic/fitText';
@@ -36,7 +37,8 @@ import {
 /**
  * Enter your body once, then move between the fitting room, the Discover feed
  * and your Closet. Everything the user enters is kept in this browser's
- * localStorage — nothing leaves the device.
+ * localStorage and never leaves the device; the production build only counts
+ * anonymous visits and the fixed steps in ui/analytics.ts.
  */
 export function App() {
   // The mascot head is a drawing choice: every Mannequin reads it from the context.
@@ -47,6 +49,13 @@ export function App() {
     </MascotHeadContext.Provider>
   );
 }
+
+/** The step counted when each tab is shown. */
+const TAB_EVENTS: Record<Tab, TrackEvent> = {
+  fitting: 'fitting-room-opened',
+  discover: 'discover-opened',
+  closet: 'closet-opened',
+};
 
 function Screens({ head, onHeadChange }: { head: HeadKind; onHeadChange: (head: HeadKind) => void }) {
   const [body, setBody] = usePersistentState<BodyInput | null>(STORAGE_KEYS.body, null, isStoredBody);
@@ -67,6 +76,10 @@ function Screens({ head, onHeadChange }: { head: HeadKind; onHeadChange: (head: 
   const [screen, setScreen] = useState<'tabs' | 'body' | 'fit'>('tabs');
   const [fitReturn, setFitReturn] = useState<'tabs' | 'body'>('tabs');
   const [tab, setTab] = useState<Tab>('fitting');
+  const onTabs = body !== null && screen === 'tabs';
+  useEffect(() => {
+    if (onTabs) track(TAB_EVENTS[tab]);
+  }, [onTabs, tab]);
 
   if (body && screen === 'fit') {
     return (

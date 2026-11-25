@@ -46,7 +46,7 @@ export function Liked({ model, preference, likedIds, folderCount, onOpen, onUnli
   // Likes for garments no longer in the catalogue are skipped.
   const liked = useMemo(() => likedIds.map((id) => findGarment(id)).filter((g): g is Garment => g !== undefined), [likedIds]);
   const shown = useMemo(() => (filter === 'all' ? liked : liked.filter((g) => g.category === filter)), [liked, filter]);
-  const odds = useOddsQueue(model, preference, shown, active);
+  const odds = useOddsQueue(model, preference, shown, { active });
 
   if (liked.length === 0) {
     return (

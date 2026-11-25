@@ -1,7 +1,8 @@
 // Checks the production build in dist/ before it's deployed (the Pages workflow runs it
 // after npm run build): every URL in index.html and the manifest is under the base path
-// and has a file behind it, the service worker is there, and no dev-only page or
-// local-only photo shipped. Exits 1 on any problem.
+// and has a file behind it, the only other site it loads from is GoatCounter's script
+// (there exactly once), the service worker is there, no dev-only page or local-only
+// photo shipped, and the privacy and support pages are there. Exits 1 on any problem.
 //
 //   npm run build && npm run dist:check
 //
@@ -11,7 +12,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runnerImport } from 'vite';
-import { distProblems } from './distCheck.mjs';
+import { distProblems, REQUIRED_PAGES } from './distCheck.mjs';
 
 const appDir = fileURLToPath(new URL('..', import.meta.url));
 const dist = resolve(appDir, 'dist');
@@ -23,6 +24,7 @@ if (!existsSync(resolve(dist, 'index.html'))) {
 }
 
 const { PAGES_BASE } = await load('build/pagesBase.ts');
+const { GOATCOUNTER_SCRIPT, GOATCOUNTER_TAG } = await load('build/goatCounter.ts');
 const { SEED_GARMENTS } = await load('../packages/core/domain/garments/garments.ts');
 const { localOnlyFiles } = await load('../packages/core/domain/garments/photo.ts');
 
@@ -37,6 +39,10 @@ const problems = distProblems({
   localOnly: localOnlyFiles(SEED_GARMENTS),
   base: PAGES_BASE,
   swSource: existsSync(resolve(dist, 'sw.js')) ? readFileSync(resolve(dist, 'sw.js'), 'utf8') : '',
+  analytics: { script: GOATCOUNTER_SCRIPT, tag: GOATCOUNTER_TAG },
+  pages: Object.fromEntries(
+    REQUIRED_PAGES.filter((page) => existsSync(resolve(dist, page))).map((page) => [page, readFileSync(resolve(dist, page), 'utf8')]),
+  ),
 });
 
 if (problems.length > 0) {

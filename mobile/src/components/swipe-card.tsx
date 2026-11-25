@@ -42,6 +42,8 @@ export interface SwipeCardProps {
 
 /** Movement under this (pt) is a tap, not a drag (the web's TAP_SLOP). */
 const TAP_SLOP = 6;
+/** How long a still press may last and still count as a tap: "any length". */
+const TAP_HOLD_MS = 60_000;
 /** SwipeCard.css: snap back and fly off both take 220 ms. */
 const MOVE_MS = 220;
 /** CSS's `ease` and `ease-in`, as SwipeCard.css uses them. */
@@ -132,6 +134,8 @@ export function SwipeCard({ garment, body, fit, recommended, verdict, leaving, i
     .withTestId('swipe-tap')
     .enabled(enabled)
     .maxDistance(TAP_SLOP)
+    // A still press of any length opens it, as the web (Gesture Handler gives up after 500 ms).
+    .maxDuration(TAP_HOLD_MS)
     .onEnd((_e, success) => {
       if (success) scheduleOnRN(onOpen);
     });

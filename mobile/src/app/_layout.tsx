@@ -1,6 +1,3 @@
-import { MPLUSRounded1c_500Medium } from '@expo-google-fonts/m-plus-rounded-1c/500Medium';
-import { MPLUSRounded1c_700Bold } from '@expo-google-fonts/m-plus-rounded-1c/700Bold';
-import { MPLUSRounded1c_800ExtraBold } from '@expo-google-fonts/m-plus-rounded-1c/800ExtraBold';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -19,11 +16,12 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [head] = useHead();
-  // Keys are the family names used in theme/typography.ts.
+  // Keys are the family names used in theme/typography.ts. The files are Latin subsets of
+  // M PLUS Rounded 1c (npm run fonts), about 65 KB each instead of 3.4 MB.
   const [fontsLoaded, fontError] = useFonts({
-    MPLUSRounded1c_500Medium,
-    MPLUSRounded1c_700Bold,
-    MPLUSRounded1c_800ExtraBold,
+    MPLUSRounded1c_500Medium: require('../../assets/fonts/MPLUSRounded1c-Medium.ttf'),
+    MPLUSRounded1c_700Bold: require('../../assets/fonts/MPLUSRounded1c-Bold.ttf'),
+    MPLUSRounded1c_800ExtraBold: require('../../assets/fonts/MPLUSRounded1c-ExtraBold.ttf'),
   });
   // A font that fails to load falls back to the system font rather than a stuck splash.
   const ready = fontsLoaded || fontError !== null;
