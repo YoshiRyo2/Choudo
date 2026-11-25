@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#fff4ee" />
+    <title>Support · Choudo</title>
+    <meta name="description" content="Help with Choudo, and how to reach us." />
+    <link rel="icon" href="favicon.ico" sizes="48x48" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <style>
+      /* The site's tokens (src/ui/styles.css) and its own font files: nothing loads from another site. */
+      @font-face { font-family: 'M PLUS Rounded 1c'; font-weight: 500; font-display: swap; src: url('fonts/m-plus-rounded-1c-latin-500-normal.woff2') format('woff2'); }
+      @font-face { font-family: 'M PLUS Rounded 1c'; font-weight: 800; font-display: swap; src: url('fonts/m-plus-rounded-1c-latin-800-normal.woff2') format('woff2'); }
+      :root { --bg: #fff4ee; --surface: #ffffff; --ink: #2a2140; --muted: #6b5f73; --brand: #ffb59e; --line: #ffd6c7; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 500 1rem/1.55 'M PLUS Rounded 1c', system-ui, sans-serif;
+        -webkit-text-size-adjust: 100%;
+      }
+      main { max-width: 640px; margin: 0 auto; padding: 32px 20px 56px; }
+      .home { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 800; font-size: 1.25rem; }
+      .home img { width: 36px; height: 36px; border-radius: 9px; }
+      h1 { margin: 28px 0 4px; font-weight: 800; font-size: 1.75rem; line-height: 1.15; }
+      h2 { margin: 28px 0 6px; font-weight: 800; font-size: 1.125rem; line-height: 1.25; }
+      p, ul { margin: 0 0 12px; }
+      ul { padding-left: 1.25em; }
+      li + li { margin-top: 4px; }
+      a { color: var(--ink); }
+      .dated { color: var(--muted); font-size: 0.875rem; }
+      .card { padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; }
+      footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.875rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="home" href="./"><img src="apple-touch-icon.png" alt="" />Choudo</a>
+      <h1>Support</h1>
+      <p>Choudo shows how each size of a shirt, pants, a dress or a jacket would fit you before you buy. It compares each size’s real measurements with yours, zone by zone.</p>
+
+      <div class="card">
+        <p><strong>Get in touch:</strong> <a href="mailto:Choudo.app@gmail.com">Choudo.app@gmail.com</a>. Tell us which garment and size, and what looked wrong; we read everything.</p>
+      </div>
+
+      <h2>How are sizes worked out?</h2>
+      <p>From the brand’s own size chart and your measurements. Choudo estimates your measurements from your height, weight and body type, or uses the ones you enter, then compares each part of the garment (chest, waist, length and so on) with your body and says how it would fit.</p>
+
+      <h2>Why does a size say “estimated”?</h2>
+      <p>Some of the numbers behind it aren’t printed on the size chart, or yours were estimated from height and weight. Adding your own measurements on the body screen makes the answer surer.</p>
+
+      <h2>How do I delete my data?</h2>
+      <p>Delete the app. Everything Choudo keeps is on your phone only; there’s no account to close. See the <a href="privacy.html">privacy policy</a>.</p>
+      <footer>
+        <a href="./">Open Choudo</a> · <a href="privacy.html">Privacy policy</a> · <a href="support.html">Support</a>
+      </footer>
+    </main>
+  </body>
+</html>

@@ -16,6 +16,9 @@ export function AboutSheet({ onClose }: { onClose: () => void }) {
           There’s no account and nothing is uploaded: your body, likes, folders and outfits are saved in this browser
           only. Clearing the site’s data removes them.
         </p>
+        <p>
+          <a href="privacy.html">Privacy policy</a>
+        </p>
         <p className="about__disclosure">Affiliate disclosure: to come.</p>
       </div>
     </Sheet>
