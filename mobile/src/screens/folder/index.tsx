@@ -1,8 +1,8 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BodyModel } from '@choudo/core/domain/body';
-import { findGarment, type Garment } from '@choudo/core/domain/garments';
+import type { Garment } from '@choudo/core/domain/garments';
 import { outfitLine } from '@choudo/core/ui-logic/closetText';
-import { outfitOf } from '@choudo/core/ui-logic/state/closet';
+import { outfitOf, shownFolderItems } from '@choudo/core/ui-logic/state/closet';
 import type { Folder, FolderItem, Outfit, SavedOutfit } from '@choudo/core/ui-logic/state/stored';
 
 import { Button } from '@/components/button';
@@ -17,6 +17,8 @@ import { Tile, TILE_GAP, TileActions, tileText } from '../closet/tile';
 export interface FolderScreenProps {
   folder: Folder;
   model: BodyModel;
+  /** Every garment the app may show: items that point elsewhere (a sample in a store build) are skipped. */
+  garments: readonly Garment[];
   outfits: SavedOutfit[];
   /** Show the "Folder name" form in place of the list's header. */
   renaming: boolean;
@@ -30,11 +32,12 @@ export interface FolderScreenProps {
 type Entry = { key: string; item: FolderItem } & ({ garment: Garment } | { outfit: SavedOutfit });
 
 /** One folder's garments and outfits (the web FolderView); its name, Rename and Delete are in the header. */
-export function FolderScreen({ folder, model, outfits, renaming, onRename, onCancelRename, onRemove, onOpenGarment, onOpenOutfit }: FolderScreenProps) {
-  // Items that are gone (a garment left the catalogue, an outfit deleted) are skipped.
-  const entries = folder.items.flatMap((item): Entry[] => {
+export function FolderScreen({ folder, model, garments, outfits, renaming, onRename, onCancelRename, onRemove, onOpenGarment, onOpenOutfit }: FolderScreenProps) {
+  // Items that are gone (a garment left the catalogue, an outfit deleted) or hidden (a sample in a
+  // store build, or an outfit wearing one) are skipped; the folder keeps them stored.
+  const entries = shownFolderItems(folder, outfits, garments).flatMap((item): Entry[] => {
     if (item.kind === 'garment') {
-      const garment = findGarment(item.id);
+      const garment = garments.find((g) => g.id === item.id);
       return garment ? [{ key: `g-${item.id}`, item, garment }] : [];
     }
     const outfit = outfits.find((o) => o.id === item.id);
@@ -85,11 +88,11 @@ export function FolderScreen({ folder, model, outfits, renaming, onRename, onCan
         const o = e.outfit;
         return (
           <Tile>
-            <OutfitFigure body={model.measurements} outfit={o} />
+            <OutfitFigure body={model.measurements} outfit={o} garments={garments} />
             <Text style={tileText.name} accessibilityRole="header">
               {o.name}
             </Text>
-            <Text style={tileText.brand}>{outfitLine(o)}</Text>
+            <Text style={tileText.brand}>{outfitLine(o, garments)}</Text>
             <TileActions>
               <Button size="sm" title="Open" onPress={() => onOpenOutfit(outfitOf(o))} />
               {remove}

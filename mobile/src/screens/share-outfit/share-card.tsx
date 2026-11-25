@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import { StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import type { BodyMeasurements } from '@choudo/core/domain/body';
+import type { Garment } from '@choudo/core/domain/garments';
 import { outfitGarmentLines } from '@choudo/core/ui-logic/closetText';
 import type { HeadKind } from '@choudo/core/ui-logic/components/Mannequin/heads';
 import type { Outfit } from '@choudo/core/ui-logic/state/stored';
@@ -19,6 +20,8 @@ export interface ShareCardProps {
   outfit: Outfit & { name: string };
   body: BodyMeasurements;
   head: HeadKind;
+  /** Every garment the app may show: any other is left off the picture and its lines. */
+  garments: readonly Garment[];
 }
 
 /**
@@ -26,18 +29,18 @@ export interface ShareCardProps {
  * each garment and size, and the wordmark. Never the body in words (no height, weight,
  * measurements or body type): the figure is drawn to the body, nothing more is said.
  */
-export const ShareCard = forwardRef<ViewInstance, ShareCardProps>(function ShareCard({ outfit, body, head }, ref) {
+export const ShareCard = forwardRef<ViewInstance, ShareCardProps>(function ShareCard({ outfit, body, head, garments }, ref) {
   return (
     <View ref={ref} collapsable={false} style={styles.card} testID="share-card">
       <View style={styles.stage}>
         <View style={styles.circle} />
-        <Mannequin body={body} {...wornOf(outfit)} head={head} showFit={false} frame="body" showHeightTape={false} face="unknown" style={styles.figure} />
+        <Mannequin body={body} {...wornOf(outfit, garments)} head={head} showFit={false} frame="body" showHeightTape={false} face="unknown" style={styles.figure} />
       </View>
       <View style={styles.text}>
         <Text style={styles.name} numberOfLines={2}>
           {outfit.name}
         </Text>
-        {outfitGarmentLines(outfit).map((line) => (
+        {outfitGarmentLines(outfit, garments).map((line) => (
           <Text key={line} style={styles.line} numberOfLines={1}>
             {line}
           </Text>

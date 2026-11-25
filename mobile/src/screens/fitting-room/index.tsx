@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BodyInput, BodyModel } from '@choudo/core/domain/body';
 import { fitAllSizes, type Anchor, type GarmentFit, type GarmentOdds, type PreferenceSpec, type UnderLayer } from '@choudo/core/domain/fit';
-import { findGarment, type CatalogueScope, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
+import { type CatalogueScope, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
 import { catalogueToggle, emptyCategoryText } from '@choudo/core/ui-logic/catalogueText';
 import type { HeadKind } from '@choudo/core/ui-logic/components/Mannequin/heads';
 import type { View as Side } from '@choudo/core/ui-logic/components/Mannequin/view';
@@ -47,6 +47,8 @@ export interface FittingRoomProps {
   catalogue: CatalogueScope;
   onCatalogueChange: (scope: CatalogueScope) => void;
   shown: readonly Garment[];
+  /** Every garment the app may show (useGarments: no samples in a store build). */
+  garments: readonly Garment[];
   head: HeadKind;
   onHeadChange: (head: HeadKind) => void;
   onEditBody: () => void;
@@ -108,6 +110,7 @@ export function FittingRoom({
   catalogue,
   onCatalogueChange,
   shown,
+  garments,
   head,
   onHeadChange,
   onEditBody,
@@ -121,6 +124,8 @@ export function FittingRoom({
   const [browsing, setBrowsing] = useState<GarmentCategory>(() => (outfit.onepieceId ? 'onepiece' : 'top'));
   // Which side of the mannequin is shown; a drawing choice only, not stored.
   const [view, setView] = useState<Side>('front');
+  // Only the garments the app may show: a hidden one (a sample in a store build) is never put on.
+  const findGarment = (id: string) => garments.find((g) => g.id === id);
 
   const wornIn = (id: string | null, size: string | null, under?: UnderLayer): Worn | null => {
     const garment = id ? findGarment(id) : undefined;

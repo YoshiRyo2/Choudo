@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { folderSummary } from '@choudo/core/ui-logic/state/closet';
-import type { Folder } from '@choudo/core/ui-logic/state/stored';
+import type { Garment } from '@choudo/core/domain/garments';
+import { folderSummary, shownFolderItems } from '@choudo/core/ui-logic/state/closet';
+import type { Folder, SavedOutfit } from '@choudo/core/ui-logic/state/stored';
 
 import { NameForm } from '@/components/name-form';
 import { ThemedText } from '@/components/themed-text';
@@ -8,12 +9,15 @@ import { colors, fonts, radius, spacing } from '@/theme';
 
 export interface FoldersProps {
   folders: Folder[];
+  /** The saved outfits, and every garment the app may show: a folder's count leaves out what isn't shown. */
+  outfits: readonly SavedOutfit[];
+  garments: readonly Garment[];
   onCreate: (name: string) => void;
   onOpenFolder: (folderId: string) => void;
 }
 
 /** Named folders of liked garments and saved outfits (the web FoldersTab's list). */
-export function Folders({ folders, onCreate, onOpenFolder }: FoldersProps) {
+export function Folders({ folders, outfits, garments, onCreate, onOpenFolder }: FoldersProps) {
   return (
     <ScrollView contentContainerStyle={styles.section} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
       <View style={styles.card}>
@@ -26,7 +30,7 @@ export function Folders({ folders, onCreate, onOpenFolder }: FoldersProps) {
       ) : (
         <View style={styles.list}>
           {folders.map((f, i) => {
-            const summary = folderSummary(f);
+            const summary = folderSummary({ ...f, items: shownFolderItems(f, outfits, garments) });
             return (
               <Pressable
                 key={f.id}

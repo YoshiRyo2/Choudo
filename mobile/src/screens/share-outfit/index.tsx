@@ -4,6 +4,7 @@ import { PixelRatio, ScrollView, StyleSheet, useWindowDimensions, View, type Vie
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 import type { BodyMeasurements } from '@choudo/core/domain/body';
+import type { Garment } from '@choudo/core/domain/garments';
 import type { HeadKind } from '@choudo/core/ui-logic/components/Mannequin/heads';
 import type { SavedOutfit } from '@choudo/core/ui-logic/state/stored';
 
@@ -17,13 +18,15 @@ export interface ShareOutfitProps {
   outfit: SavedOutfit;
   body: BodyMeasurements;
   head: HeadKind;
+  /** Every garment the app may show (useGarments). */
+  garments: readonly Garment[];
 }
 
 /** The picture: 1080 × 1350 px, 4:5 (3× the card). */
 const IMAGE_PX = { width: CARD_WIDTH * 3, height: CARD_HEIGHT * 3 };
 
 /** Share a saved outfit as a picture: the card as a preview, then the iOS share sheet. */
-export function ShareOutfit({ outfit, body, head }: ShareOutfitProps) {
+export function ShareOutfit({ outfit, body, head, garments }: ShareOutfitProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const card = useRef<ViewInstance>(null);
@@ -67,7 +70,7 @@ export function ShareOutfit({ outfit, body, head }: ShareOutfitProps) {
         </ThemedText>
         <View style={[styles.preview, { width: CARD_WIDTH * scale, height: CARD_HEIGHT * scale }]}>
           <View style={{ transform: [{ scale }], transformOrigin: 'top left' }}>
-            <ShareCard ref={card} outfit={outfit} body={body} head={head} />
+            <ShareCard ref={card} outfit={outfit} body={body} head={head} garments={garments} />
           </View>
         </View>
       </ScrollView>

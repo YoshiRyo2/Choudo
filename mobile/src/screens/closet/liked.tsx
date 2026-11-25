@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BodyModel } from '@choudo/core/domain/body';
 import type { PreferenceSpec } from '@choudo/core/domain/fit';
-import { findGarment, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
+import { categoriesIn, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
 import { sizeLine, verdictLine } from '@choudo/core/ui-logic/fitText';
+import { shownLikes } from '@choudo/core/ui-logic/state/closet';
 import { defaultSize, suggestedSize } from '@choudo/core/ui-logic/state/outfit';
 
 import { Button } from '@/components/button';
@@ -23,6 +24,8 @@ type Filter = 'all' | GarmentCategory;
 export interface LikedProps {
   model: BodyModel;
   preference: PreferenceSpec;
+  /** Every garment the app may show: likes for any other (gone, or a sample in a store build) are skipped. */
+  garments: readonly Garment[];
   /** Liked garment ids, newest first (closet.liked). */
   likedIds: string[];
   /** How many folders a garment is in. */
@@ -35,16 +38,30 @@ export interface LikedProps {
   active?: boolean;
 }
 
+const FILTERS: readonly { value: Filter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'top', label: 'Tops' },
+  { value: 'bottom', label: 'Bottoms' },
+  { value: 'outer', label: 'Jackets' },
+  { value: 'onepiece', label: 'Dresses' },
+];
+
 const FILTER_WORD: Record<Filter, string> = { all: 'garments', top: 'tops', bottom: 'bottoms', outer: 'jackets', onepiece: 'dresses' };
 
 /**
  * Everything you've liked, newest first, filterable by tops, bottoms, jackets and dresses
  * (the web LikedTab). Each tile's size and verdict fill in as its odds are worked out.
  */
-export function Liked({ model, preference, likedIds, folderCount, onOpen, onUnlike, onFolders, onOpenDiscover, active = true }: LikedProps) {
-  const [filter, setFilter] = useState<Filter>('all');
-  // Likes for garments no longer in the catalogue are skipped.
-  const liked = useMemo(() => likedIds.map((id) => findGarment(id)).filter((g): g is Garment => g !== undefined), [likedIds]);
+export function Liked({ model, preference, garments, likedIds, folderCount, onOpen, onUnlike, onFolders, onOpenDiscover, active = true }: LikedProps) {
+  const [picked, setFilter] = useState<Filter>('all');
+  // Likes for garments the app doesn't show (gone, or a sample in a store build) are skipped; storage keeps them.
+  const liked = useMemo(() => shownLikes(likedIds, garments), [likedIds, garments]);
+  // A category with no garments at all gets no filter.
+  const filters = useMemo(() => {
+    const inCatalogue = categoriesIn(garments);
+    return FILTERS.filter((f) => f.value === 'all' || inCatalogue.has(f.value));
+  }, [garments]);
+  const filter = filters.some((f) => f.value === picked) ? picked : 'all';
   const shown = useMemo(() => (filter === 'all' ? liked : liked.filter((g) => g.category === filter)), [liked, filter]);
   const odds = useOddsQueue(model, preference, shown, { active });
 
@@ -74,13 +91,7 @@ export function Liked({ model, preference, likedIds, folderCount, onOpen, onUnli
           label="Show"
           hideLabel
           value={filter}
-          options={[
-            { value: 'all', label: `All ${liked.length}` },
-            { value: 'top', label: 'Tops' },
-            { value: 'bottom', label: 'Bottoms' },
-            { value: 'outer', label: 'Jackets' },
-            { value: 'onepiece', label: 'Dresses' },
-          ]}
+          options={filters.map((f) => (f.value === 'all' ? { value: f.value, label: `All ${liked.length}` } : f))}
           onChange={setFilter}
         />
       }

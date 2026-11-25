@@ -45,6 +45,7 @@ export default function FolderRoute() {
       <FolderScreen
         folder={f}
         model={model}
+        garments={wardrobe!.garments}
         outfits={closet.outfits}
         renaming={renaming}
         onRename={(name) => {
