@@ -4,7 +4,9 @@ import type { UnderLayer } from '@choudo/core/domain/fit';
 import { findGarment } from '@choudo/core/domain/garments';
 import { wearGarment } from '@choudo/core/ui-logic/state/outfit';
 
+import { useTestMode } from '@/hooks/use-test-mode';
 import { useWardrobe } from '@/hooks/use-wardrobe';
+import { DEV_TOOLS } from '@/utils/dev-tools';
 import { FitDetails } from '@/screens/fit-details';
 
 /** Leave the sheet for whatever is under it (the Fitting room on a cold start). */
@@ -21,6 +23,7 @@ function close() {
 export default function FitDetailsRoute() {
   const params = useLocalSearchParams<{ garmentId?: string; size?: string; from?: string }>();
   const wardrobe = useWardrobe();
+  const [testMode] = useTestMode();
   const garment = params.garmentId ? findGarment(params.garmentId) : undefined;
   // What a worn jacket goes over, kept the same object while that garment and size stay
   // (as the web Fitting room's memo): the sheet memoises its sampling hint on it.
@@ -55,6 +58,8 @@ export default function FitDetailsRoute() {
       initialSize={size}
       units={units}
       under={under}
+      // Each zone's chances are for Test mode only (development and the preview build), as on the web.
+      showOdds={DEV_TOOLS && testMode}
       actionLabel={(s) => (fromFitting ? (s === size ? 'Done' : `Wear ${s}`) : `Try ${s} in the fitting room`)}
       onAction={(s) => {
         setOutfit(wearGarment(wardrobe.outfit, garment, s));

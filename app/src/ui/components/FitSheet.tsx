@@ -24,11 +24,13 @@ interface FitSheetProps {
   onEditBody: () => void;
   /** Worn under this garment (the fitting room's top under a jacket): fit and odds over it. */
   under?: UnderLayer;
+  /** Test mode: each zone's chances and how they were worked out. Never shown to users otherwise. */
+  showOdds?: boolean;
 }
 
 const tryInFittingRoom = (size: string) => `Try ${size} in the fitting room`;
 
-/** A garment's full fit, zone by zone with the chance of each label, a size picker and a way to try it on. */
+/** A garment's full fit, zone by zone (with each label's chance in Test mode), a size picker and a way to try it on. */
 export function FitSheet({
   garment,
   model,
@@ -40,6 +42,7 @@ export function FitSheet({
   actionLabel = tryInFittingRoom,
   onEditBody,
   under,
+  showOdds = false,
 }: FitSheetProps) {
   const [size, setSize] = useState(initialSize);
   useEffect(() => track('fit-details-opened'), []);
@@ -61,14 +64,17 @@ export function FitSheet({
         odds={odds}
         preference={preference}
         hint={hint}
-        showOdds
+        showOdds={showOdds}
+        bustFromBra={model.bra?.setsBust === true}
         layerNotes={layerNoteLines(model, under, { garment, sizeLabel: size }, units)}
         onEditBody={onEditBody}
       />
-      <p className="sheet__note">
-        Chances come from {odds.samples} tries with your measurements, the garment’s and your taste each nudged within
-        how sure we are of them.
-      </p>
+      {showOdds && (
+        <p className="sheet__note">
+          Chances come from {odds.samples} tries with your measurements, the garment’s and your taste each nudged within
+          how sure we are of them.
+        </p>
+      )}
       <div className="sheet__actions">
         <button type="button" className="button button--primary" onClick={() => onTryOn(size)}>
           {actionLabel(size)}

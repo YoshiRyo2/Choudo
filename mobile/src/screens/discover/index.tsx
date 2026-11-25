@@ -30,6 +30,8 @@ export interface DiscoverProps {
   bodyType: BodyType;
   preference: PreferenceSpec;
   closet: Closet;
+  /** Every garment the app may show (`useGarments`: no samples in a store build). The whole catalogue by default. */
+  garments?: readonly Garment[];
   /** Changes whenever the route wants a fresh feed (the tab regained focus). */
   feedKey: number;
   onOpenDetails: (garment: Garment, size: string) => void;
@@ -56,6 +58,7 @@ export function Discover({
   bodyType,
   preference,
   closet,
+  garments = GARMENTS,
   feedKey,
   onOpenDetails,
   onOpenCloset,
@@ -67,7 +70,7 @@ export function Discover({
     key: feedKey,
     catalogue,
     bodyType,
-    garments: buildFeed(catalogueFor(GARMENTS, bodyType, catalogue), closet.swipes),
+    garments: buildFeed(catalogueFor(garments, bodyType, catalogue), closet.swipes),
   });
   // The feed is fixed until the route asks for a new one or the scope changes, so swiping
   // never reshuffles it; a new feed starts from its first card.

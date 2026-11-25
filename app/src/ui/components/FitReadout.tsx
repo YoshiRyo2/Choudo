@@ -13,6 +13,8 @@ import {
   measureHintText,
   personalOddsText,
   preferenceNote,
+  reliabilityAction,
+  reliabilityText,
   sourceLine,
   summarize,
   wornOverText,
@@ -21,6 +23,7 @@ import {
   zoneTitle,
   objectiveOnly,
 } from '@choudo/core/ui-logic/fitText';
+import { reliability } from '@choudo/core/ui-logic/reliability';
 import { GarmentBadge } from './GarmentBadge';
 import type { UnitSystem } from '@choudo/core/ui-logic/state/stored';
 import { TapeScale } from './TapeScale';
@@ -35,8 +38,10 @@ interface FitReadoutProps {
   preference: PreferenceSpec;
   /** The measurement that would decide between sizes, if any. */
   hint: MeasureHint | null;
-  /** Show each zone's chances (the fit details sheet). */
+  /** Show each zone's chances: Test mode only (the fit details sheet passes it on). */
   showOdds?: boolean;
+  /** The bust came from a bra size, not from height and weight (for the reliability line). */
+  bustFromBra?: boolean;
   /** Opens the fit details sheet; leave out where the readout already is one. */
   onDetails?: () => void;
   /**
@@ -58,6 +63,7 @@ export function FitReadout({
   preference,
   hint,
   showOdds,
+  bustFromBra,
   onDetails,
   summary: showSummary = true,
   layerNotes = [],
@@ -65,7 +71,11 @@ export function FitReadout({
 }: FitReadoutProps) {
   const template = templateOf(garment);
   const summary = summarize(fit, template);
-  const verdict = verdictLine(odds, fit.sizeLabel, garment);
+  // How far to trust this size's answer, at the top of the readout (and under the headline on the main screen).
+  const trust = reliability(fit, garment, { hasFitReference: preference.source === 'anchor' });
+  const trustText = reliabilityText(trust, fit.bodyType, { bustFromBra });
+  const trustAction = reliabilityAction(trust);
+  const verdict = verdictLine(odds, fit.sizeLabel, garment, trustText);
   // A close call already names its sizes: "Could go either way: 8 or 10", not "… in 8".
   const namedSize = headlineSize(verdict, fit.sizeLabel);
   const sizeOdds = odds.sizes.find((s) => s.sizeLabel === fit.sizeLabel);
@@ -85,9 +95,18 @@ export function FitReadout({
               </span>
             )}
           </h2>
-          {verdict.verdict === 'unknown'
-            ? summary.detail && <p className="readout__detail">{summary.detail}</p>
-            : verdict.detail && <p className="readout__detail">{verdict.detail}</p>}
+          {verdict.verdict === 'unknown' && summary.detail && <p className="readout__detail">{summary.detail}</p>}
+          <p className={`readout__detail readout__trust is-${trust.level}`}>
+            {verdict.detail ?? trustText}
+            {trustAction && (
+              <>
+                {' '}
+                <button type="button" className="link-button" onClick={onEditBody}>
+                  {trustAction}
+                </button>
+              </>
+            )}
+          </p>
           {prefNote && <p className="readout__pref">{prefNote}</p>}
           {onDetails && (
             <button type="button" className="button button--outline button--small readout__details" onClick={onDetails}>
@@ -139,7 +158,12 @@ export function FitReadout({
               <span>
                 You <span className="num">{formatLength(z.bodyCm, units)}</span>
                 {bodyPlaceText(z, fit.over)}
-                {z.bodySource === 'estimated' && <span className="zone__est"> estimated</span>}
+                {z.bodySource === 'estimated' && (
+                  <abbr className="zone__est" title="Estimated, not measured">
+                    {' '}
+                    {ESTIMATED_MARK}
+                  </abbr>
+                )}
               </span>
               {z.garmentCm !== null && z.diffCm !== null && (
                 <span>

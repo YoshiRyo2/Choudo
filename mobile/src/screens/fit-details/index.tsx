@@ -27,10 +27,23 @@ export interface FitDetailsProps {
   onEditBody: () => void;
   /** Worn under this garment (the Fitting room's top under a jacket): fit and odds over it. */
   under?: UnderLayer;
+  /** Test mode: each zone's chances and how they were worked out. Never shown to users otherwise. */
+  showOdds?: boolean;
 }
 
-/** A garment's full fit (the web FitSheet): zone by zone with the chance of each label, a size picker and one action. */
-export function FitDetails({ garment, model, preference, initialSize, units, actionLabel, onAction, onEditBody, under }: FitDetailsProps) {
+/** A garment's full fit (the web FitSheet): zone by zone (each label's chance in Test mode), a size picker and one action. */
+export function FitDetails({
+  garment,
+  model,
+  preference,
+  initialSize,
+  units,
+  actionLabel,
+  onAction,
+  onEditBody,
+  under,
+  showOdds = false,
+}: FitDetailsProps) {
   const insets = useSafeAreaInsets();
   const [size, setSize] = useState(initialSize);
   const fits = useMemo(() => fitAllSizes(model, garment, under), [model, garment, under]);
@@ -60,13 +73,15 @@ export function FitDetails({ garment, model, preference, initialSize, units, act
           odds={odds}
           preference={preference}
           hint={hint}
-          showOdds
+          showOdds={showOdds}
           layerNotes={layerNoteLines(model, under, { garment, sizeLabel: fit.sizeLabel }, units)}
           onEditBody={onEditBody}
         />
-        <ThemedText variant="small" tone="muted">
-          {`Chances come from ${odds.samples} tries with your measurements, the garment’s and your taste each nudged within how sure we are of them.`}
-        </ThemedText>
+        {showOdds && (
+          <ThemedText variant="small" tone="muted">
+            {`Chances come from ${odds.samples} tries with your measurements, the garment’s and your taste each nudged within how sure we are of them.`}
+          </ThemedText>
+        )}
       </ScrollView>
       {/* The main action stays in reach while the details scroll under it. */}
       <View style={[styles.actions, { paddingBottom: 14 + insets.bottom }]}>

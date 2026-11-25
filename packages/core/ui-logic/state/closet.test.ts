@@ -7,6 +7,10 @@ import {
   deleteOutfit,
   folderSummary,
   foldersContaining,
+  isHiddenGarment,
+  shownFolderItems,
+  shownLikes,
+  showsOutfit,
   nextOutfitName,
   outfitOf,
   removeEverywhere,
@@ -15,7 +19,8 @@ import {
   saveOutfit,
   toggleInFolder,
 } from './closet';
-import type { Folder, SavedOutfit } from './stored';
+import { GARMENTS, publicGarments } from '../../domain/garments';
+import { EMPTY_OUTFIT, type Folder, type SavedOutfit } from './stored';
 
 const tee = { kind: 'garment', id: 'tee' } as const;
 const jeans = { kind: 'garment', id: 'jeans' } as const;
@@ -111,5 +116,60 @@ describe('outfits with a jacket', () => {
     const saved = saveOutfit([], withJacket, 'o1', 'Cold day', '')[0]!;
     expect(saved.outerId).toBe('port-authority-j317');
     expect(outfitOf(saved)).toEqual(withJacket);
+  });
+});
+
+describe('what the public catalogue hides', () => {
+  const live = publicGarments(GARMENTS, { includeSamples: false });
+  const dev = publicGarments(GARMENTS, { includeSamples: true });
+  const sampleOutfit: SavedOutfit = {
+    ...EMPTY_OUTFIT,
+    id: 'o-sample',
+    name: 'Chinos day',
+    savedAt: '2026-11-01T00:00:00.000Z',
+    topId: 'gildan-5000',
+    topSize: 'L',
+    bottomId: 'fieldline-slim-chino',
+    bottomSize: '32',
+  };
+  const realOutfit: SavedOutfit = { ...sampleOutfit, id: 'o-real', name: 'Tee', bottomId: null, bottomSize: null };
+
+  it('calls a sample hidden on the public site, but never a garment that is gone', () => {
+    expect(isHiddenGarment('fieldline-slim-chino', live)).toBe(true);
+    expect(isHiddenGarment('fieldline-slim-chino', dev)).toBe(false);
+    expect(isHiddenGarment('gildan-5000', live)).toBe(false);
+    expect(isHiddenGarment('no-such-garment', live)).toBe(false);
+  });
+
+  it('skips a saved outfit with a Fieldline item, and shows it again where samples show', () => {
+    expect(showsOutfit(sampleOutfit, live)).toBe(false);
+    expect(showsOutfit(realOutfit, live)).toBe(true);
+    expect(showsOutfit(sampleOutfit, dev)).toBe(true);
+  });
+
+  it('skips liked samples and gone ids, keeping the stored order', () => {
+    const likes = ['fieldline-oxford', 'gildan-18500', 'gone', 'gildan-5000'];
+    expect(shownLikes(likes, live).map((g) => g.id)).toEqual(['gildan-18500', 'gildan-5000']);
+    expect(shownLikes(likes, dev).map((g) => g.id)).toEqual(['fieldline-oxford', 'gildan-18500', 'gildan-5000']);
+  });
+
+  it('skips hidden garments and outfits that wear one in a folder, without changing the folder', () => {
+    const folder: Folder = {
+      id: 'f',
+      name: 'Mixed',
+      items: [
+        { kind: 'garment', id: 'corvo-slim-jean' },
+        { kind: 'garment', id: 'gildan-5000' },
+        { kind: 'outfit', id: 'o-sample' },
+        { kind: 'outfit', id: 'o-real' },
+      ],
+    };
+    const items = shownFolderItems(folder, [sampleOutfit, realOutfit], live);
+    expect(items).toEqual([
+      { kind: 'garment', id: 'gildan-5000' },
+      { kind: 'outfit', id: 'o-real' },
+    ]);
+    expect(folder.items).toHaveLength(4);
+    expect(shownFolderItems(folder, [sampleOutfit, realOutfit], dev)).toHaveLength(4);
   });
 });

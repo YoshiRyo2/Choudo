@@ -27,6 +27,10 @@ interface ClosetProps {
   body: BodyInput;
   preference: PreferenceSpec;
   units: UnitSystem;
+  /** Every garment the app may show (`publicGarments`): likes, folders and outfits that point elsewhere are skipped. */
+  garments: readonly Garment[];
+  /** Test mode: the fit sheet shows each zone's chances. */
+  showOdds?: boolean;
   closet: ClosetState;
   /** The fitting room's outfit, as stored. */
   outfit: Outfit;
@@ -37,9 +41,21 @@ interface ClosetProps {
 }
 
 /** Liked garments, folders of them, and saved outfits. */
-export function Closet({ body, preference, units, closet, outfit, onTryOn, onWear, onEditBody, onOpenDiscover }: ClosetProps) {
+export function Closet({
+  body,
+  preference,
+  units,
+  garments,
+  showOdds,
+  closet,
+  outfit,
+  onTryOn,
+  onWear,
+  onEditBody,
+  onOpenDiscover,
+}: ClosetProps) {
   const model = useMemo(() => estimateBody(body), [body]);
-  const current = useMemo(() => resolveOutfit(outfit, model, preference), [outfit, model, preference]);
+  const current = useMemo(() => resolveOutfit(outfit, model, preference, garments, garments), [outfit, model, preference, garments]);
   const [tab, setTab] = useState<ClosetTab>('liked');
   const [details, setDetails] = useState<Garment | null>(null);
   const [filing, setFiling] = useState<Filing | null>(null);
@@ -74,6 +90,7 @@ export function Closet({ body, preference, units, closet, outfit, onTryOn, onWea
         <LikedTab
           model={model}
           preference={preference}
+          garments={garments}
           likedIds={closet.liked}
           onOpen={setDetails}
           onUnlike={closet.unlike}
@@ -85,6 +102,7 @@ export function Closet({ body, preference, units, closet, outfit, onTryOn, onWea
       {tab === 'outfits' && (
         <OutfitsTab
           model={model}
+          garments={garments}
           outfits={closet.outfits}
           current={current}
           onSave={(name) => closet.saveOutfit(current, name)}
@@ -97,6 +115,7 @@ export function Closet({ body, preference, units, closet, outfit, onTryOn, onWea
       {tab === 'folders' && (
         <FoldersTab
           model={model}
+          garments={garments}
           folders={closet.folders}
           outfits={closet.outfits}
           onCreate={closet.createFolder}
@@ -129,6 +148,7 @@ export function Closet({ body, preference, units, closet, outfit, onTryOn, onWea
           onClose={() => setDetails(null)}
           onTryOn={(size) => onTryOn(details, size)}
           onEditBody={onEditBody}
+          showOdds={showOdds}
         />
       )}
     </main>

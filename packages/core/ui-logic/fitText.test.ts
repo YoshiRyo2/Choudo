@@ -185,7 +185,7 @@ describe('verdictLine', () => {
     );
     expect(verdictLine(odds, 'M', top)).toEqual({
       headline: 'Very likely fits how you like',
-      detail: '82% chance it fits how you like.',
+      detail: null,
       tone: 'good',
       verdict: 'fits',
       closeCall: false,
@@ -213,14 +213,18 @@ describe('verdictLine', () => {
     const pants = oddsOf(sizeOdds('32', { fits: 0.6, shorter: 0.4 }));
     expect(verdictLine(pants, '32', { category: 'bottom', fitIntent: 'slim' })).toMatchObject({
       headline: 'Probably fits well',
-      detail: '60% chance it fits well.',
+      detail: null,
     });
   });
 
-  it('never says a 0% or 100% chance', () => {
+  it('carries the reliability line under the headline, never a percentage', () => {
     const odds = oddsOf(sizeOdds('S', { 'too-tight': 1 }), sizeOdds('M', { fits: 1 }));
-    expect(verdictLine(odds, 'S', top).detail).toBe('<1% chance it fits how you like.');
-    expect(verdictLine(odds, 'M', top).detail).toBe('>99% chance it fits how you like.');
+    const fair = 'Fair confidence: your chest is estimated from height and weight.';
+    expect(verdictLine(odds, 'M', top, fair).detail).toBe(fair);
+    expect(verdictLine(odds, 'S', top).detail).toBeNull();
+    for (const size of ['S', 'M']) expect(JSON.stringify(verdictLine(odds, size, top, fair))).not.toMatch(/%/);
+    // A size we can't check has no line to qualify.
+    expect(verdictLine(oddsOf(sizeOdds('M', { unknown: 1 })), 'M', top, fair).detail).toBeNull();
   });
 
   it('can’t check a fit that is mostly unknown', () => {
@@ -553,7 +557,7 @@ describe('layer wording', () => {
     };
     const line = verdictLine(odds, 'M', { category: 'outer', fitIntent: 'regular' });
     expect(line.headline).toBe('Very likely fits how you like');
-    expect(line.detail).toBe('80% chance it fits how you like.');
+    expect(line.detail).toBeNull();
     const chest: ZoneOdds = { zone: 'chest', kind: 'girth', labels: {}, personal: { under: 0.1, right: 0.8, over: 0.1, unknown: 0 } };
     expect(personalOddsText(chest, { category: 'outer' }, false)).toMatch(/^As you like 80%/);
     const landing: ZoneOdds = { zone: 'length', kind: 'landing', labels: { noted: 1 }, personal: { under: 0, right: 1, over: 0, unknown: 0 } };
@@ -590,7 +594,7 @@ describe('dress wording', () => {
   const dress = { category: 'onepiece' as const, fitIntent: 'regular' as const };
 
   it('words a dress as fitting well, with no personal target (as a bottom)', () => {
-    expect(verdictLine(odds, '10', dress).detail).toBe('80% chance it fits well.');
+    expect(verdictLine(odds, '10', dress).headline).toBe('Very likely fits well');
     expect(objectiveOnly(dress)).toBe(true);
     expect(objectiveOnly({ category: 'bottom' })).toBe(true);
     expect(objectiveOnly({ category: 'top' })).toBe(false);

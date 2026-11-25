@@ -4,7 +4,7 @@
 
 import type { BodyModel } from '../../domain/body';
 import { fitGarment, type GarmentFit, type GarmentOdds, type PreferenceSpec } from '../../domain/fit';
-import { canWarp, findGarment, GARMENTS, type Garment, type GarmentCategory } from '../../domain/garments';
+import { canWarp, GARMENTS, type Garment, type GarmentCategory } from '../../domain/garments';
 import { garmentOdds } from './odds';
 import type { Outfit } from './stored';
 
@@ -31,7 +31,10 @@ export function firstGarment(shown: readonly Garment[], category: GarmentCategor
  * Fill in anything missing or stale in a saved outfit: unknown garment ids fall
  * back to `firstGarment` in that category from `shown` (the garments on show,
  * the whole catalogue by default), unknown sizes to the default size. A garment
- * already worn stays on even when `shown` leaves it out. A category with nothing
+ * already worn stays on even when `shown` leaves it out, as long as it is in
+ * `available` (the garments the app may show at all, `publicGarments`; the whole
+ * catalogue by default): a worn sample on the public site is swapped like an
+ * unknown id, without touching what is stored. A category with nothing
  * to show is left empty. The jacket slot is never filled by default: only a
  * jacket that is worn stays (in a known size), anything else there is taken off.
  * The dress slot is the same, and a worn dress takes the place of the top and
@@ -42,9 +45,11 @@ export function resolveOutfit(
   body: BodyModel,
   preference: PreferenceSpec,
   shown: readonly Garment[] = GARMENTS,
+  available: readonly Garment[] = GARMENTS,
 ): Outfit {
+  const find = (id: string | null) => (id ? available.find((g) => g.id === id) : undefined);
   const pick = (category: GarmentCategory, id: string | null, size: string | null) => {
-    const found = id ? findGarment(id) : undefined;
+    const found = find(id);
     const garment = found?.category === category ? found : firstGarment(shown, category);
     if (!garment) return { id: null, size: null };
     const sizeOk = size !== null && garment.sizes.some((s) => s.label === size);
@@ -52,7 +57,7 @@ export function resolveOutfit(
   };
   // Slots that are never filled by default: kept only when what's there belongs (in a known size).
   const keep = (category: GarmentCategory, id: string | null, size: string | null) => {
-    const garment = id ? findGarment(id) : undefined;
+    const garment = find(id);
     if (garment?.category !== category) return { id: null, size: null };
     const sizeOk = garment.sizes.some((s) => s.label === size);
     return { id: garment.id, size: sizeOk ? size : defaultSize(body, garment, preference) };

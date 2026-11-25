@@ -76,3 +76,18 @@ test("Done on a worn jacket's sheet doesn't work its hint out again", async () =
   await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
   expect(hint.mock.calls.length).toBe(before);
 });
+
+test('no chances or percentages unless Test mode is on', async () => {
+  await renderRouter(appDir, { initialUrl: '/fit-details?garmentId=gildan-5000&size=L&from=fitting' });
+  expect(screen.queryByText('For you')).toBeNull();
+  expect(screen.queryByText('Label')).toBeNull();
+  expect(screen.queryByText(/Chances come from/)).toBeNull();
+  expect(screen.queryByText(/\d% chance/)).toBeNull();
+});
+
+test('Test mode shows each zone’s chances', async () => {
+  Storage.setItemSync(STORAGE_KEYS.testMode, JSON.stringify(true));
+  await renderRouter(appDir, { initialUrl: '/fit-details?garmentId=gildan-5000&size=L&from=fitting' });
+  expect(screen.getAllByText('Label').length).toBeGreaterThan(0);
+  expect(screen.getByText(/Chances come from 500 tries/)).toBeTruthy();
+});

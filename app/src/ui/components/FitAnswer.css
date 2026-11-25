@@ -39,3 +39,29 @@
   background: transparent;
   border: 2px solid currentColor;
 }
+
+/* Why this size, in cm, and how far to trust it: quieter than the verdict, still ink-on-cream legible. */
+.fit-answer__why,
+.fit-answer__trust {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.35;
+}
+.fit-answer__why {
+  color: var(--ink);
+  font-weight: 600;
+}
+.fit-answer__trust {
+  color: var(--muted);
+}
+.fit-answer__trust .link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

@@ -4,6 +4,7 @@
  * the functions stay testable.
  */
 
+import { findGarment, type Garment } from '../../domain/garments';
 import type { Folder, FolderItem, Outfit, SavedOutfit } from './stored';
 
 export const MAX_NAME_LENGTH = 40;
@@ -119,4 +120,42 @@ export function deleteOutfit(outfits: SavedOutfit[], id: string): SavedOutfit[] 
 export function outfitOf(saved: SavedOutfit): Outfit {
   const { topId, topSize, bottomId, bottomSize, outerId, outerSize, onepieceId, onepieceSize } = saved;
   return { topId, topSize, bottomId, bottomSize, outerId, outerSize, onepieceId, onepieceSize };
+}
+
+// ---------- what the current catalogue hides ----------
+
+/**
+ * True for a garment that exists but isn't in `available` (the garments the app may
+ * show, `publicGarments`): a sample on the public site. An id we don't know at all is
+ * "gone", not hidden, and keeps its old handling.
+ */
+export function isHiddenGarment(id: string, available: readonly Pick<Garment, 'id'>[]): boolean {
+  return findGarment(id) !== undefined && !available.some((g) => g.id === id);
+}
+
+/** An outfit's garment ids, top, bottom, dress, jacket (empty slots left out). */
+function outfitIds(outfit: Outfit): string[] {
+  return [outfit.topId, outfit.bottomId, outfit.onepieceId, outfit.outerId].filter((id): id is string => id !== null);
+}
+
+/**
+ * Whether a saved outfit is shown: not when it wears a hidden garment (it would show
+ * as something it isn't). Nothing stored changes; it shows again where samples do.
+ */
+export function showsOutfit(outfit: Outfit, available: readonly Pick<Garment, 'id'>[]): boolean {
+  return outfitIds(outfit).every((id) => !isHiddenGarment(id, available));
+}
+
+/** The liked garments to show, in stored order: hidden ones and ones that are gone are skipped. */
+export function shownLikes(likedIds: readonly string[], available: readonly Garment[]): Garment[] {
+  return likedIds.flatMap((id) => available.find((g) => g.id === id) ?? []);
+}
+
+/** A folder's items that can be shown: hidden garments, and saved outfits that wear one, are skipped (stored as they are). */
+export function shownFolderItems(folder: Folder, outfits: readonly SavedOutfit[], available: readonly Pick<Garment, 'id'>[]): FolderItem[] {
+  return folder.items.filter((item) => {
+    if (item.kind === 'garment') return !isHiddenGarment(item.id, available);
+    const outfit = outfits.find((o) => o.id === item.id);
+    return !outfit || showsOutfit(outfit, available);
+  });
 }

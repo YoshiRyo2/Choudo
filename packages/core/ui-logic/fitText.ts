@@ -27,6 +27,7 @@ import {
 import { RISE_VERTICAL_RATIO, type BodyModel, type BodyType } from '../domain/body';
 import type { ConfidenceGrade, FitIntent, Garment, GarmentType, SourceTier, TemplateId } from '../domain/garments';
 import { cmToIn } from '../domain/units';
+import type { Reliability } from './reliability';
 import type { UnitSystem } from './state/stored';
 
 export const ZONE_NAME: Record<ZoneId, string> = {
@@ -535,7 +536,10 @@ export function formatPercent(p: number): string {
 
 export interface VerdictLine {
   headline: string;
-  /** The chance it fits how you like, in words. null when we can't tell. */
+  /**
+   * The line under the headline: the reliability line passed in (`reliabilityText`), never a
+   * percentage (odds are for Test mode only). null when none was given or we can't tell.
+   */
   detail: string | null;
   tone: FitTone;
   verdict: Verdict;
@@ -570,16 +574,20 @@ export function sizeTone(odds: GarmentOdds, sizeLabel: string): FitTone {
 
 /**
  * The headline for one size: the most likely verdict, worded by how sure we are,
- * or "Could go either way: M or L" when this size and another are close.
+ * or "Could go either way: M or L" when this size and another are close. `detail`
+ * is the reliability line to carry under it (`reliabilityText`), if any.
  */
-export function verdictLine(odds: GarmentOdds, sizeLabel: string, garment: Pick<Garment, 'category' | 'fitIntent'>): VerdictLine {
+export function verdictLine(
+  odds: GarmentOdds,
+  sizeLabel: string,
+  garment: Pick<Garment, 'category' | 'fitIntent'>,
+  detail: string | null = null,
+): VerdictLine {
   const likeliest = likeliestVerdict(odds, sizeLabel);
   if (!likeliest) {
     return { headline: 'Can’t check this fit', detail: null, tone: 'unknown', verdict: 'unknown', closeCall: false };
   }
   const { size, modal } = likeliest;
-  const liked = objectiveOnly(garment) ? 'fits well' : 'fits how you like';
-  const detail = `${formatPercent(size.likes)} chance it ${liked}.`;
 
   const ranked = [...odds.sizes].sort((a, b) => b.likes - a.likes);
   const [first, second] = ranked;
@@ -720,4 +728,124 @@ export function preferenceNote(spec: PreferenceSpec): string {
   if (spec.source === 'anchor') return spec.anchor?.garmentId ? 'Compared with the tee you own and like.' : 'Compared with the tee you measured.';
   if (spec.source === 'style') return `Compared with how you like tees: ${FIT_STYLE_TEXT[spec.style].label.toLowerCase()}.`;
   return 'Assuming you like a regular fit. Tell us how you like tees under Edit body.';
+}
+
+// ---------- how far to trust the answer ----------
+
+export interface ReliabilityWordingOptions {
+  /** The bust was set from a bra size, not from height and weight (BodyModel.bra.setsBust). */
+  bustFromBra?: boolean;
+}
+
+/** "chest is", "hips are": a zone's name in a sentence, with its verb. */
+function zoneIs(zone: ZoneId, bodyType: BodyType): string {
+  const name = zoneName(zone, bodyType).toLowerCase();
+  return zone === 'hips' || zone === 'shoulder' ? `${name} are` : `${name} is`;
+}
+
+/**
+ * One line on how far to trust this size's answer (reliability.ts decides the level):
+ * "Fair confidence: your chest is estimated from height and weight."
+ */
+export function reliabilityText(r: Reliability, bodyType: BodyType = 'mens', options: ReliabilityWordingOptions = {}): string {
+  switch (r.reason) {
+    case 'own-measurements':
+      return 'Good confidence: real size chart and your own measurements.';
+    case 'fit-reference':
+      return 'Good confidence: real size chart and a tee you know fits.';
+    case 'estimated-body': {
+      if (!r.zone) return 'Fair confidence: some of your numbers are estimated from height and weight.';
+      const from = r.zone === 'chest' && options.bustFromBra ? 'your bra size' : 'height and weight';
+      return `Fair confidence: your ${zoneIs(r.zone, bodyType)} estimated from ${from}.`;
+    }
+    case 'estimated-extras':
+      return 'Fair confidence: a few of this garment’s numbers are estimated.';
+    case 'unchecked-girth':
+      return `Fair confidence: this chart doesn’t let us check the ${zoneName(r.zone ?? 'chest', bodyType).toLowerCase()}.`;
+    case 'estimated-sizes':
+      return 'Rough guess: this garment’s sizes are estimated.';
+    case 'incomplete-chart':
+      return 'Rough guess: this brand’s chart is incomplete.';
+  }
+}
+
+/** The action after a fair line about an estimated body number, which opens Edit body; null otherwise. */
+export function reliabilityAction(r: Reliability): string | null {
+  return r.reason === 'estimated-body' ? 'Add your measurement' : null;
+}
+
+// ---------- why this size: the deciding girth, in cm ----------
+
+/**
+ * The girth that decides a template's size: the chest for tops, knits, jackets and
+ * dresses; the waist for every bottom (the first zone in each of their zone lists,
+ * domain/fit/zones.ts).
+ */
+export const DECIDING_ZONE: Record<TemplateId, ZoneId> = {
+  tee: 'chest',
+  shirt: 'chest',
+  knit: 'chest',
+  jacket: 'chest',
+  dress: 'chest',
+  pants: 'waist',
+  shorts: 'waist',
+  skirt: 'waist',
+  leggings: 'waist',
+};
+
+/** Whole cm, or inches to the half: "8 cm", "3.5 in". 0 when it rounds to nothing. */
+function roundedLength(cm: number, units: UnitSystem): { value: number; text: string } {
+  if (units === 'metric') {
+    const value = Math.round(Math.abs(cm));
+    return { value, text: `${value} cm` };
+  }
+  const value = Math.round(cmToIn(Math.abs(cm)) * 2) / 2;
+  return { value, text: `${value} in` };
+}
+
+/**
+ * One size against the deciding girth. `first` is the full clause ("gives you 8 cm of
+ * room at the chest"); the second size's clause is shorter when it reads the same way.
+ */
+function roomClause(
+  diffCm: number,
+  zone: ZoneId,
+  template: TemplateId,
+  units: UnitSystem,
+  bodyType: BodyType,
+  first: { sign: number } | null,
+): { text: string; sign: number } {
+  const { value, text } = roundedLength(diffCm, units);
+  const sign = value === 0 ? 0 : Math.sign(diffCm);
+  const part = zoneName(zone, bodyType).toLowerCase();
+  const same = first !== null && first.sign === sign;
+  if (sign === 0) return { text: same ? 'matches it too' : `matches your ${part}`, sign };
+  if (sign > 0) return { text: same ? `gives ${text}` : first ? `gives ${text} of room` : `gives you ${text} of room ${zonePlace(zone, bodyType)}`, sign };
+  // Under the body: leggings are cut that way and stretch; anything else is smaller.
+  if (template === 'leggings') return { text: same ? `stretches ${text}` : `stretches ${text} ${zonePlace(zone, bodyType)}`, sign };
+  return { text: same ? `is ${text} smaller` : `is ${text} smaller than your ${part}`, sign };
+}
+
+/**
+ * Why this size, in one line of cm: "M gives you 8 cm of room at the chest; L gives 14 cm."
+ * Compared with the next size up, or the next size down for the largest size. `fits` is
+ * every size of the garment, in chart order. null when the deciding girth can't be checked.
+ */
+export function whyLine(
+  fits: readonly GarmentFit[],
+  sizeLabel: string,
+  template: TemplateId,
+  units: UnitSystem,
+  bodyType: BodyType = 'mens',
+): string | null {
+  const zone = DECIDING_ZONE[template];
+  const i = fits.findIndex((f) => f.sizeLabel === sizeLabel);
+  const diffOf = (f: GarmentFit | undefined) => f?.zones.find((z) => z.zone === zone)?.diffCm ?? null;
+  const diff = diffOf(fits[i]);
+  if (i < 0 || diff === null) return null;
+  const mine = roomClause(diff, zone, template, units, bodyType, null);
+  const other = fits[i + 1] ?? (i > 0 ? fits[i - 1] : undefined);
+  const otherDiff = diffOf(other);
+  if (!other || otherDiff === null) return `${sizeLabel} ${mine.text}.`;
+  return `${sizeLabel} ${mine.text}; ${other.sizeLabel} ${roomClause(otherDiff, zone, template, units, bodyType, mine).text}.`;
 }

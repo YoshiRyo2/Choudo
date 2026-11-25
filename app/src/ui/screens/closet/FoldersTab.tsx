@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import type { BodyModel } from '@choudo/core/domain/body';
-import { findGarment, type Garment } from '@choudo/core/domain/garments';
+import type { Garment } from '@choudo/core/domain/garments';
 import { ConfirmButton } from '../../components/ConfirmButton';
 import { GarmentIcon } from '../../components/GarmentIcon';
 import { NameForm } from '../../components/NameForm';
-import { folderSummary, outfitOf } from '@choudo/core/ui-logic/state/closet';
+import { folderSummary, outfitOf, shownFolderItems } from '@choudo/core/ui-logic/state/closet';
 import type { Folder, FolderItem, Outfit, SavedOutfit } from '@choudo/core/ui-logic/state/stored';
 import { outfitLine } from '@choudo/core/ui-logic/closetText';
 import { OutfitFigure } from './OutfitCard';
 
 interface FoldersTabProps {
   model: BodyModel;
+  /** Every garment the app may show: folder items that point elsewhere (a sample on the public site) are skipped. */
+  garments: readonly Garment[];
   folders: Folder[];
   outfits: SavedOutfit[];
   onCreate: (name: string) => void;
@@ -23,7 +25,7 @@ interface FoldersTabProps {
 
 /** Named folders of liked garments and saved outfits. */
 export function FoldersTab(props: FoldersTabProps) {
-  const { folders, onCreate } = props;
+  const { folders, outfits, garments, onCreate } = props;
   const [openId, setOpenId] = useState<string | null>(null);
   const open = folders.find((f) => f.id === openId);
 
@@ -44,7 +46,7 @@ export function FoldersTab(props: FoldersTabProps) {
             <li key={f.id}>
               <button type="button" className="folder-list__row" onClick={() => setOpenId(f.id)}>
                 <span className="folder-list__name">{f.name}</span>
-                <span className="folder-list__count">{folderSummary(f)}</span>
+                <span className="folder-list__count">{folderSummary({ ...f, items: shownFolderItems(f, outfits, garments) })}</span>
                 <span className="folder-list__chevron" aria-hidden="true" />
               </button>
             </li>
@@ -57,6 +59,7 @@ export function FoldersTab(props: FoldersTabProps) {
 
 function FolderView({
   model,
+  garments,
   folder,
   outfits,
   onRename,
@@ -67,6 +70,8 @@ function FolderView({
   onBack,
 }: FoldersTabProps & { folder: Folder; onBack: () => void }) {
   const [renaming, setRenaming] = useState(false);
+  // Stored items stay as they are; ones the catalogue hides aren't drawn.
+  const items = shownFolderItems(folder, outfits, garments);
 
   return (
     <section className="closet__section" aria-label={`Folder ${folder.name}`}>
@@ -103,18 +108,18 @@ function FolderView({
         </div>
       )}
 
-      {folder.items.length === 0 ? (
+      {items.length === 0 ? (
         <p className="closet__note">Nothing here yet. Use “Add to folder” on a liked garment or a saved outfit.</p>
       ) : (
         <ul className="tile-grid">
-          {folder.items.map((item) => {
+          {items.map((item) => {
             const remove = (
               <button type="button" className="button button--quiet button--small" onClick={() => onRemove(folder.id, item)}>
                 Remove
               </button>
             );
             if (item.kind === 'garment') {
-              const g = findGarment(item.id);
+              const g = garments.find((x) => x.id === item.id);
               if (!g) return null;
               return (
                 <li key={`g-${g.id}`} className="tile">
@@ -131,9 +136,9 @@ function FolderView({
             if (!o) return null;
             return (
               <li key={`o-${o.id}`} className="tile outfit-tile">
-                <OutfitFigure body={model.measurements} outfit={o} />
+                <OutfitFigure body={model.measurements} outfit={o} garments={garments} />
                 <h3 className="tile__name">{o.name}</h3>
-                <p className="tile__brand">{outfitLine(o)}</p>
+                <p className="tile__brand">{outfitLine(o, garments)}</p>
                 <div className="tile__actions">
                   <button type="button" className="button button--primary button--small" onClick={() => onWear(outfitOf(o))}>
                     Open
