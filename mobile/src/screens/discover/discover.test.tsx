@@ -2,6 +2,7 @@ import Storage from 'expo-sqlite/kv-store';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Reanimated from 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { estimateBody, type BodyInput } from '@choudo/core/domain/body';
 import { preferenceSpec } from '@choudo/core/domain/fit';
@@ -168,4 +169,21 @@ test('a new feed key rebuilds the feed: liked ones gone, passed ones at the back
   expect(card(fresh[0]!)).toBeTruthy();
   expect(screen.getByText(`${fresh.length} to go`)).toBeTruthy();
   expect(fresh.length).toBe(feed.length - 1);
+});
+
+test('a rebuild mid fly-off that keeps the same card puts it back in the middle', async () => {
+  // Everything liked but one: passing it and rebuilding leaves it first again.
+  const all = catalogueFor(GARMENTS, 'mens', 'all');
+  const [only, ...rest] = all as [Garment, ...Garment[]];
+  store(rest.map(liked));
+  const handlers = await open('all');
+  await press('Pass');
+  await act(() => jest.advanceTimersByTime(100));
+  await act(() => handlers.setFeedKey(1));
+  await settle();
+  await act(() => jest.advanceTimersByTime(500));
+  const shown = card(only)!;
+  expect(shown).toBeTruthy();
+  const style = (Reanimated.getAnimatedStyle as unknown as (c: unknown) => { transform: { translateX?: number }[] })(shown);
+  expect(style.transform.find((t) => t.translateX !== undefined)!.translateX).toBe(0);
 });

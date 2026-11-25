@@ -77,18 +77,28 @@ export function SwipeCard({ garment, body, fit, recommended, verdict, leaving, i
   const dx = useSharedValue(0);
   const width = useSharedValue(FALLBACK_WIDTH);
   const dragging = useSharedValue(false);
-  const gone = useSharedValue(0); // −1 / 1 while flying off, for the lean
+  const gone = useSharedValue(0); // −1 / 1 while flying off
+  const lean = useSharedValue(0); // the lean while flying off, eased to ±14° with the slide
   const worn = { garment, sizeLabel: fit.sizeLabel, fit };
   const enabled = interactive && !leaving;
 
   // Fly off to ±1.4 widths with a ±14° lean (SwipeCard.css .is-leaving). Under Reduce Motion
   // Discover replaces the card at once, so there's nothing to animate.
   useEffect(() => {
-    if (!leaving || reduceMotion) return;
+    if (!leaving) {
+      // Back in play (a rebuilt feed can keep this card): undo a fly-off cut short.
+      gone.set(0);
+      dx.set(0);
+      return;
+    }
+    if (reduceMotion) return;
     const side = leaving === 'like' ? 1 : -1;
+    const move = { duration: MOVE_MS, easing: EASE_IN };
+    lean.set(leanFor(dx.get(), width.get()));
     gone.set(side);
-    dx.set(withTiming(side * width.get() * 1.4, { duration: MOVE_MS, easing: EASE_IN }));
-  }, [leaving, reduceMotion, dx, gone, width]);
+    dx.set(withTiming(side * width.get() * 1.4, move));
+    lean.set(withTiming(side * 14, move));
+  }, [leaving, reduceMotion, dx, gone, lean, width]);
 
   function snapBack() {
     dx.set(reduceMotion ? 0 : withTiming(0, { duration: MOVE_MS, easing: EASE }));
@@ -110,8 +120,10 @@ export function SwipeCard({ garment, body, fit, recommended, verdict, leaving, i
     .onUpdate((e) => {
       dx.set(e.translationX);
     })
-    .onEnd((e) => {
-      scheduleOnRN(endDrag, e.translationX, e.velocityX);
+    .onEnd((e, success) => {
+      // Cancelled by the system (a call, Control Centre): snap back, as the web's pointercancel.
+      if (success) scheduleOnRN(endDrag, e.translationX, e.velocityX);
+      else scheduleOnRN(snapBack);
     })
     .onFinalize(() => {
       dragging.set(false);
@@ -133,8 +145,8 @@ export function SwipeCard({ garment, body, fit, recommended, verdict, leaving, i
   );
 
   const cardStyle = useAnimatedStyle(() => {
-    const lean = gone.get() !== 0 ? gone.get() * 14 : leanFor(dx.get(), width.get());
-    return { transform: [{ translateX: dx.get() }, { rotate: `${lean}deg` }] };
+    const angle = gone.get() !== 0 ? lean.get() : leanFor(dx.get(), width.get());
+    return { transform: [{ translateX: dx.get() }, { rotate: `${angle}deg` }] };
   });
   // How sure the drag looks so far, 0..1, for the Like / Pass stamps.
   const intent = () => {
@@ -158,6 +170,8 @@ export function SwipeCard({ garment, body, fit, recommended, verdict, leaving, i
         onLayout={(e) => width.set(e.nativeEvent.layout.width)}
         accessible
         accessibilityLabel={`${garment.brand} ${garment.name}`}
+        // An accessible view's label hides its text from VoiceOver: the size and verdict follow the name.
+        accessibilityValue={{ text: `${sizeLine(fit.sizeLabel, recommended)}. ${verdict.headline}` }}
         accessibilityActions={ACTIONS}
         onAccessibilityAction={onAccessibilityAction}>
         <View style={styles.stage}>
@@ -212,7 +226,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     overflow: 'hidden',
   },
-  // translateY 10, scale 0.94 from the bottom edge: 0.94 about the centre, then 3 % of the height down.
+  // translateY 10, scale 0.94 about the bottom edge (SwipeCard.css .is-next).
   next: { opacity: 0.6, transform: [{ translateY: 10 }, { scale: 0.94 }], transformOrigin: '50% 100%' },
   stage: { flex: 1, minHeight: 0, paddingTop: 12, paddingHorizontal: 12, backgroundColor: colors.peachTint },
   stamp: {

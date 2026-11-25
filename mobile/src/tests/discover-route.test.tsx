@@ -81,3 +81,25 @@ test('Show all garments at the end of the matching feed stores the scope and sta
   expect(screen.getByText(`${rest.length} to go`)).toBeTruthy();
 });
 
+
+test('closing Fit details keeps the feed where it was', async () => {
+  await open();
+  const feed = buildFeed(matching, []);
+  await press('Pass');
+  await flyOff();
+  expect(screen.getByText(`${feed.length - 1} to go`)).toBeTruthy();
+  await press('Fit details');
+  expect(screen).toHavePathname('/fit-details');
+  await act(() => router.back());
+  expect(screen).toHavePathname('/discover');
+  // Not rebuilt: the passed card isn't queued again.
+  expect(screen.getByText(`${feed.length - 1} to go`)).toBeTruthy();
+});
+
+test('Discover is not drawn behind the Fitting room until it is first opened', async () => {
+  Storage.setItemSync(STORAGE_KEYS.body, JSON.stringify(BODY));
+  await renderRouter(appDir, { initialUrl: '/' });
+  expect(screen.queryByText(/ to go$/)).toBeNull();
+  await act(() => router.navigate('/discover'));
+  expect(screen.getByText(/ to go$/)).toBeTruthy();
+});

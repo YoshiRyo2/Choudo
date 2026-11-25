@@ -102,9 +102,11 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  resolved outfit under a name or the next "Outfit N"),
                  dev/mannequin.tsx (the mannequin lab; redirects to / unless __DEV__, so never in a store
                  build; the Fitting room shows its button in development only).
-                 (tabs)/index.tsx is the Fitting room; (tabs)/discover.tsx is Discover: native tabs stay
-                 mounted, so it builds a fresh feed each time the tab gains focus (useFocusEffect bumps
-                 `feedKey`), never while it's on screen; a card's Fit details opens `from=browse`.
+                 (tabs)/index.tsx is the Fitting room; (tabs)/discover.tsx is Discover: native tabs all
+                 render at launch and stay mounted, so it draws nothing until first opened, then builds a
+                 fresh feed when the tab regains focus with swipes changed elsewhere (useFocusEffect bumps
+                 `feedKey`), never while it's on screen or when a sheet over it closes; it reads body,
+                 preference, catalogue and closet only (not useWardrobe). Fit details opens `from=browse`.
                  Closet is a placeholder until PR 7.
   src/storage/   kv.ts (expo-sqlite/kv-store as a StorageLike; runMigrations)
   src/hooks/     use-persistent-state.ts (the web hook's twin on kv), use-body.ts, use-units.ts,
