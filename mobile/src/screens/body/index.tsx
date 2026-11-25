@@ -32,6 +32,7 @@ import { Segmented } from '@/components/segmented';
 import { ThemedText } from '@/components/themed-text';
 import { Wordmark } from '@/components/wordmark';
 import { colors, fonts, radius, spacing } from '@/theme';
+import { DEV_TOOLS } from '@/utils/dev-tools';
 
 import { EstimateList } from './estimate-list';
 
@@ -317,7 +318,7 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
         {onAbout && <Button variant="quiet" size="sm" title="About Choudo" onPress={onAbout} />}
       </View>
 
-      {__DEV__ && testMode && (
+      {DEV_TOOLS && testMode && (
         <View style={styles.testers}>
           <ThemedText variant="small" tone="muted">
             For fit testers
