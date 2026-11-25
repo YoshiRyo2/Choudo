@@ -11,6 +11,12 @@ well-named modules over clever ones.
 ## Hard constraints (v1)
 - **Guest only.** No accounts, no login, no backend user data. Anything stored stays on
   the device (`localStorage` on the web, the phone's key-value store in `mobile/`).
+- **Analytics = GoatCounter, web production build only** (site code `choudo`, no cookies).
+  It counts page views (with the URL's query, so `?utm_campaign=…&utm_source=…` links show
+  up) and five fixed events, each once per session: `fitting-room-opened`,
+  `fit-details-opened`, `discover-opened`, `closet-opened`, `garment-saved`. Nothing personal
+  is ever sent: no body numbers, sizes, garment names or stored data. Only `ui/analytics.ts`
+  talks to GoatCounter; never rewrite the page URL before its first count. `mobile/` has none.
 - **No face, no photo, no camera.** Body input = height + weight + body type ("Size me in
   women's / men's clothes"), plus optional chest (full bust) / waist / hips / inseam
   overrides and, for a women's body, an optional bra size.
@@ -88,6 +94,7 @@ app/src/
     state/       usePersistentState (localStorage), useCloset.ts
     motion.ts    the figure's hop when the stamp lands (translate only)
     focus.ts     refocus after a remount without a tap-drawn ring (`[data-pointer-focus]`)
+    analytics.ts track(event): the fixed GoatCounter events, once per session; a no-op without it
     styles.css   design tokens (colours, type scale; spec: docs/superpowers/specs/2026-11-22-playful-reskin-design.md)
   dev/landmarks/ dev-only landmark picker (/dev/landmarks), tops and pants: suggest.ts (landmarks
                  from the outline), seedWrite.ts (writes one "image" into seed.json), pickerModel.ts
@@ -180,8 +187,11 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
 app/dev/       landmarks.html + landmarksServer.ts: the picker page and its save endpoint,
                Vite dev server only (apply: 'serve'), never in npm run build
 app/build/     build-only: pagesBase.ts (PAGES_BASE '/Choudo/'), leaveOutLocalPhotos.ts (Vite
-               plugin: deletes local-only photos from dist/), serviceWorker.ts (stamps dist/sw.js)
-app/public/sw.js  service worker (offline), registered by the production build only
+               plugin: deletes local-only photos from dist/), serviceWorker.ts (stamps dist/sw.js),
+               goatCounter.ts (adds GoatCounter's script to the production index.html; vite
+               preview strips it; never on the dev server or under Vitest)
+app/public/sw.js  service worker (offline), registered by the production build only; it never
+               touches other sites, so GoatCounter (gc.zgo.at, goatcounter.com) is never cached
 .github/workflows/deploy-pages.yml  checks core + app, builds app/ and deploys it to GitHub Pages on every push to main
 app/scripts/   stamp-glyphs.mjs (one-off: ちょうど outlined from Shippori Mincho B1, OFL, via opentype.js),
                data-check.mjs (npm run data:check), fit-report.mjs (npm run fit:report),
@@ -449,7 +459,7 @@ npm test           # app unit tests, once (core's run from the root)
 npm run test:watch # app unit tests, watch mode
 npm run check      # app only: typecheck + tests + data:check (the root check runs core too)
 npm run data:check # garment data report: grade, warnings, errors, audit per garment
-npm run dist:check # after npm run build: URLs under /Choudo/, sw.js, no dev pages or local-only photos
+npm run dist:check # after npm run build: URLs under /Choudo/, only GoatCounter from elsewhere, sw.js, no dev pages or local-only photos
 npm run fit:report # fit-test report from ../data/fit_tests.csv (or a path after --)
 npm run photos     # cut garment photos out into public/garments/ (commit the PNG)
                    # then place landmarks at http://localhost:5173/dev/landmarks?id=<garment>

@@ -6,12 +6,14 @@
 /**
  * Problems with a build in dist/, as messages; empty when it's fine to deploy.
  * @param {{ files: string[], indexHtml: string, manifest: { start_url?: string, icons?: { src: string }[] },
- *           localOnly: string[], base: string, swSource: string }} build
+ *           localOnly: string[], base: string, swSource: string, analytics: { script: string, tag: string } }} build
  *   files: every file in dist/, relative to it with "/" separators. localOnly: the seed's
  *   local-only photo files. base: the site's path, e.g. "/Choudo/". swSource: dist/sw.js's text.
+ *   analytics: GoatCounter's script URL and snippet (build/goatCounter.ts), the one thing
+ *   index.html may load from another site, and which it must load exactly once.
  * @returns {string[]}
  */
-export function distProblems({ files, indexHtml, manifest, localOnly, base, swSource }) {
+export function distProblems({ files, indexHtml, manifest, localOnly, base, swSource, analytics }) {
   const problems = [];
   const have = new Set(files);
   const origin = 'https://pages.invalid';
@@ -29,9 +31,15 @@ export function distProblems({ files, indexHtml, manifest, localOnly, base, swSo
   };
 
   for (const [, url] of indexHtml.matchAll(/\b(?:src|href)="([^"]+)"/g)) {
-    if (!url.startsWith('/') || url.startsWith('//')) continue; // another site, or relative
+    if (url.startsWith('//') || /^https?:/i.test(url)) {
+      if (url !== analytics.script) problems.push(`index.html: ${url} is on another site (only ${analytics.script} may be)`);
+      continue;
+    }
+    if (!url.startsWith('/')) continue; // relative
     check('index.html:', new URL(url, origin).pathname);
   }
+  const tags = indexHtml.split(analytics.tag).length - 1;
+  if (tags !== 1) problems.push(`index.html has the GoatCounter script ${tags} times, not once (build/goatCounter.ts)`);
 
   const manifestUrl = new URL(`${base}manifest.webmanifest`, origin);
   if (manifest.start_url !== undefined) check('manifest: start_url', new URL(manifest.start_url, manifestUrl).pathname);
