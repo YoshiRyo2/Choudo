@@ -21,6 +21,8 @@ export interface Wardrobe {
   setUnits: (units: UnitSystem) => void;
   catalogue: CatalogueScope;
   setCatalogue: (scope: CatalogueScope) => void;
+  /** Every garment the app may show (useGarments: no samples in a store build). */
+  garments: readonly Garment[];
   /** What the catalogue toggle shows for this body type. */
   shown: readonly Garment[];
   /** The stored outfit, resolved (resolveOutfit): never stale. */
@@ -49,5 +51,5 @@ export function useWardrobe(): Wardrobe | null {
     [saved, model, preference, shown, garments],
   );
   if (!body || !model) return null;
-  return { body, model, preference, units, setUnits, catalogue, setCatalogue, shown, outfit, setOutfit };
+  return { body, model, preference, units, setUnits, catalogue, setCatalogue, garments, shown, outfit, setOutfit };
 }

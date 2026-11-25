@@ -19,6 +19,7 @@ export default function ClosetRoute() {
     <Closet
       model={wardrobe.model}
       preference={wardrobe.preference}
+      garments={wardrobe.garments}
       closet={closet}
       current={wardrobe.outfit}
       onOpenGarment={(garment, size) => router.push({ pathname: '/fit-details', params: { garmentId: garment.id, size, from: 'browse' } })}

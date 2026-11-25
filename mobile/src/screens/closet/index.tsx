@@ -21,6 +21,8 @@ type Section = 'liked' | 'folders' | 'outfits';
 export interface ClosetProps {
   model: BodyModel;
   preference: PreferenceSpec;
+  /** Every garment the app may show (useGarments): likes, folder items and outfits that point elsewhere are skipped. */
+  garments: readonly Garment[];
   closet: ClosetState;
   /** What's on the mannequin in the Fitting room (resolved). */
   current: Outfit;
@@ -39,7 +41,7 @@ export interface ClosetProps {
 
 /** Liked garments, folders of them, and saved outfits (the web Closet). */
 export function Closet(props: ClosetProps) {
-  const { model, preference, closet, current } = props;
+  const { model, preference, garments, closet, current } = props;
   const insets = useSafeAreaInsets();
   // Not stored: the Closet opens on Liked.
   const [section, setSection] = useState<Section>('liked');
@@ -72,6 +74,7 @@ export function Closet(props: ClosetProps) {
           <Liked
             model={model}
             preference={preference}
+            garments={garments}
             likedIds={closet.liked}
             folderCount={folderCount('garment')}
             onOpen={props.onOpenGarment}
@@ -81,10 +84,19 @@ export function Closet(props: ClosetProps) {
             active={props.active ?? true}
           />
         )}
-        {section === 'folders' && <Folders folders={closet.folders} onCreate={closet.createFolder} onOpenFolder={props.onOpenFolder} />}
+        {section === 'folders' && (
+          <Folders
+            folders={closet.folders}
+            outfits={closet.outfits}
+            garments={garments}
+            onCreate={closet.createFolder}
+            onOpenFolder={props.onOpenFolder}
+          />
+        )}
         {section === 'outfits' && (
           <Outfits
             model={model}
+            garments={garments}
             outfits={closet.outfits}
             current={current}
             onSave={(name) => closet.saveOutfit(current, name)}
