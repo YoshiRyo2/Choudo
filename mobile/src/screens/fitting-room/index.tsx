@@ -2,16 +2,18 @@ import * as Haptics from 'expo-haptics';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BodyInput, BodyModel } from '@choudo/core/domain/body';
-import { fitAllSizes, type GarmentFit, type GarmentOdds, type PreferenceSpec, type UnderLayer } from '@choudo/core/domain/fit';
+import { fitAllSizes, type Anchor, type GarmentFit, type GarmentOdds, type PreferenceSpec, type UnderLayer } from '@choudo/core/domain/fit';
 import { findGarment, type CatalogueScope, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
 import { catalogueToggle, emptyCategoryText } from '@choudo/core/ui-logic/catalogueText';
 import type { HeadKind } from '@choudo/core/ui-logic/components/Mannequin/heads';
 import type { View as Side } from '@choudo/core/ui-logic/components/Mannequin/view';
 import { fittingHeadline, isJustRight } from '@choudo/core/ui-logic/fitText';
+import { makeId } from '@choudo/core/ui-logic/state/closet';
+import { makeFitTest, predictionFor } from '@choudo/core/ui-logic/state/fitTests';
 import { garmentOdds } from '@choudo/core/ui-logic/state/odds';
 import { defaultSize, wearGarment } from '@choudo/core/ui-logic/state/outfit';
 import { stampKey } from '@choudo/core/ui-logic/state/stampSeen';
-import type { Outfit, UnitSystem } from '@choudo/core/ui-logic/state/stored';
+import type { FitTestRecord, Outfit, UnitSystem } from '@choudo/core/ui-logic/state/stored';
 
 import { Button } from '@/components/button';
 import { FitAnswer } from '@/components/fit-answer';
@@ -22,10 +24,13 @@ import { SizePicker } from '@/components/size-picker';
 import { useStampDrop } from '@/components/stamp/use-stamp-drop';
 import { ThemedText } from '@/components/themed-text';
 import { Wordmark } from '@/components/wordmark';
+import { usePrefetchOdds } from '@/hooks/use-prefetch-odds';
+import { DEV_TOOLS } from '@/utils/dev-tools';
 import { colors, fonts, radius, spacing } from '@/theme';
 
 import { firstLook } from '@/utils/odds-log';
 
+import { FitTestPanel } from '../fit-test';
 import { Stage } from './stage';
 
 export interface FittingRoomProps {
@@ -50,6 +55,17 @@ export interface FittingRoomProps {
   onSaveOutfit: () => void;
   /** Development only: a way into the mannequin lab, at the bottom of the panel. */
   devTools?: React.ReactNode;
+  /** False while another tab is on screen: the neighbours' odds wait (default true). */
+  prefetch?: boolean;
+  /** Test mode (development and fit-test builds only): its results and what to do with them. */
+  testing?: {
+    records: FitTestRecord[];
+    /** The stored anchor, so a result says what the prediction was compared with. */
+    anchor: Anchor | null;
+    onAdd: (record: FitTestRecord) => void;
+    onClear: () => void;
+    onExport: () => void;
+  };
 }
 
 /** A worn garment, fitted: what the drawing needs. */
@@ -98,6 +114,8 @@ export function FittingRoom({
   onDetails,
   onSaveOutfit,
   devTools,
+  prefetch = true,
+  testing,
 }: FittingRoomProps) {
   // Open on the dress when one is worn: the Top tab would have nothing on to show.
   const [browsing, setBrowsing] = useState<GarmentCategory>(() => (outfit.onepieceId ? 'onepiece' : 'top'));
@@ -163,6 +181,13 @@ export function FittingRoom({
   const inCategory = shown.filter((g) => g.category === tab);
   const carousel = active && !inCategory.includes(active.garment) ? [active.garment, ...inCategory] : inCategory;
   const show = catalogueToggle(body.bodyType, catalogue);
+
+  // The garments either side of the one on show (or the first, when none is worn), worked out
+  // a tick at a time after this render, so swiping on to them is instant. A jacket's are worked
+  // out over the top under it, as they'll be shown; a new tab drops the old tab's queue.
+  const at = active ? carousel.indexOf(active.garment) : -1;
+  const neighbours = (at < 0 ? [carousel[0]] : [carousel[at - 1], carousel[at + 1]]).filter((g): g is Garment => g !== undefined);
+  usePrefetchOdds(model, preference, neighbours, { active: prefetch, under: tab === 'outer' ? under : undefined });
 
   const worn = (s: Worn | null): WornGarment | undefined => (s ? { garment: s.garment, sizeLabel: s.size, fit: s.fit } : undefined);
 
@@ -298,6 +323,33 @@ export function FittingRoom({
         )}
 
         {tab === 'outer' && outer && <Button variant="outline" size="sm" title="Take off the jacket" onPress={takeOffJacket} />}
+
+        {DEV_TOOLS && testing && (
+          <FitTestPanel
+            key={active ? `${active.garment.id}-${active.size}` : 'none'}
+            garment={active ? active.garment : null}
+            size={active ? active.size : null}
+            fit={active ? active.fit : null}
+            records={testing.records}
+            onClear={testing.onClear}
+            onExport={testing.onExport}
+            bodyType={body.bodyType}
+            onSave={(answers) => {
+              if (!active) return;
+              const prediction = predictionFor({
+                body,
+                model,
+                garment: active.garment,
+                size: active.size,
+                preference,
+                anchor: testing.anchor,
+                odds: active.odds,
+                under: tab === 'outer' ? under : undefined,
+              });
+              testing.onAdd(makeFitTest(makeId(), new Date().toISOString(), active.garment.id, active.size, answers, prediction));
+            }}
+          />
+        )}
 
         {devTools}
       </View>

@@ -3,17 +3,22 @@
  * scripts/dist-check.mjs reads dist/ and prints what this returns.
  */
 
+/** Static pages (app/public/) the App Store listing links to: the privacy policy and support. */
+export const REQUIRED_PAGES = ['privacy.html', 'support.html'];
+
 /**
  * Problems with a build in dist/, as messages; empty when it's fine to deploy.
  * @param {{ files: string[], indexHtml: string, manifest: { start_url?: string, icons?: { src: string }[] },
- *           localOnly: string[], base: string, swSource: string, analytics: { script: string, tag: string } }} build
+ *           localOnly: string[], base: string, swSource: string, analytics: { script: string, tag: string },
+ *           pages: Record<string, string> }} build
  *   files: every file in dist/, relative to it with "/" separators. localOnly: the seed's
  *   local-only photo files. base: the site's path, e.g. "/Choudo/". swSource: dist/sw.js's text.
  *   analytics: GoatCounter's script URL and snippet (build/goatCounter.ts), the one thing
  *   index.html may load from another site, and which it must load exactly once.
+ *   pages: the text of the static pages in REQUIRED_PAGES that are in dist/.
  * @returns {string[]}
  */
-export function distProblems({ files, indexHtml, manifest, localOnly, base, swSource, analytics }) {
+export function distProblems({ files, indexHtml, manifest, localOnly, base, swSource, analytics, pages = {} }) {
   const problems = [];
   const have = new Set(files);
   const origin = 'https://pages.invalid';
@@ -61,6 +66,11 @@ export function distProblems({ files, indexHtml, manifest, localOnly, base, swSo
   }
   for (const file of localOnly) {
     if (have.has(file)) problems.push(`${file} is local-only and must not ship`);
+  }
+  // The App Store listing links to these; each leads back to the app.
+  for (const page of REQUIRED_PAGES) {
+    if (!have.has(page)) problems.push(`${page} is missing`);
+    else if (!(pages[page] ?? '').includes('href="./"')) problems.push(`${page} does not link back to the app (href="./")`);
   }
   return problems;
 }

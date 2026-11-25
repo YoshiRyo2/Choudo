@@ -32,6 +32,7 @@ import { Segmented } from '@/components/segmented';
 import { ThemedText } from '@/components/themed-text';
 import { Wordmark } from '@/components/wordmark';
 import { colors, fonts, radius, spacing } from '@/theme';
+import { DEV_TOOLS } from '@/utils/dev-tools';
 
 import { EstimateList } from './estimate-list';
 
@@ -226,9 +227,8 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
           onPress={() => setShowTape((s) => !s)}
           style={({ pressed }) => [styles.tapeToggle, pressed && styles.pressed]}>
           <ThemedText style={styles.tapeToggleText}>Have a tape measure? Add your own numbers</ThemedText>
-          <ThemedText style={styles.chevron} importantForAccessibility="no" accessibilityElementsHidden>
-            {showTape ? '⌃' : '⌄'}
-          </ThemedText>
+          {/* Drawn, not ⌃ / ⌄: the app's font has neither, so they'd show in the system font. */}
+          <View style={[styles.chevron, showTape ? styles.chevronUp : styles.chevronDown]} />
         </Pressable>
         {showTape && (
           <View style={styles.tapeBody}>
@@ -318,7 +318,7 @@ export function BodyScreen({ initial, units, onDone, onCancel, fitReference, tes
         {onAbout && <Button variant="quiet" size="sm" title="About Choudo" onPress={onAbout} />}
       </View>
 
-      {__DEV__ && testMode && (
+      {DEV_TOOLS && testMode && (
         <View style={styles.testers}>
           <ThemedText variant="small" tone="muted">
             For fit testers
@@ -376,7 +376,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   tapeToggleText: { flex: 1 },
-  chevron: { fontFamily: fonts.bold },
+  chevron: { width: 9, height: 9, marginHorizontal: 4, borderRightWidth: 2, borderBottomWidth: 2, borderColor: colors.ink },
+  chevronDown: { transform: [{ translateY: -2 }, { rotate: '45deg' }] },
+  chevronUp: { transform: [{ translateY: 2 }, { rotate: '-135deg' }] },
   pressed: { opacity: 0.7 },
   tapeBody: { paddingBottom: 18, gap: 14 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },

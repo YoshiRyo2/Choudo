@@ -1,11 +1,11 @@
 import Storage from 'expo-sqlite/kv-store';
-import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
+import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import { estimateBody, type BodyInput } from '@choudo/core/domain/body';
 import { preferenceSpec } from '@choudo/core/domain/fit';
 import { catalogueFor, findGarment, GARMENTS, type Garment } from '@choudo/core/domain/garments';
 import { catalogueToggle } from '@choudo/core/ui-logic/catalogueText';
 import { fittingHeadline, isJustRight } from '@choudo/core/ui-logic/fitText';
-import { garmentOdds } from '@choudo/core/ui-logic/state/odds';
+import { cachedOdds, garmentOdds } from '@choudo/core/ui-logic/state/odds';
 import { defaultSize, resolveOutfit } from '@choudo/core/ui-logic/state/outfit';
 import { EMPTY_OUTFIT, STORAGE_KEYS, type Outfit } from '@choudo/core/ui-logic/state/stored';
 
@@ -179,5 +179,48 @@ describe('the dev-only [odds] log (Review Focus 1: first odds on Hermes)', () =>
     await fireEvent.press(screen.getByRole('radio', { name: /^M, / }));
     expect(read<Outfit>(STORAGE_KEYS.outfit).topSize).toBe('M');
     expect(lines.filter((l) => l.line.includes('port-authority-j317'))).toEqual([]);
+  });
+});
+
+describe("the open tab's neighbours are worked out ahead (instant swiping)", () => {
+  // A body no other test uses: nothing in the odds cache yet.
+  const BODY: BodyInput = { heightCm: 168, weightKg: 63, bodyType: 'mens' };
+  const fresh = estimateBody(BODY);
+  const tops = catalogueFor(GARMENTS, 'mens', 'matching').filter((g) => g.category === 'top');
+  const k = 2;
+  const ahead = () => act(() => jest.advanceTimersByTime(50));
+
+  test('the garments either side of the worn one, and no others', async () => {
+    await open(BODY, { ...EMPTY_OUTFIT, topId: tops[k]!.id, topSize: 'M' });
+    expect(cachedOdds(fresh, tops[k - 1]!, preference)).toBeUndefined();
+    await ahead();
+    expect(cachedOdds(fresh, tops[k - 1]!, preference)).toBeDefined();
+    expect(cachedOdds(fresh, tops[k + 1]!, preference)).toBeDefined();
+    expect(cachedOdds(fresh, tops[k - 2]!, preference)).toBeUndefined();
+    expect(cachedOdds(fresh, tops[k + 2]!, preference)).toBeUndefined();
+  });
+
+  test("switching tabs drops the old tab's neighbours", async () => {
+    const other: BodyInput = { heightCm: 169, weightKg: 64, bodyType: 'mens' };
+    const model2 = estimateBody(other);
+    await open(other, { ...EMPTY_OUTFIT, topId: tops[k]!.id, topSize: 'M' });
+    await act(() => fireEvent.press(screen.getByText('Bottom')));
+    await ahead();
+    expect(cachedOdds(model2, tops[k - 1]!, preference)).toBeUndefined();
+    expect(cachedOdds(model2, tops[k + 1]!, preference)).toBeUndefined();
+  });
+
+  test('on the Jacket tab, the neighbours are worked out over the top under them', async () => {
+    const other: BodyInput = { heightCm: 167, weightKg: 62, bodyType: 'mens' };
+    const model3 = estimateBody(other);
+    // All garments, so both soft shells are in the carousel: the worn one and the next.
+    const jackets = catalogueFor(GARMENTS, 'mens', 'all').filter((g) => g.category === 'outer');
+    expect(jackets.length).toBeGreaterThan(1);
+    Storage.setItemSync(STORAGE_KEYS.catalogue, JSON.stringify('all'));
+    await open(other, { ...EMPTY_OUTFIT, topId: 'gildan-18500', topSize: 'L', outerId: jackets[0]!.id, outerSize: 'L' });
+    await act(() => fireEvent.press(screen.getByText('Jacket')));
+    await ahead();
+    const under = { garment: findGarment('gildan-18500')!, sizeLabel: 'L' };
+    expect(cachedOdds(model3, jackets[1]!, preference, under)).toBeDefined();
   });
 });

@@ -1,5 +1,5 @@
 import { estimateBody } from '@choudo/core/domain/body';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { useBody } from '@/hooks/use-body';
@@ -32,6 +32,8 @@ export default function DiscoverRoute() {
     }, []),
   );
 
+  // Stays mounted once opened: the next cards' odds are only worked out while it's on screen.
+  const focused = useIsFocused();
   if (!body || !model || feedKey === 0) return null;
   return (
     <Discover
@@ -44,6 +46,7 @@ export default function DiscoverRoute() {
       feedKey={feedKey}
       onOpenDetails={(garment, size) => router.push({ pathname: '/fit-details', params: { garmentId: garment.id, size, from: 'browse' } })}
       onOpenCloset={() => router.navigate('/closet')}
+      active={focused}
     />
   );
 }

@@ -8,9 +8,17 @@
     "scheme": "choudo",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "supportsTablet": false,
-      "bundleIdentifier": "com.choudo.app"
+      "bundleIdentifier": "com.choudo.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyTracking": false,
+        "NSPrivacyTrackingDomains": [],
+        "NSPrivacyCollectedDataTypes": []
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -30,9 +38,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#ffb59e",
+          "backgroundColor": "#fff4ee",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 160
         }
       ],
       "expo-sqlite",

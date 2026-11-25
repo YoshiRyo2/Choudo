@@ -20,6 +20,9 @@ export function AboutSheet({ onClose }: { onClose: () => void }) {
           We count anonymous visits, and which screens are opened, with GoatCounter. No cookies, and never your
           measurements, sizes or the clothes you pick.
         </p>
+        <p>
+          <a href="privacy.html">Privacy policy</a>
+        </p>
         <p className="about__disclosure">Affiliate disclosure: to come.</p>
       </div>
     </Sheet>

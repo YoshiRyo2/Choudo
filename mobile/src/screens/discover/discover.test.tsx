@@ -9,6 +9,7 @@ import { preferenceSpec } from '@choudo/core/domain/fit';
 import { catalogueFor, GARMENTS, type CatalogueScope, type Garment } from '@choudo/core/domain/garments';
 import { endOfMatchingFeedText } from '@choudo/core/ui-logic/catalogueText';
 import { buildFeed } from '@choudo/core/ui-logic/state/feed';
+import { cachedOdds } from '@choudo/core/ui-logic/state/odds';
 import { suggestedFit } from '@choudo/core/ui-logic/state/outfit';
 import { STORAGE_KEYS, type Swipe } from '@choudo/core/ui-logic/state/stored';
 
@@ -137,6 +138,8 @@ describe('the end of the feed', () => {
     expect(onCatalogueChange).toHaveBeenCalledWith('all');
   });
 
+  // Passes through every card, and each step works the next two cards' odds out for real
+  // (the prefetch): slower than the rest, so it gets more than Jest's default 5 s.
   test('after passing the rest, it counts the one liked', async () => {
     const feed = feedOf('all');
     store([liked(feed[0]!)]);
@@ -147,7 +150,7 @@ describe('the end of the feed', () => {
     }
     expect(screen.getByText('No more garments')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'See your 1 liked in the Closet' })).toBeTruthy();
-  });
+  }, 30_000);
 });
 
 test('a new feed key rebuilds the feed: liked ones gone, passed ones at the back, from the first card', async () => {
@@ -186,4 +189,45 @@ test('a rebuild mid fly-off that keeps the same card puts it back in the middle'
   expect(shown).toBeTruthy();
   const style = (Reanimated.getAnimatedStyle as unknown as (c: unknown) => { transform: { translateX?: number }[] })(shown);
   expect(style.transform.find((t) => t.translateX !== undefined)!.translateX).toBe(0);
+});
+
+test('the next two cards’ odds are worked out ahead, so swiping on is instant', async () => {
+  const ahead = estimateBody({ heightCm: 177, weightKg: 81, bodyType: 'mens' });
+  const handlers = { onCatalogueChange: jest.fn(), onOpenDetails: jest.fn(), onOpenCloset: jest.fn() };
+  function Harness() {
+    const closet = useCloset();
+    return <Discover catalogue="all" model={ahead} bodyType="mens" preference={preference} closet={closet} feedKey={0} {...handlers} />;
+  }
+  await render(
+    <SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 83 } }}>
+      <GestureHandlerRootView>
+        <Harness />
+      </GestureHandlerRootView>
+    </SafeAreaProvider>,
+  );
+  const [, second, third, fourth] = feedOf('all');
+  expect(cachedOdds(ahead, second!, preference)).toBeUndefined();
+  await act(() => jest.advanceTimersByTime(50));
+  expect(cachedOdds(ahead, second!, preference)).toBeDefined();
+  expect(cachedOdds(ahead, third!, preference)).toBeDefined();
+  expect(cachedOdds(ahead, fourth!, preference)).toBeUndefined();
+});
+
+test('while its tab is not on screen, it works nothing out ahead', async () => {
+  const hidden = estimateBody({ heightCm: 178, weightKg: 82, bodyType: 'mens' });
+  const handlers = { onCatalogueChange: jest.fn(), onOpenDetails: jest.fn(), onOpenCloset: jest.fn() };
+  function Harness() {
+    const closet = useCloset();
+    return <Discover catalogue="all" model={hidden} bodyType="mens" preference={preference} closet={closet} feedKey={0} active={false} {...handlers} />;
+  }
+  await render(
+    <SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 83 } }}>
+      <GestureHandlerRootView>
+        <Harness />
+      </GestureHandlerRootView>
+    </SafeAreaProvider>,
+  );
+  await act(() => jest.advanceTimersByTime(50));
+  const [, second] = feedOf('all');
+  expect(cachedOdds(hidden, second!, preference)).toBeUndefined();
 });
