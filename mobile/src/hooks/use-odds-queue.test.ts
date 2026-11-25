@@ -11,7 +11,7 @@ const first = estimateBody({ heightCm: 171, weightKg: 67, bodyType: 'mens' });
 const second = estimateBody({ heightCm: 186, weightKg: 92, bodyType: 'mens' });
 const preference = preferenceSpec(null, 'slim');
 const garments = ['gildan-5000', 'gildan-18500', 'port-authority-j317'].map((id) => findGarment(id)!);
-const tick = () => act(() => jest.runOnlyPendingTimers());
+const tick = () => act(() => jest.advanceTimersToNextTimer());
 
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());
