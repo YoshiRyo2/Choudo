@@ -70,7 +70,8 @@ Notes:
   build numbers by hand. To ship 1.0.1 later, change `version` in `mobile/app.json`.
 - Expo's free plan has a monthly limit on cloud builds (see [expo.dev/pricing](https://expo.dev/pricing)).
   If you run out, you can build on your Mac instead: install Xcode from the Mac App Store,
-  then run `npx expo run:ios --configuration Release` from `mobile/`.
+  then from `mobile/` run `eas build -p ios --profile production --local`. It writes an `.ipa`
+  file into the folder; send that one with `eas submit -p ios --path <the .ipa file>`.
 
 **Success:** App Store Connect → your app → TestFlight lists the build. It shows "Processing"
 for a few minutes first, then "Ready to Submit" (or asks you to answer the export compliance
@@ -98,8 +99,14 @@ This is an internal build: EAS asks which iPhones may install it (each tester re
 phone once by opening a link EAS gives you). When the build finishes, share its install link or
 QR code with the testers.
 
+Before it will open, each tester turns on Developer Mode once: Settings → Privacy & Security →
+Developer Mode → On, then restart the iPhone and confirm. (iPhones ask for this for any app
+installed outside the App Store and TestFlight.)
+
 In the app: Edit body → "For fit testers" → Test mode on. Results go out with **Export CSV**
 (the share sheet: AirDrop or mail them to yourself) and are pasted into `data/fit_tests.csv`.
+The CSV holds each tester's body measurements and answers: tell testers before they take
+part, and keep the file to the fit test.
 
 The `development` profile in `eas.json` is for a custom development build. You don't need it
 while Expo Go works; if you ever do, run `npx expo install expo-dev-client` in `mobile/` first.
@@ -136,4 +143,4 @@ two; Apple emails you either way.
   garment's Fit details names its source, with a link to the chart.
 - **"Does the app collect data?"** No: no analytics, no tracking, nothing uploaded. The only
   things that leave the phone are what you choose to share (an outfit picture) and the brand
-  size-chart links, which open in Safari.
+  size-chart links, which open in a Safari window inside the app.

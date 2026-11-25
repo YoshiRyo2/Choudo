@@ -133,7 +133,9 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  use-wardrobe.ts (body model, units, catalogue, what it shows and the resolved outfit, for the
                  Fitting room and its sheets), use-odds-queue.ts (one garment's odds per setTimeout(0) tick
                  after the first render, cached ones at once: the Closet's tiles fill in rather than freeze),
-                 use-leave-if.tsx (a sheet or screen whose item is gone goes back). forgetThisLaunch()
+                 use-leave-if.tsx (a sheet or screen whose item is gone goes back), use-prefetch-odds.ts
+                 (the same queue into core's odds cache only, never re-rendering: the Fitting room's and
+                 Discover's garments next in line, paused while their tab isn't on screen). forgetThisLaunch()
                  (use-persistent-state) lets route tests start from storage alone.
   src/theme/     colors, type + fonts (M PLUS Rounded 1c via useFonts), radius, spacing — from styles.css
   src/components/ themed-text, button (`disabled` = the web's aria-disabled: dimmed, still pressable),
@@ -182,7 +184,7 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  share-card.tsx: 360 × 450 pt, the mannequin, the outfit's name, each garment and size, the
                  wordmark; never the body in words), fit-test/ (FitTestPanel, the web's, under the
                  Fitting room's sizes when Test mode is on). The Fitting room and Discover work the odds of
-                 the garments next to the one on show out ahead with useOddsQueue (a jacket's over the top
+                 the garments next to the one on show out ahead with usePrefetchOdds (a jacket's over the top
                  under it), so swiping on is instant. Screens take props and call back; the routes in src/app/ do storage and
                  navigation. Wording and validation come from @choudo/core, copied from the web screens.
   src/tests/     tests that render routes (not in src/app: expo-router would treat them as routes)

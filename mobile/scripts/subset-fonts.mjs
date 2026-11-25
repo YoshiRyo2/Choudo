@@ -7,7 +7,8 @@
  *
  * Reads the three weights the app uses from @expo-google-fonts/m-plus-rounded-1c and writes
  * assets/fonts/MPLUSRounded1c-{Medium,Bold,ExtraBold}.ttf plus the font's licence (OFL.txt).
- * Ranges: Google Fonts' "latin" subset, the arrows block, and the maths signs in the copy.
+ * Ranges: Google Fonts' "latin" subset, the arrows block, the maths signs in the copy and the
+ * fractions block. The licence name records stay in each file.
  * The font has no Reserved Font Name, so the subset keeps its name. Outputs are committed;
  * src/tests/font-coverage.test.ts fails if the copy ever uses a character outside them.
  */
@@ -39,12 +40,17 @@ const RANGES = [
   [0x2190, 0x21ff],
   // Maths signs the copy uses: − × ≤ ≥ ±.
   [0x2212, 0x2212], [0x00d7, 0x00d7], [0x2264, 0x2265], [0x00b1, 0x00b1],
+  // Fractions in size-chart notes (⅝ in, beside ¼ ½ ¾ from latin).
+  [0x2150, 0x215f],
 ];
+
+/** Name records kept: the font's names (0-6) and its licence and licence URL (13, 14), so the OFL goes with every copy. */
+const NAME_IDS = [0, 1, 2, 3, 4, 5, 6, 13, 14];
 
 const characters = RANGES.flatMap(([from, to]) => Array.from({ length: to - from + 1 }, (_, i) => String.fromCodePoint(from + i))).join('');
 
 for (const [from, to] of WEIGHTS) {
-  const subset = await subsetFont(await readFile(join(SOURCE, from)), characters, { targetFormat: 'truetype' });
+  const subset = await subsetFont(await readFile(join(SOURCE, from)), characters, { targetFormat: 'truetype', preserveNameIds: NAME_IDS });
   await writeFile(join(OUT, to), subset);
   console.log(`assets/fonts/${to} (${Math.round(subset.length / 1024)} KB)`);
 }

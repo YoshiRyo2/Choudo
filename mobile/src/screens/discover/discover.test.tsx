@@ -212,3 +212,22 @@ test('the next two cards’ odds are worked out ahead, so swiping on is instant'
   expect(cachedOdds(ahead, third!, preference)).toBeDefined();
   expect(cachedOdds(ahead, fourth!, preference)).toBeUndefined();
 });
+
+test('while its tab is not on screen, it works nothing out ahead', async () => {
+  const hidden = estimateBody({ heightCm: 178, weightKg: 82, bodyType: 'mens' });
+  const handlers = { onCatalogueChange: jest.fn(), onOpenDetails: jest.fn(), onOpenCloset: jest.fn() };
+  function Harness() {
+    const closet = useCloset();
+    return <Discover catalogue="all" model={hidden} bodyType="mens" preference={preference} closet={closet} feedKey={0} active={false} {...handlers} />;
+  }
+  await render(
+    <SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 83 } }}>
+      <GestureHandlerRootView>
+        <Harness />
+      </GestureHandlerRootView>
+    </SafeAreaProvider>,
+  );
+  await act(() => jest.advanceTimersByTime(50));
+  const [, second] = feedOf('all');
+  expect(cachedOdds(hidden, second!, preference)).toBeUndefined();
+});

@@ -40,14 +40,19 @@ const sources = [
   // stampGlyphs.ts is generated outline data, drawn as paths, not text.
   ...filesUnder(join(CORE, 'ui-logic'), (p) => isSource(p) && !p.endsWith('stampGlyphs.ts')),
   ...filesUnder(join(MOBILE, 'src'), isSource),
+  // The engine's wording that reaches the screen (zone names, sources, notes); report.ts is the
+  // terminal data report (✓ / ✗), never drawn by the app.
+  ...filesUnder(join(CORE, 'domain'), (p) => isSource(p) && !p.endsWith('report.ts')),
 ];
-const seed = JSON.parse(readFileSync(join(CORE, 'domain/garments/seed.json'), 'utf8')) as { brand: string; name: string }[] | { garments: { brand: string; name: string }[] };
+type SeedRow = { brand: string; name: string; source?: { notes?: string } };
+const seed = JSON.parse(readFileSync(join(CORE, 'domain/garments/seed.json'), 'utf8')) as SeedRow[] | { garments: SeedRow[] };
 const rows = Array.isArray(seed) ? seed : seed.garments;
 
 /** Where each character on screen comes from. */
 const used = new Map<string, string>();
 for (const file of sources) for (const ch of shownText(file)) if (!used.has(ch)) used.set(ch, relative(MOBILE, file));
-for (const r of rows) for (const ch of r.brand + r.name) if (!used.has(ch)) used.set(ch, `seed.json: ${r.brand} ${r.name}`);
+// Brand, name, and the source note under Fit details (fit-readout.tsx).
+for (const r of rows) for (const ch of r.brand + r.name + (r.source?.notes ?? '')) if (!used.has(ch)) used.set(ch, `seed.json: ${r.brand} ${r.name}`);
 
 test.each(FILES)('%s has every character the app draws', (file) => {
   const font = opentype.parse(new Uint8Array(readFileSync(join(FONTS, file))).buffer);
@@ -59,10 +64,14 @@ test.each(FILES)('%s is a Latin subset, under 400 KB', (file) => {
   expect(statSync(join(FONTS, file)).size).toBeLessThan(400 * 1024);
 });
 
-test('the font licence ships next to the files', () => {
+test('the font licence ships next to the files, and inside each one (so it goes with every copy)', () => {
   expect(readFileSync(join(FONTS, 'OFL.txt'), 'utf8')).toContain('SIL OPEN FONT LICENSE');
+  for (const file of FILES) {
+    const font = opentype.parse(new Uint8Array(readFileSync(join(FONTS, file))).buffer) as unknown as { names: { license?: { en?: string }; licenseURL?: { en?: string } } };
+    expect(font.names.license?.en).toContain('SIL Open Font License');
+  }
 });
 
 test('the copy is really collected (curly quotes, arrows, a brand’s é)', () => {
-  for (const ch of ['’', '“', '→', '·', '−', 'é']) expect(used.has(ch)).toBe(true);
+  for (const ch of ['’', '“', '→', '·', '−', 'é', '⅝']) expect(used.has(ch)).toBe(true);
 });

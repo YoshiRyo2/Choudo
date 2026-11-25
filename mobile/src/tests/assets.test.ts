@@ -30,7 +30,8 @@ test('the iOS icon is Choudo’s, 1024 px square with no alpha channel (App Stor
 test('the splash is the mark on the app’s background, so it hands over without a flash', () => {
   const splash = config.expo.plugins.find((p) => Array.isArray(p) && p[0] === 'expo-splash-screen') as [string, Record<string, unknown>];
   expect(splash[1]).toMatchObject({ backgroundColor: '#fff4ee', image: './assets/images/splash-icon.png', imageWidth: 160 });
-  expect(png('images/splash-icon.png')).toMatchObject({ width: 400, height: 400, colourType: 6 });
+  // Shown 160 pt wide: 480 px is sharp at 3×.
+  expect(png('images/splash-icon.png')).toMatchObject({ width: 480, height: 480, colourType: 6 });
 });
 
 test('Android and web icons are drawn from the same masters', () => {

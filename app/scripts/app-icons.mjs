@@ -68,8 +68,9 @@ async function mobileIcons() {
   const out = {
     // App Store icon: the logo on its own peach, RGB with no alpha channel.
     'icon.png': await sharp(await render(LOGO, 1024)).flatten({ background: BRAND }).removeAlpha().png({ compressionLevel: 9 }).toBuffer(),
-    // Splash: the mark on transparent; app.json shows it 160 pt wide on the app's background.
-    'splash-icon.png': await render(MARK, 400),
+    // Splash: the mark on transparent; app.json shows it 160 pt wide on the app's background
+    // (480 px: sharp at 3×).
+    'splash-icon.png': await render(MARK, 480),
     'favicon.png': await render(SMALL, 48),
     // Android adaptive icon: the mark's artwork (the central 80 % of the master) inside the
     // 66 % safe zone of a 512 px square, over a flat peach layer; the monochrome icon is the
