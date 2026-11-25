@@ -30,7 +30,8 @@ Anyone shopping for clothes online who wants to know how a size will fit before 
   waist, hips, inseam and (women's) bra size to replace our estimates
 - A 2D mannequin scaled to the body, wearing the chosen top and bottom
 - Fit per zone (chest, waist, hips, length, sleeve, inseam) with the difference in cm or inches
-- Guest mode only, with data stored on the device
+- Guest mode only, with data stored on the device (the website counts anonymous visits with
+  GoatCounter: no cookies, no measurements)
 - Size comparison with a confidence label (estimated vs. measured body numbers)
 
 ## Non-goals for v1
