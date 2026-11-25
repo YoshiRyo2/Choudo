@@ -19,6 +19,7 @@ import { Segmented } from '@/components/segmented';
 import { NextCard, SwipeCard } from '@/components/swipe-card';
 import { ThemedText } from '@/components/themed-text';
 import type { Closet } from '@/hooks/use-closet';
+import { useOddsQueue } from '@/hooks/use-odds-queue';
 import { colors, fonts, spacing, type } from '@/theme';
 
 export interface DiscoverProps {
@@ -100,6 +101,9 @@ export function Discover({
     return { garment, ...suggested, verdict };
   }, [garment, model, preference]);
   const hasNext = index + 1 < feed.garments.length;
+  // The next two cards' odds, a tick at a time after this render, so swiping on is instant.
+  const upcoming = useMemo(() => feed.garments.slice(index + 1, index + 3), [feed, index]);
+  useOddsQueue(model, preference, upcoming);
 
   function decide(outcome: 'like' | 'pass') {
     if (!current || deciding.current) return;

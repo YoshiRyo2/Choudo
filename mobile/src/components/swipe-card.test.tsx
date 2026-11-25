@@ -183,3 +183,10 @@ describe('dragging the card', () => {
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
 });
+
+test('a still press of any length, released within 6 pt, opens Fit details (as the web)', async () => {
+  await show();
+  const tap = getByGestureTestId('swipe-tap') as unknown as { config: { maxDurationMs?: number; maxDist?: number } };
+  // Gesture Handler's tap gives up after 500 ms unless told otherwise: a minute is "any length".
+  expect(tap.config.maxDurationMs).toBeGreaterThanOrEqual(60_000);
+});

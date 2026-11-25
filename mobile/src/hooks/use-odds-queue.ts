@@ -1,43 +1,53 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { BodyModel } from '@choudo/core/domain/body';
-import type { GarmentOdds, PreferenceSpec } from '@choudo/core/domain/fit';
+import type { GarmentOdds, PreferenceSpec, UnderLayer } from '@choudo/core/domain/fit';
 import type { Garment } from '@choudo/core/domain/garments';
 import { cachedOdds, garmentOdds } from '@choudo/core/ui-logic/state/odds';
 
 interface Found {
   model: BodyModel;
   preference: PreferenceSpec;
+  under: UnderLayer | undefined;
   odds: Map<string, GarmentOdds>;
+}
+
+export interface OddsQueueOptions {
+  /** False while its screen isn't the one showing: nothing is worked out until it is again. */
+  active?: boolean;
+  /** Work the odds out over this top (a jacket tab's garments, as the Fitting room shows them). */
+  under?: UnderLayer;
 }
 
 /**
  * Odds for a list of garments, worked out one per tick (setTimeout 0) in list order after the
- * first render, so a screen of tiles appears at once and fills in (a first sampling is
- * 60–180 ms on the phone). Odds already in the cache show straight away. Starts over when
- * the list, the body or the preference changes. While `active` is false (its tab isn't on
- * screen) it works nothing out, so it never slows another tab down.
+ * first render, so a screen appears at once and fills in (a first sampling is 60–180 ms on the
+ * phone): the Closet's tiles, and the garments next to the one on show in the Fitting room and
+ * Discover, so swiping on to them is instant. Odds already in the cache show straight away.
+ * Starts over (dropping what was queued) when the list, the body, the preference or `under`
+ * changes. While `active` is false it works nothing out, so it never slows another tab down.
  */
 export function useOddsQueue(
   model: BodyModel,
   preference: PreferenceSpec,
   garments: readonly Garment[],
-  active = true,
+  { active = true, under }: OddsQueueOptions = {},
 ): Map<string, GarmentOdds> {
   const listKey = garments.map((g) => g.id).join('|');
-  const [found, setFound] = useState<Found>(() => ({ model, preference, odds: new Map() }));
+  const [found, setFound] = useState<Found>(() => ({ model, preference, under, odds: new Map() }));
+  const same = (f: Found) => f.model === model && f.preference === preference && f.under === under;
 
   useEffect(() => {
-    setFound((f) => (f.model === model && f.preference === preference ? f : { model, preference, odds: new Map() }));
+    setFound((f) => (same(f) ? f : { model, preference, under, odds: new Map() }));
     if (!active) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const next = (from: number) => {
       let i = from;
-      while (i < garments.length && cachedOdds(model, garments[i]!, preference)) i++;
+      while (i < garments.length && cachedOdds(model, garments[i]!, preference, under)) i++;
       const garment = garments[i];
       if (!garment) return;
       timer = setTimeout(() => {
-        const odds = garmentOdds(model, garment, preference);
-        setFound((f) => (f.model === model && f.preference === preference ? { ...f, odds: new Map(f.odds).set(garment.id, odds) } : f));
+        const odds = garmentOdds(model, garment, preference, under);
+        setFound((f) => (same(f) ? { ...f, odds: new Map(f.odds).set(garment.id, odds) } : f));
         next(i + 1);
       }, 0);
     };
@@ -46,15 +56,15 @@ export function useOddsQueue(
       if (timer) clearTimeout(timer);
     };
     // The list is compared by its ids, so a new array of the same garments doesn't restart it.
-  }, [model, preference, listKey, active]);
+  }, [model, preference, under, listKey, active]);
 
   return useMemo(() => {
-    const current = found.model === model && found.preference === preference ? found.odds : undefined;
+    const current = same(found) ? found.odds : undefined;
     const out = new Map<string, GarmentOdds>();
     for (const g of garments) {
-      const odds = current?.get(g.id) ?? cachedOdds(model, g, preference);
+      const odds = current?.get(g.id) ?? cachedOdds(model, g, preference, under);
       if (odds) out.set(g.id, odds);
     }
     return out;
-  }, [found, model, preference, garments]);
+  }, [found, model, preference, under, garments]);
 }

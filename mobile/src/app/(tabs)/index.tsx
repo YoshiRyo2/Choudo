@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { useContext } from 'react';
 
 import { Button } from '@/components/button';
@@ -12,6 +12,8 @@ export default function FittingRoomRoute() {
   const [, setHead] = useHead();
   // The root layout provides the stored head, so the whole app draws the same one.
   const head = useContext(MascotHeadContext);
+  // Native tabs stay mounted: work the neighbours' odds out only while this tab is showing.
+  const focused = useIsFocused();
   if (!wardrobe) return null;
   return (
     <FittingRoom
@@ -30,6 +32,7 @@ export default function FittingRoomRoute() {
       onEditBody={() => router.push('/body')}
       onDetails={(garmentId, size) => router.push({ pathname: '/fit-details', params: { garmentId, size, from: 'fitting' } })}
       onSaveOutfit={() => router.push('/save-outfit')}
+      prefetch={focused}
       devTools={
         __DEV__ && <Button variant="quiet" size="sm" title="Mannequin lab" onPress={() => router.push('/dev/mannequin')} />
       }

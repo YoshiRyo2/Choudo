@@ -36,7 +36,7 @@ test('odds already worked out show at once', async () => {
 
 test('paused (its tab not on screen), it works nothing out; it carries on when resumed', async () => {
   const later = estimateBody({ heightCm: 191, weightKg: 88, bodyType: 'mens' });
-  const { result, rerender } = await renderHook(({ active }: { active: boolean }) => useOddsQueue(later, preference, garments, active), {
+  const { result, rerender } = await renderHook(({ active }: { active: boolean }) => useOddsQueue(later, preference, garments, { active }), {
     initialProps: { active: false },
   });
   await tick();

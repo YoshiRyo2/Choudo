@@ -9,6 +9,7 @@ import { preferenceSpec } from '@choudo/core/domain/fit';
 import { catalogueFor, GARMENTS, type CatalogueScope, type Garment } from '@choudo/core/domain/garments';
 import { endOfMatchingFeedText } from '@choudo/core/ui-logic/catalogueText';
 import { buildFeed } from '@choudo/core/ui-logic/state/feed';
+import { cachedOdds } from '@choudo/core/ui-logic/state/odds';
 import { suggestedFit } from '@choudo/core/ui-logic/state/outfit';
 import { STORAGE_KEYS, type Swipe } from '@choudo/core/ui-logic/state/stored';
 
@@ -186,4 +187,26 @@ test('a rebuild mid fly-off that keeps the same card puts it back in the middle'
   expect(shown).toBeTruthy();
   const style = (Reanimated.getAnimatedStyle as unknown as (c: unknown) => { transform: { translateX?: number }[] })(shown);
   expect(style.transform.find((t) => t.translateX !== undefined)!.translateX).toBe(0);
+});
+
+test('the next two cards’ odds are worked out ahead, so swiping on is instant', async () => {
+  const ahead = estimateBody({ heightCm: 177, weightKg: 81, bodyType: 'mens' });
+  const handlers = { onCatalogueChange: jest.fn(), onOpenDetails: jest.fn(), onOpenCloset: jest.fn() };
+  function Harness() {
+    const closet = useCloset();
+    return <Discover catalogue="all" model={ahead} bodyType="mens" preference={preference} closet={closet} feedKey={0} {...handlers} />;
+  }
+  await render(
+    <SafeAreaProvider initialMetrics={{ frame: { x: 0, y: 0, width: 390, height: 844 }, insets: { top: 47, left: 0, right: 0, bottom: 83 } }}>
+      <GestureHandlerRootView>
+        <Harness />
+      </GestureHandlerRootView>
+    </SafeAreaProvider>,
+  );
+  const [, second, third, fourth] = feedOf('all');
+  expect(cachedOdds(ahead, second!, preference)).toBeUndefined();
+  await act(() => jest.advanceTimersByTime(50));
+  expect(cachedOdds(ahead, second!, preference)).toBeDefined();
+  expect(cachedOdds(ahead, third!, preference)).toBeDefined();
+  expect(cachedOdds(ahead, fourth!, preference)).toBeUndefined();
 });

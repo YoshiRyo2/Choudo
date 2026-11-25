@@ -22,6 +22,7 @@ import { SizePicker } from '@/components/size-picker';
 import { useStampDrop } from '@/components/stamp/use-stamp-drop';
 import { ThemedText } from '@/components/themed-text';
 import { Wordmark } from '@/components/wordmark';
+import { useOddsQueue } from '@/hooks/use-odds-queue';
 import { colors, fonts, radius, spacing } from '@/theme';
 
 import { firstLook } from '@/utils/odds-log';
@@ -50,6 +51,8 @@ export interface FittingRoomProps {
   onSaveOutfit: () => void;
   /** Development only: a way into the mannequin lab, at the bottom of the panel. */
   devTools?: React.ReactNode;
+  /** False while another tab is on screen: the neighbours' odds wait (default true). */
+  prefetch?: boolean;
 }
 
 /** A worn garment, fitted: what the drawing needs. */
@@ -98,6 +101,7 @@ export function FittingRoom({
   onDetails,
   onSaveOutfit,
   devTools,
+  prefetch = true,
 }: FittingRoomProps) {
   // Open on the dress when one is worn: the Top tab would have nothing on to show.
   const [browsing, setBrowsing] = useState<GarmentCategory>(() => (outfit.onepieceId ? 'onepiece' : 'top'));
@@ -163,6 +167,14 @@ export function FittingRoom({
   const inCategory = shown.filter((g) => g.category === tab);
   const carousel = active && !inCategory.includes(active.garment) ? [active.garment, ...inCategory] : inCategory;
   const show = catalogueToggle(body.bodyType, catalogue);
+
+  // The garments either side of the one on show (or the first, when none is worn), worked out
+  // a tick at a time after this render, so swiping on to them is instant. A jacket's are worked
+  // out over the top under it, as they'll be shown; a new tab drops the old tab's queue.
+  const at = active ? carousel.indexOf(active.garment) : -1;
+  const neighbourIds = (at < 0 ? [carousel[0]] : [carousel[at - 1], carousel[at + 1]]).filter((g): g is Garment => g !== undefined).map((g) => g.id);
+  const neighbours = useMemo(() => neighbourIds.map((id) => findGarment(id)!), [neighbourIds.join('|')]);
+  useOddsQueue(model, preference, neighbours, { active: prefetch, under: tab === 'outer' ? under : undefined });
 
   const worn = (s: Worn | null): WornGarment | undefined => (s ? { garment: s.garment, sizeLabel: s.size, fit: s.fit } : undefined);
 
