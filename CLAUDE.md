@@ -71,7 +71,8 @@ packages/core/   @choudo/core, shared by the web app and the native app. TypeScr
     state/       stored.ts (keys + guards), persist.ts (readStored / writeStored on any StorageLike), outfit.ts, feed.ts (likes/passes, feed order), closet.ts
                  (folders, saved outfits), odds.ts (cached sampleFit), fitTests.ts (Test mode records + CSV),
                  stampSeen.ts (which stamps have dropped this session; sessionStorage), migrate.ts
-    fitText.ts   all user-facing fit wording (and isJustRight: when the ちょうど stamp shows); catalogueText.ts
+    fitText.ts   all user-facing fit wording (and isJustRight: when the ちょうど stamp shows); catalogueText.ts;
+                 closetText.ts (outfitLine, shared by the web Closet and the phone's)
 app/src/
   ui/            React (app icons and favicon: app/public/, made by npm run icons)
     screens/     BodyScreen (input), AnchorScreen (fit reference), FittingRoom (browse + size + fit),
@@ -99,7 +100,12 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  fit-details.tsx (form sheet `?garmentId=&size=&from=fitting|browse`: from the Fitting
                  room "Done" / "Wear M", a worn jacket fitted over the top under it; from browsing "Try M
                  in the fitting room"; an unknown id closes it), save-outfit.tsx (form sheet: saves the
-                 resolved outfit under a name or the next "Outfit N"),
+                 resolved outfit under a name or the next "Outfit N"), folder-picker.tsx (form sheet
+                 `?kind=garment|outfit&id=&title=`: a checkbox per folder, New folder; closes itself when the
+                 item is no longer liked or saved), folder/[id].tsx (pushed, the folder's name as the title,
+                 Rename and Delete in the header, native back; a folder that's gone goes back),
+                 share-outfit.tsx (form sheet `?id=`: the share card, then captureRef 1080 × 1350 PNG and
+                 expo-sharing's sheet; a cancel says nothing, no sharing says so),
                  dev/mannequin.tsx (the mannequin lab; redirects to / unless __DEV__, so never in a store
                  build; the Fitting room shows its button in development only).
                  (tabs)/index.tsx is the Fitting room; (tabs)/discover.tsx is Discover: native tabs all
@@ -107,14 +113,16 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  fresh feed when the tab regains focus with swipes changed elsewhere (useFocusEffect bumps
                  `feedKey`), never while it's on screen or when a sheet over it closes; it reads body,
                  preference, catalogue and closet only (not useWardrobe). Fit details opens `from=browse`.
-                 Closet is a placeholder until PR 7.
+                 (tabs)/closet.tsx is the Closet, also drawn only once first opened.
   src/storage/   kv.ts (expo-sqlite/kv-store as a StorageLike; runMigrations)
   src/hooks/     use-persistent-state.ts (the web hook's twin on kv), use-body.ts, use-units.ts,
                  use-fit-reference.ts (anchor + fit style together), use-test-mode.ts, use-head.ts
                  (the mascot head; _layout.tsx provides it through MascotHeadContext), use-closet.ts (the
                  web useCloset), use-outfit.ts, use-catalogue.ts, use-preference.ts (preferenceSpec, memoised),
                  use-wardrobe.ts (body model, units, catalogue, what it shows and the resolved outfit, for the
-                 Fitting room and its sheets). forgetThisLaunch()
+                 Fitting room and its sheets), use-odds-queue.ts (one garment's odds per setTimeout(0) tick
+                 after the first render, cached ones at once: the Closet's tiles fill in rather than freeze),
+                 use-leave-if.tsx (a sheet or screen whose item is gone goes back). forgetThisLaunch()
                  (use-persistent-state) lets route tests start from storage alone.
   src/theme/     colors, type + fonts (M PLUS Rounded 1c via useFonts), radius, spacing — from styles.css
   src/components/ themed-text, button (`disabled` = the web's aria-disabled: dimmed, still pressable),
@@ -130,7 +138,8 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  no ink-noise filter, onLanded at 55 % for the haptic; useStampDrop),
                  swipe-card.tsx (the web SwipeCard: a Gesture Handler pan raced with a tap, on Reanimated;
                  swipe.ts decides, `decideDrag` turns px/s into px/ms, `leanFor` is tilt as a worklet;
-                 Like / Pass / Fit details accessibility actions; NextCard, the plain stand-in behind).
+                 Like / Pass / Fit details accessibility actions; NextCard, the plain stand-in behind),
+                 folders-button.tsx ("Add to folder" / "In N folders").
                  mannequin/ — the web Mannequin.tsx + MascotHead.tsx ported to react-native-svg, same props,
                  same draw order; every shape comes from @choudo/core, this only paints it:
                    index.tsx (Mannequin, WornGarment), mascot-head.tsx (+ MascotHeadIcon), height-tape.tsx,
@@ -142,7 +151,9 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                    own / brand-permission / affiliate-unaltered photo, never local-only; photoSource gives
                    the module and pixel size, or null → flat colour), svg-tree.ts (test helper)
   src/utils/     color.ts (mixHex, shadeHex), odds-log.ts (development only: `[odds] key: ms` the first
-                 time each garment's odds, or the outfit's default sizes, are worked out; none in a store build)
+                 time each garment's odds, or the outfit's default sizes, are worked out; none in a store build),
+                 confirm-delete.ts (confirmDelete: a native alert, Cancel + destructive Delete; window.confirm
+                 on the web) — deleting a folder or an outfit always goes through it
   src/screens/   body/ (BodyScreen + estimate-list; the mannequin preview, a typical body until yours),
                  fit-reference/ (FitReferenceScreen: choose / catalogue / measure / style steps, tee-diagram),
                  dev/mannequin-lab.tsx (every garment, size, head, face, side and frame, height ±5 cm,
@@ -151,7 +162,11 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  when the stamp lands; odds only for the open tab's garment), fit-details/, save-outfit/,
                  discover/ (Discover: the feed is built when `feedKey` or the scope changes, never on a
                  swipe; one decision per card, a light impact on each, replaced at once under Reduce Motion),
-                 placeholder.tsx. Screens take props and call back; the routes in src/app/ do storage and
+                 closet/ (Closet: Liked / Folders / Outfits, not stored; liked.tsx, outfits.tsx,
+                 folders.tsx, tile.tsx (the shared tile frame, two a row), outfit-figure.tsx (OutfitFigure,
+                 wornOf)), folder/ (one folder's items), folder-picker/, share-outfit/ (ShareOutfit +
+                 share-card.tsx: 360 × 450 pt, the mannequin, the outfit's name, each garment and size, the
+                 wordmark; never the body in words). Screens take props and call back; the routes in src/app/ do storage and
                  navigation. Wording and validation come from @choudo/core, copied from the web screens.
   src/tests/     tests that render routes (not in src/app: expo-router would treat them as routes)
                  Other tests sit next to their code (`*.test.ts(x)`); jest.setup.ts mocks the kv-store,

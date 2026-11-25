@@ -66,6 +66,28 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="folder/[id]"
+            options={{ headerShown: true, headerTintColor: colors.ink, headerStyle: { backgroundColor: colors.bg }, headerShadowVisible: false }}
+          />
+          <Stack.Screen
+            name="folder-picker"
+            options={{
+              presentation: 'formSheet',
+              sheetGrabberVisible: true,
+              sheetAllowedDetents: [0.5, 1],
+              contentStyle: { backgroundColor: colors.surface },
+            }}
+          />
+          <Stack.Screen
+            name="share-outfit"
+            options={{
+              presentation: 'formSheet',
+              sheetGrabberVisible: true,
+              sheetAllowedDetents: [0.9],
+              contentStyle: { backgroundColor: colors.surface },
+            }}
+          />
+          <Stack.Screen
             name="about"
             options={{
               presentation: 'formSheet',
