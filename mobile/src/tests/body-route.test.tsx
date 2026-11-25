@@ -1,5 +1,5 @@
 import Storage from 'expo-sqlite/kv-store';
-import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
+import { fireEvent, renderRouter, screen, within } from 'expo-router/testing-library';
 import { STORAGE_KEYS } from '@choudo/core/ui-logic/state/stored';
 
 const appDir = './src/app';
@@ -23,7 +23,7 @@ test('Edit body, change the height, Cancel: nothing saved changes', async () => 
   await press('Cancel');
   expect(screen).toHavePathname('/');
   expect(storedBody()).toEqual(BODY);
-  expect(screen.getByLabelText(/^Mannequin, 175 cm tall/)).toBeTruthy();
+  expect(within(screen.getByTestId('stage')).getByLabelText(/^Mannequin, 175 cm tall/)).toBeTruthy();
 });
 
 test('About Choudo opens the About sheet', async () => {
@@ -51,5 +51,5 @@ test('Edit body, Save: the new body is stored and the Fitting room shows it', as
   await press('Save and go to fitting room');
   expect(screen).toHavePathname('/');
   expect(storedBody()).toMatchObject({ heightCm: 182 });
-  expect(screen.getByLabelText(/^Mannequin, 182 cm tall/)).toBeTruthy();
+  expect(within(screen.getByTestId('stage')).getByLabelText(/^Mannequin, 182 cm tall/)).toBeTruthy();
 });

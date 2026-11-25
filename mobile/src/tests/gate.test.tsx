@@ -1,5 +1,5 @@
 import Storage from 'expo-sqlite/kv-store';
-import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
+import { fireEvent, renderRouter, screen, within } from 'expo-router/testing-library';
 import { STORAGE_KEYS } from '@choudo/core/ui-logic/state/stored';
 
 // The real routes. renderRouter resolves this from the working directory (mobile/).
@@ -19,7 +19,7 @@ test('a stored body opens the Fitting room', async () => {
   await renderRouter(appDir, { initialUrl: '/' });
   expect(screen).toHavePathname('/');
   expect(screen.getByRole('button', { name: 'Edit body' })).toBeTruthy();
-  expect(screen.getByLabelText(/^Mannequin, 175 cm tall/)).toBeTruthy();
+  expect(within(screen.getByTestId('stage')).getByLabelText(/^Mannequin, 175 cm tall/)).toBeTruthy();
 });
 
 test('a corrupt stored body is treated as none', async () => {

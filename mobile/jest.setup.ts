@@ -22,5 +22,13 @@ jest.mock('@expo/ui/community/segmented-control', () => {
   return { __esModule: true, default: SegmentedControl, SegmentedControl };
 });
 
+// Gesture Handler's mocks: gestures don't reach a native module, jest-utils can fire them.
+require('react-native-gesture-handler/jestSetup');
+// Reanimated's resolver gives Worklets its web build, which has no UI runtime to bind to:
+// Gesture Handler takes its web no-op for that too.
+jest.mock('react-native-gesture-handler/lib/module/handlers/gestures/installUIRuntimeBindings', () =>
+  jest.requireActual('react-native-gesture-handler/lib/module/handlers/gestures/installUIRuntimeBindings.web'),
+);
+
 // Reanimated's test mode: animations jump to their end, useReducedMotion reads false.
 require('react-native-reanimated').setUpTests();
