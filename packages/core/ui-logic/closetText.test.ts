@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { GARMENTS, publicGarments } from '../domain/garments';
 import { EMPTY_OUTFIT } from './state/stored';
 import { outfitGarmentLines, outfitLine } from './closetText';
 
@@ -28,5 +29,15 @@ describe('outfitGarmentLines', () => {
     };
     expect(outfitGarmentLines(outfit)).toEqual(['Gildan Heavy Blend Hooded Sweatshirt (18500) · L', 'Port Authority Core Soft Shell Jacket (J317) · XL']);
     expect(outfitGarmentLines(EMPTY_OUTFIT)).toEqual([]);
+  });
+});
+
+describe('outfitLine on the public site', () => {
+  it('leaves out a garment the catalogue hides', () => {
+    const live = publicGarments(GARMENTS, { includeSamples: false });
+    const outfit = { ...EMPTY_OUTFIT, topId: 'gildan-18500', topSize: 'L', bottomId: 'fieldline-jogger', bottomSize: 'M' };
+    expect(outfitLine(outfit)).toMatch(/Jogger/);
+    expect(outfitLine(outfit, live)).toBe('Heavy Blend Hooded Sweatshirt (18500), L');
+    expect(outfitGarmentLines(outfit, live)).toHaveLength(1);
   });
 });

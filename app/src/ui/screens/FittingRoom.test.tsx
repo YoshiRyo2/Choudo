@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { estimateBody, type BodyInput } from '@choudo/core/domain/body';
 import { preferenceSpec } from '@choudo/core/domain/fit';
-import { findGarment } from '@choudo/core/domain/garments';
+import { findGarment, GARMENTS, publicGarments, type CatalogueScope } from '@choudo/core/domain/garments';
 import type { HeadKind } from '@choudo/core/ui-logic/components/Mannequin/heads';
 import { fittingHeadline, isJustRight } from '@choudo/core/ui-logic/fitText';
 import { garmentOdds } from '@choudo/core/ui-logic/state/odds';
@@ -32,17 +32,22 @@ const outfitIn = (size: string): Outfit => ({
   onepieceSize: null,
 });
 
-function Room({ size }: { size: string }) {
-  const [outfit, setOutfit] = useState(outfitIn(size));
+/** What the public site shows: no sample rows. */
+const live = publicGarments(GARMENTS, { includeSamples: false });
+const testing = { records: [], anchor: null, onAdd: () => {}, onClear: () => {} };
+
+function Room({ size, testMode = false, stored, catalogue = 'all' }: { size: string; testMode?: boolean; stored?: Outfit; catalogue?: CatalogueScope }) {
+  const [outfit, setOutfit] = useState(stored ?? outfitIn(size));
   const [head, setHead] = useState<HeadKind>('cloud');
   return (
     <FittingRoom
       body={body}
       preference={preference}
       units="metric"
+      garments={live}
       outfit={outfit}
       onOutfitChange={setOutfit}
-      catalogue="all"
+      catalogue={catalogue}
       onCatalogueChange={() => {}}
       onSaveOutfit={() => {}}
       nextOutfitName="Outfit 1"
@@ -50,6 +55,7 @@ function Room({ size }: { size: string }) {
       onEditBody={() => {}}
       head={head}
       onHeadChange={setHead}
+      testing={testMode ? testing : undefined}
     />
   );
 }
@@ -70,22 +76,60 @@ describe('FittingRoom', () => {
     expect(within(fitSection()).getByText(new RegExp(`^Showing ${other}: `))).toBeTruthy();
   });
 
-  it('keeps zones, cm and odds off the screen until Fit details is opened, and closes again', () => {
+  it('keeps zones and odds off the screen until Fit details is opened, and closes again', () => {
     render(<Room size={recommended} />);
     const main = screen.getByRole('main');
-    // No numbers on the main screen: no zone readout, no cm, no percentages.
+    // The main screen: no zone readout and no percentages; the only cm is the why-line's.
     expect(main.querySelector('.readout')).toBeNull();
-    expect(main.textContent).not.toMatch(/\d\s?cm|\d%/);
+    expect(main.textContent).not.toMatch(/%/);
+    const why = within(fitSection()).getByText(new RegExp(`^${recommended} gives you \\d+ cm of room at the chest; `));
+    expect(main.textContent!.replace(why.textContent!, '')).not.toMatch(/\d\s?cm/);
+    expect(within(fitSection()).getByText(/^Fair confidence: your chest is estimated from height and weight\./)).toBeTruthy();
     expect(screen.queryByRole('dialog')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'See fit details' }));
     const sheet = screen.getByRole('dialog');
     expect(within(sheet).getByRole('heading', { name: tee.name })).toBeTruthy();
     expect(sheet.querySelector('.readout')).not.toBeNull();
-    expect(sheet.textContent).toMatch(/\d%/);
+    // The reliability line tops the readout; an estimated body number is marked "est.".
+    expect(sheet.querySelector('.readout__summary .readout__trust')!.textContent).toMatch(/^Fair confidence: your chest is estimated/);
+    expect(sheet.querySelector('.zone__est')!.textContent!.trim()).toBe('est.');
+    // No chances outside Test mode (the garment's source note may say "100% cotton").
+    expect(sheet.querySelector('.readout__summary')!.textContent).not.toMatch(/%/);
+    expect(sheet.querySelector('.readout__zones')!.textContent).not.toMatch(/%/);
+    expect(sheet.querySelector('.zone__odds')).toBeNull();
+    expect(sheet.textContent).not.toMatch(/Chances come from/);
 
     fireEvent.click(within(sheet).getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('shows each zone’s chances in Fit details with Test mode on', () => {
+    render(<Room size={recommended} testMode />);
+    fireEvent.click(screen.getByRole('button', { name: 'See fit details' }));
+    const sheet = screen.getByRole('dialog');
+    expect(sheet.querySelector('.zone__odds')).not.toBeNull();
+    expect(sheet.textContent).toMatch(/\d%/);
+    expect(sheet.textContent).toMatch(/Chances come from 500 tries/);
+    // The answer itself still carries no percentage.
+    expect(fitSection().textContent).not.toMatch(/%/);
+  });
+
+  it('swaps a stored sample (a Fieldline tee) for a real one, without changing what is stored', () => {
+    const stored = { ...outfitIn('M'), topId: 'fieldline-boxy-tee' };
+    render(<Room size="M" stored={stored} />);
+    expect(screen.queryByText('Boxy Tee')).toBeNull();
+    expect(document.body.textContent).not.toMatch(/Fieldline/);
+    expect(stored.topId).toBe('fieldline-boxy-tee');
+  });
+
+  it('hides a category tab with no garments for this body, rather than an empty list', () => {
+    // A men's body on its own sizing: no dresses, so no Dress tab.
+    render(<Room size={recommended} catalogue="matching" />);
+    const browsing = screen.getByRole('region', { name: 'Choose clothes' });
+    const tabs = within(browsing).getAllByRole('radio').map((r) => r.closest('label')?.textContent ?? r.getAttribute('aria-label'));
+    expect(tabs).not.toContain('Dress');
+    expect(tabs).toEqual(expect.arrayContaining(['Top', 'Bottom', 'Jacket']));
   });
 });
 
@@ -103,6 +147,7 @@ describe('the mascot', () => {
         body={womens}
         preference={preference}
         units="metric"
+        garments={GARMENTS}
         outfit={outfit}
         onOutfitChange={setOutfit}
         catalogue="all"

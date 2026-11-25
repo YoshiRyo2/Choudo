@@ -47,8 +47,13 @@ Anyone shopping for clothes online who wants to know how a size will fit before 
 ## Status
 
 v1 slice works end to end: body input -> swipe tops and bottoms -> pick a size -> see the fit.
-Garment data is a hand-made seed: the Knightweave and Lands' End tees are real (copied from
-`data/tees.csv`); everything else is marked placeholder and must be replaced with real charts.
+Garment data is a hand-made seed (`packages/core/domain/garments/seed.json`). The **public
+catalogue shows only garments from a real, cited size chart**: Gildan, Knightweave, Lands' End,
+Comfort Colors, Port Authority and Sport-Tek rows. The invented sample rows (Fieldline, Corvo,
+the `ryo-` photo tees) stay in the seed for tests, and appear only in development (`npm run dev`)
+or with Test mode on; the live site never shows them. There are no public pants, chinos or jeans
+until real charts are added. The app shows no percentages to users: each answer says how far
+to trust it (good / fair / rough) and why, in cm; the odds are for Test mode.
 
 ## Getting started
 

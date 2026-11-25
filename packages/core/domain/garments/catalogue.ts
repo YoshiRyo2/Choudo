@@ -25,3 +25,25 @@ export function catalogueFor<G extends Pick<Garment, 'sizing' | 'category'>>(
     (g) => (category === undefined || g.category === category) && (scope === 'all' || fitsBodyType(g, bodyType)),
   );
 }
+
+/** Whether invented ("Sample data") garments may be shown: development and Test mode only. */
+export interface PublicOptions {
+  includeSamples: boolean;
+}
+
+/**
+ * The garments the app may show at all: every garment from a real size chart, plus
+ * the placeholder rows (`source.placeholder`) only when `includeSamples` is true.
+ * The public site never shows invented numbers. Catalogue order is kept.
+ */
+export function publicGarments<G extends { source: Pick<Garment['source'], 'placeholder'> }>(
+  garments: readonly G[],
+  { includeSamples }: PublicOptions,
+): G[] {
+  return includeSamples ? [...garments] : garments.filter((g) => !g.source.placeholder);
+}
+
+/** The categories with at least one garment in the list: a category tab or filter with none is hidden. */
+export function categoriesIn(garments: readonly Pick<Garment, 'category'>[]): Set<GarmentCategory> {
+  return new Set(garments.map((g) => g.category));
+}

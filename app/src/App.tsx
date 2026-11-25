@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { BodyInput } from '@choudo/core/domain/body';
 import { preferenceSpec, type Anchor, type FitStyle } from '@choudo/core/domain/fit';
-import { findGarment, type CatalogueScope, type Garment } from '@choudo/core/domain/garments';
+import { findGarment, GARMENTS, publicGarments, type CatalogueScope, type Garment } from '@choudo/core/domain/garments';
 import type { HeadKind } from '@choudo/core/ui-logic/components/Mannequin/heads';
 import { MascotHeadContext } from './ui/components/Mannequin/MascotHead';
 import { TabBar, type Tab } from './ui/components/TabBar';
@@ -58,6 +58,10 @@ function Screens({ head, onHeadChange }: { head: HeadKind; onHeadChange: (head: 
   const [catalogue, setCatalogue] = usePersistentState<CatalogueScope>(STORAGE_KEYS.catalogue, 'matching', isCatalogueScope);
   const [testMode, setTestMode] = usePersistentState<boolean>(STORAGE_KEYS.testMode, false, isBoolean);
   const [fitTests, setFitTests] = usePersistentState<FitTestRecord[]>(STORAGE_KEYS.fitTests, [], isFitTestList);
+  const testing = devToolsOn(testMode, DEV_TOOLS);
+  // The garments the app may show: sample rows only in development or Test mode, never on the public site.
+  const includeSamples = DEV_TOOLS || testing;
+  const garments = useMemo(() => publicGarments(GARMENTS, { includeSamples }), [includeSamples]);
   const closet = useCloset();
   /** The main tabs, Edit body, or the fit-reference step (and where it goes back to). */
   const [screen, setScreen] = useState<'tabs' | 'body' | 'fit'>('tabs');
@@ -140,6 +144,7 @@ function Screens({ head, onHeadChange }: { head: HeadKind; onHeadChange: (head: 
           body={body}
           preference={preference}
           units={units}
+          garments={garments}
           outfit={outfit}
           catalogue={catalogue}
           onCatalogueChange={setCatalogue}
@@ -151,7 +156,7 @@ function Screens({ head, onHeadChange }: { head: HeadKind; onHeadChange: (head: 
           head={head}
           onHeadChange={onHeadChange}
           testing={
-            devToolsOn(testMode, DEV_TOOLS)
+            testing
               ? {
                   records: fitTests,
                   anchor,
@@ -171,6 +176,8 @@ function Screens({ head, onHeadChange }: { head: HeadKind; onHeadChange: (head: 
           body={body}
           preference={preference}
           units={units}
+          garments={garments}
+          showOdds={testing}
           closet={closet}
           onTryOn={tryOn}
           onEditBody={editBody}
@@ -182,6 +189,8 @@ function Screens({ head, onHeadChange }: { head: HeadKind; onHeadChange: (head: 
           body={body}
           preference={preference}
           units={units}
+          garments={garments}
+          showOdds={testing}
           closet={closet}
           outfit={outfit}
           onTryOn={tryOn}

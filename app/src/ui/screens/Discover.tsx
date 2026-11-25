@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { estimateBody, type BodyInput } from '@choudo/core/domain/body';
 import type { PreferenceSpec } from '@choudo/core/domain/fit';
-import { catalogueFor, GARMENTS, type CatalogueScope, type Garment } from '@choudo/core/domain/garments';
+import { catalogueFor, type CatalogueScope, type Garment } from '@choudo/core/domain/garments';
 import { catalogueOptions, endOfMatchingFeedText } from '@choudo/core/ui-logic/catalogueText';
 import { SegmentedControl } from '../components/SegmentedControl';
 import { FitSheet } from '../components/FitSheet';
 import { SwipeCard } from '../components/SwipeCard/SwipeCard';
 import type { SwipeOutcome } from '@choudo/core/ui-logic/components/SwipeCard/swipe';
+import { shownLikes } from '@choudo/core/ui-logic/state/closet';
 import { buildFeed } from '@choudo/core/ui-logic/state/feed';
 import { verdictLine } from '@choudo/core/ui-logic/fitText';
 import { garmentOdds } from '@choudo/core/ui-logic/state/odds';
@@ -22,6 +23,10 @@ interface DiscoverProps {
   body: BodyInput;
   preference: PreferenceSpec;
   units: UnitSystem;
+  /** Every garment the app may show (`publicGarments`: no samples on the public site). */
+  garments: readonly Garment[];
+  /** Test mode: the fit sheet shows each zone's chances. */
+  showOdds?: boolean;
   closet: Closet;
   onTryOn: (garment: Garment, size: string) => void;
   onEditBody: () => void;
@@ -38,6 +43,8 @@ export function Discover({
   body,
   preference,
   units,
+  garments,
+  showOdds,
   closet,
   onTryOn,
   onEditBody,
@@ -45,7 +52,7 @@ export function Discover({
 }: DiscoverProps) {
   const model = useMemo(() => estimateBody(body), [body]);
   // The feed is fixed when the screen opens, so swiping doesn't reshuffle it.
-  const [feed] = useState(() => buildFeed(catalogueFor(GARMENTS, body.bodyType, catalogue), closet.swipes));
+  const [feed] = useState(() => buildFeed(catalogueFor(garments, body.bodyType, catalogue), closet.swipes));
   const [index, setIndex] = useState(0);
   const [leaving, setLeaving] = useState<SwipeOutcome>(null);
   const [details, setDetails] = useState<Garment | null>(null);
@@ -81,6 +88,7 @@ export function Discover({
   });
 
   const left = feed.length - index;
+  const likedCount = shownLikes(closet.liked, garments).length;
 
   return (
     <main className="discover">
@@ -149,9 +157,9 @@ export function Discover({
           ) : (
             <p>You’ve seen everything we have for now. New garments will show up here as we add them.</p>
           )}
-          {closet.liked.length > 0 && (
+          {likedCount > 0 && (
             <button type="button" className="button button--primary" onClick={onOpenCloset}>
-              See your {closet.liked.length} liked in the Closet
+              See your {likedCount} liked in the Closet
             </button>
           )}
         </section>
@@ -167,6 +175,7 @@ export function Discover({
           onClose={() => setDetails(null)}
           onTryOn={(size) => onTryOn(details, size)}
           onEditBody={onEditBody}
+          showOdds={showOdds}
         />
       )}
     </main>

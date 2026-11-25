@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import type { BodyModel } from '@choudo/core/domain/body';
 import type { PreferenceSpec } from '@choudo/core/domain/fit';
-import { findGarment, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
+import { categoriesIn, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
 import { GarmentBadge } from '../../components/GarmentBadge';
 import { GarmentIcon } from '../../components/GarmentIcon';
 import { SegmentedControl } from '../../components/SegmentedControl';
 import { sizeLine, verdictLine } from '@choudo/core/ui-logic/fitText';
 import { garmentOdds } from '@choudo/core/ui-logic/state/odds';
+import { shownLikes } from '@choudo/core/ui-logic/state/closet';
 import { suggestedFit } from '@choudo/core/ui-logic/state/outfit';
 import { FoldersButton } from './FolderPicker';
 
@@ -15,6 +16,8 @@ type Filter = 'all' | GarmentCategory;
 interface LikedTabProps {
   model: BodyModel;
   preference: PreferenceSpec;
+  /** Every garment the app may show: likes for any other (a sample on the public site, or gone) are skipped. */
+  garments: readonly Garment[];
   likedIds: string[];
   onOpen: (garment: Garment) => void;
   onUnlike: (garmentId: string) => void;
@@ -24,13 +27,25 @@ interface LikedTabProps {
   onOpenDiscover: () => void;
 }
 
+const FILTERS: readonly { value: Filter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'top', label: 'Tops' },
+  { value: 'bottom', label: 'Bottoms' },
+  { value: 'outer', label: 'Jackets' },
+  { value: 'onepiece', label: 'Dresses' },
+];
+
 const FILTER_WORD: Record<Filter, string> = { all: 'garments', top: 'tops', bottom: 'bottoms', outer: 'jackets', onepiece: 'dresses' };
 
 /** Everything you've liked, newest first, filterable by tops, bottoms, jackets and dresses. */
-export function LikedTab({ model, preference, likedIds, onOpen, onUnlike, folderCount, onFolders, onOpenDiscover }: LikedTabProps) {
-  const [filter, setFilter] = useState<Filter>('all');
-  // Likes for garments no longer in the catalogue are skipped.
-  const liked = likedIds.map((id) => findGarment(id)).filter((g): g is Garment => g !== undefined);
+export function LikedTab({ model, preference, garments, likedIds, onOpen, onUnlike, folderCount, onFolders, onOpenDiscover }: LikedTabProps) {
+  const [picked, setFilter] = useState<Filter>('all');
+  // Likes for garments the catalogue doesn't show (gone, or a sample on the public site) are skipped; storage keeps them.
+  const liked = shownLikes(likedIds, garments);
+  // A category with no garments at all gets no filter.
+  const inCatalogue = categoriesIn(garments);
+  const filters = FILTERS.filter((f) => f.value === 'all' || inCatalogue.has(f.value));
+  const filter = filters.some((f) => f.value === picked) ? picked : 'all';
   const shown = filter === 'all' ? liked : liked.filter((g) => g.category === filter);
 
   if (liked.length === 0) {
@@ -51,13 +66,7 @@ export function LikedTab({ model, preference, likedIds, onOpen, onUnlike, folder
         label="Show"
         hideLabel
         value={filter}
-        options={[
-          { value: 'all', label: `All ${liked.length}` },
-          { value: 'top', label: 'Tops' },
-          { value: 'bottom', label: 'Bottoms' },
-          { value: 'outer', label: 'Jackets' },
-          { value: 'onepiece', label: 'Dresses' },
-        ]}
+        options={filters.map((f) => (f.value === 'all' ? { value: f.value, label: `All ${liked.length}` } : f))}
         onChange={setFilter}
       />
       {shown.length === 0 ? (

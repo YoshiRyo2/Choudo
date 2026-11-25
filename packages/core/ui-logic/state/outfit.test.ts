@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../../domain/body';
 import { preferenceSpec, recommendSize } from '../../domain/fit';
-import { canWarp, findGarment, garmentsByCategory } from '../../domain/garments';
+import { canWarp, findGarment, garmentsByCategory, GARMENTS, publicGarments } from '../../domain/garments';
 import { defaultSize, firstGarment, middleSize, resolveOutfit, suggestedFit, suggestedSize, wearGarment } from './outfit';
 import { garmentOdds } from './odds';
 import { EMPTY_OUTFIT } from './stored';
@@ -11,6 +11,24 @@ const body = estimateBody({ heightCm: 176, weightKg: 85, bodyType: 'mens' });
 const pref = preferenceSpec(null, null);
 
 describe('resolveOutfit', () => {
+  it('swaps a worn sample for a real garment on the public site, without a crash', () => {
+    const live = publicGarments(GARMENTS, { includeSamples: false });
+    const stored = { ...EMPTY_OUTFIT, topId: 'fieldline-boxy-tee', topSize: 'M', bottomId: 'corvo-slim-jean', bottomSize: '32' };
+    const o = resolveOutfit(stored, body, pref, live, live);
+    expect(findGarment(o.topId!)!.source.placeholder).toBeFalsy();
+    expect(o.topId).not.toBe('fieldline-boxy-tee');
+    expect(o.bottomId).not.toBe('corvo-slim-jean');
+    expect(findGarment(o.bottomId!)!.source.placeholder).toBeFalsy();
+    // Where samples show, the same stored outfit stays as it is.
+    expect(resolveOutfit(stored, body, pref).topId).toBe('fieldline-boxy-tee');
+  });
+
+  it('takes a hidden jacket or dress off rather than showing it', () => {
+    const noJackets = GARMENTS.filter((g) => g.category !== 'outer');
+    const o = resolveOutfit({ ...EMPTY_OUTFIT, outerId: 'port-authority-j317', outerSize: 'L' }, body, pref, noJackets, noJackets);
+    expect(o.outerId).toBeNull();
+  });
+
   it('fills an empty outfit with the first garments (photo ones first) in their suggested sizes', () => {
     const o = resolveOutfit(EMPTY_OUTFIT, body, pref);
     const top = garmentsByCategory('top').find((g) => canWarp(g.image))!;

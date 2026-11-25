@@ -8,7 +8,7 @@ import {
   type PreferenceSpec,
   type UnderLayer,
 } from '@choudo/core/domain/fit';
-import { catalogueFor, findGarment, GARMENTS, type CatalogueScope, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
+import { catalogueFor, categoriesIn, type CatalogueScope, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
 import { catalogueToggle, emptyCategoryText } from '@choudo/core/ui-logic/catalogueText';
 import { FitAnswer } from '../components/FitAnswer';
 import { FitSheet } from '../components/FitSheet';
@@ -41,6 +41,8 @@ interface FittingRoomProps {
   /** How the user likes tops to fit. */
   preference: PreferenceSpec;
   units: UnitSystem;
+  /** Every garment the app may show (`publicGarments`: no samples on the public site). */
+  garments: readonly Garment[];
   /** The outfit on the mannequin, as stored (may be stale; it's resolved here). */
   outfit: Outfit;
   onOutfitChange: (outfit: Outfit) => void;
@@ -76,11 +78,14 @@ interface Slot {
 }
 
 const CAROUSEL_LABEL: Record<GarmentCategory, string> = { top: 'Tops', bottom: 'Bottoms', onepiece: 'Dresses', outer: 'Jackets' };
+const TAB_ORDER: readonly GarmentCategory[] = ['top', 'bottom', 'onepiece', 'outer'];
+const TAB_LABEL: Record<GarmentCategory, string> = { top: 'Top', bottom: 'Bottom', onepiece: 'Dress', outer: 'Jacket' };
 
 export function FittingRoom({
   body,
   preference,
   units,
+  garments,
   outfit: saved,
   onOutfitChange: setSaved,
   catalogue,
@@ -94,8 +99,10 @@ export function FittingRoom({
   testing,
 }: FittingRoomProps) {
   const model = useMemo(() => estimateBody(body), [body]);
-  const shown = useMemo(() => catalogueFor(GARMENTS, body.bodyType, catalogue), [body.bodyType, catalogue]);
-  const outfit = useMemo(() => resolveOutfit(saved, model, preference, shown), [saved, model, preference, shown]);
+  const shown = useMemo(() => catalogueFor(garments, body.bodyType, catalogue), [garments, body.bodyType, catalogue]);
+  // A stored garment the catalogue hides (a sample on the public site) is swapped, not shown; storage is left alone.
+  const outfit = useMemo(() => resolveOutfit(saved, model, preference, shown, garments), [saved, model, preference, shown, garments]);
+  const findGarment = (id: string) => garments.find((g) => g.id === id);
   // Open on the dress when one is worn: the Top tab would have nothing on to show.
   const [browsing, setBrowsing] = useState<GarmentCategory>(() => (outfit.onepieceId ? 'onepiece' : 'top'));
   const [saving, setSaving] = useState<'naming' | 'saved' | null>(null);
@@ -130,10 +137,13 @@ export function FittingRoom({
   );
   const outer = slot(outfit.outerId, outfit.outerSize, under);
 
-  // The Dress tab shows when there's a dress on show or one is worn (none for a men's body on its own sizing).
-  const hasDresses = onepiece !== null || shown.some((g) => g.category === 'onepiece');
-  const tab: GarmentCategory = browsing === 'onepiece' && !hasDresses ? 'top' : browsing;
-  const active = { top, bottom, outer, onepiece }[tab];
+  // A category's tab shows when it has a garment on show or one is worn: none for dresses on a men's body
+  // on its own sizing, none for a category with no real garments yet. An empty list is never shown.
+  const onShow = categoriesIn(shown);
+  const worn = { top, bottom, outer, onepiece };
+  const tabs = TAB_ORDER.filter((c) => onShow.has(c) || worn[c] !== null);
+  const tab: GarmentCategory = tabs.includes(browsing) ? browsing : (tabs[0] ?? 'top');
+  const active = worn[tab];
   const activeUnder = tab === 'outer' ? under : undefined;
   // The zones, tape scales, cm and odds live in this sheet: the screen itself shows no numbers.
   const [showDetails, setShowDetails] = useState(false);
@@ -175,7 +185,7 @@ export function FittingRoom({
   // null: leave focus alone; otherwise how the chip was activated.
   const refocusShow = useRef<null | 'pointer' | 'keyboard'>(null);
 
-  const worn = (s: Slot | null): WornGarment | undefined =>
+  const wornOn = (s: Slot | null): WornGarment | undefined =>
     s ? { garment: s.garment, sizeLabel: s.size, fit: s.fit } : undefined;
 
   return (
@@ -221,7 +231,16 @@ export function FittingRoom({
 
       {active && (
         <section className="fitting__answer" aria-label="Fit">
-          <FitAnswer garment={active.garment} size={active.size} odds={active.odds} />
+          <FitAnswer
+            garment={active.garment}
+            size={active.size}
+            odds={active.odds}
+            fits={active.fits}
+            units={units}
+            hasFitReference={preference.source === 'anchor'}
+            bustFromBra={model.bra?.setsBust === true}
+            onEditBody={onEditBody}
+          />
         </section>
       )}
 
@@ -231,10 +250,10 @@ export function FittingRoom({
         <div className="fitting__figure" ref={figure}>
           <Mannequin
             body={model.measurements}
-            top={worn(top)}
-            bottom={worn(bottom)}
-            onepiece={worn(onepiece)}
-            outer={worn(outer)}
+            top={wornOn(top)}
+            bottom={wornOn(bottom)}
+            onepiece={wornOn(onepiece)}
+            outer={wornOn(outer)}
             frame="body"
             view={view}
             showHeightTape={false}
@@ -307,12 +326,7 @@ export function FittingRoom({
           label="Browsing"
           hideLabel
           value={tab}
-          options={[
-            { value: 'top', label: 'Top' },
-            { value: 'bottom', label: 'Bottom' },
-            ...(hasDresses ? [{ value: 'onepiece' as const, label: 'Dress' }] : []),
-            { value: 'outer', label: 'Jacket' },
-          ]}
+          options={tabs.map((c) => ({ value: c, label: TAB_LABEL[c] }))}
           onChange={setBrowsing}
         />
 
@@ -400,6 +414,7 @@ export function FittingRoom({
             }}
             actionLabel={(size) => (size === active.size ? 'Done' : `Wear ${size}`)}
             onEditBody={onEditBody}
+            showOdds={testing !== undefined}
             under={activeUnder}
           />
         )}
