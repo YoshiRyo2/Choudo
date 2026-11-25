@@ -1,4 +1,4 @@
-import { Redirect, useNavigation } from 'expo-router';
+import { Redirect, useCanGoBack, useNavigation } from 'expo-router';
 import { useEffect, type ReactElement } from 'react';
 
 /**
@@ -9,7 +9,7 @@ import { useEffect, type ReactElement } from 'react';
  */
 export function useLeaveIf(gone: boolean): ReactElement | null | undefined {
   const navigation = useNavigation();
-  const canGoBack = navigation.canGoBack();
+  const canGoBack = useCanGoBack();
   useEffect(() => {
     if (gone && canGoBack) navigation.goBack();
   }, [gone, canGoBack, navigation]);

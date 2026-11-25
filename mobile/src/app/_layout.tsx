@@ -66,6 +66,10 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="folder/[id]"
+            options={{ headerShown: true, headerTintColor: colors.ink, headerStyle: { backgroundColor: colors.bg }, headerShadowVisible: false }}
+          />
+          <Stack.Screen
             name="folder-picker"
             options={{
               presentation: 'formSheet',
