@@ -66,8 +66,9 @@ npm run check    # typecheck + tests for core, app and mobile + garment data che
 ### The iPhone app
 
 The native app lives in `mobile/` (Expo SDK 58, Expo Router) and uses the same engine from
-`packages/core`. It is a scaffold for now: tabs, theme, storage and placeholder screens. To run
-it on your iPhone, install **Expo Go** from the App Store, then from the repo root:
+`packages/core`: the Fitting room, Discover and the Closet, as on the web, plus sharing an outfit
+as a picture. To run it on your iPhone, install **Expo Go** from the App Store, then from the
+repo root:
 
 ```bash
 npm install
@@ -76,6 +77,8 @@ cd mobile && npx expo start
 
 Scan the QR code with the iPhone camera (phone and Mac on the same Wi-Fi) and it opens in
 Expo Go. `npm run check` from `mobile/` runs its typecheck and tests.
+
+To put it on the App Store (and TestFlight), follow [`docs/app-store-release.md`](docs/app-store-release.md).
 
 From `app/`:
 
@@ -89,7 +92,8 @@ npm run fit:report  # how predictions compare with the fit test (data/fit_tests.
 
 Turn on Test mode under Edit body → "For fit testers". In the fitting room, put the tester's
 top on the mannequin, then record how it really fits (chest, length, the size they'd keep).
-Each result keeps the app's prediction and odds. "Download CSV" gives rows to paste into
+Each result keeps the app's prediction and odds. "Download CSV" (on the phone, "Export CSV",
+in development and fit-test builds: see the release guide, step 5) gives rows to paste into
 `data/fit_tests.csv` (keep its header); `npm run fit:report` then prints label agreement,
 within-one agreement, size hit rate and calibration.
 

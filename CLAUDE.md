@@ -93,8 +93,18 @@ app/src/
                  from the outline), seedWrite.ts (writes one "image" into seed.json), pickerModel.ts
                  (a kit per template: place order, labels, diagram)
 mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id com.choudo.app)
+  app.json + app.config.ts  the app's config (name, bundle id, version 1.0.0, iPhone portrait light,
+                 icon and splash from npm run icons, ITSAppUsesNonExemptEncryption false, a privacy manifest:
+                 no tracking, no data collected); app.config.ts adds `extra.appVariant` from APP_VARIANT
+                 ('production' unless eas.json's preview profile says 'preview')
+  eas.json       EAS Build profiles: development (dev client), preview (internal, Test mode on),
+                 production (autoIncrement); release steps in docs/app-store-release.md
+  assets/        images/ (icon.png 1024 px RGB no alpha, splash-icon.png, favicon, Android layers: all
+                 written by app/'s npm run icons), fonts/ (M PLUS Rounded 1c 500/700/800, Latin subsets
+                 from npm run fonts, OFL.txt; src/tests/font-coverage.test.ts checks every character the
+                 copy draws is in them)
   src/app/       routes only (Expo Router): _layout.tsx (root Stack in a GestureHandlerRootView: runs
-                 migrations, loads the font, holds the splash), (tabs)/ (NativeTabs: Fitting room, Discover, Closet; redirects to
+                 migrations, loads the fonts from assets/fonts, holds the splash), (tabs)/ (NativeTabs: Fitting room, Discover, Closet; redirects to
                  /body until a body is stored), body.tsx (first run, or Edit body), fit-reference.tsx
                  (`?first=1` on first run: no back swipe, always on to the tabs), about.tsx (form sheet),
                  fit-details.tsx (form sheet `?garmentId=&size=&from=fitting|browse`: from the Fitting
@@ -116,7 +126,8 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  (tabs)/closet.tsx is the Closet, also drawn only once first opened.
   src/storage/   kv.ts (expo-sqlite/kv-store as a StorageLike; runMigrations)
   src/hooks/     use-persistent-state.ts (the web hook's twin on kv), use-body.ts, use-units.ts,
-                 use-fit-reference.ts (anchor + fit style together), use-test-mode.ts, use-head.ts
+                 use-fit-reference.ts (anchor + fit style together), use-test-mode.ts, use-fit-tests.ts
+                 (Test mode's results, the fitTests key), use-head.ts
                  (the mascot head; _layout.tsx provides it through MascotHeadContext), use-closet.ts (the
                  web useCloset), use-outfit.ts, use-catalogue.ts, use-preference.ts (preferenceSpec, memoised),
                  use-wardrobe.ts (body model, units, catalogue, what it shows and the resolved outfit, for the
@@ -153,7 +164,10 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
   src/utils/     color.ts (mixHex, shadeHex), odds-log.ts (development only: `[odds] key: ms` the first
                  time each garment's odds, or the outfit's default sizes, are worked out; none in a store build),
                  confirm-delete.ts (confirmDelete: a native alert, Cancel + destructive Delete; window.confirm
-                 on the web) — deleting a folder or an outfit always goes through it
+                 on the web) — deleting a folder or an outfit always goes through it, dev-tools.ts
+                 (DEV_TOOLS = __DEV__ or the preview variant: gates Test mode's switch and panel, never in
+                 production; the mannequin lab stays __DEV__ only), export-fit-tests.ts (core's fitTestsCsv
+                 to a cache file with expo-file-system, then the share sheet)
   src/screens/   body/ (BodyScreen + estimate-list; the mannequin preview, a typical body until yours),
                  fit-reference/ (FitReferenceScreen: choose / catalogue / measure / style steps, tee-diagram),
                  dev/mannequin-lab.tsx (every garment, size, head, face, side and frame, height ±5 cm,
@@ -166,7 +180,10 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  folders.tsx, tile.tsx (the shared tile frame, two a row), outfit-figure.tsx (OutfitFigure,
                  wornOf)), folder/ (one folder's items), folder-picker/, share-outfit/ (ShareOutfit +
                  share-card.tsx: 360 × 450 pt, the mannequin, the outfit's name, each garment and size, the
-                 wordmark; never the body in words). Screens take props and call back; the routes in src/app/ do storage and
+                 wordmark; never the body in words), fit-test/ (FitTestPanel, the web's, under the
+                 Fitting room's sizes when Test mode is on). The Fitting room and Discover work the odds of
+                 the garments next to the one on show out ahead with useOddsQueue (a jacket's over the top
+                 under it), so swiping on is instant. Screens take props and call back; the routes in src/app/ do storage and
                  navigation. Wording and validation come from @choudo/core, copied from the web screens.
   src/tests/     tests that render routes (not in src/app: expo-router would treat them as routes)
                  Other tests sit next to their code (`*.test.ts(x)`); jest.setup.ts mocks the kv-store,
@@ -174,7 +191,8 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  in GestureHandlerRootView) and runs Reanimated's setUpTests (jest.config.js uses
                  Reanimated's resolver). renderRouter runs on fake timers.
   scripts/       garment-photos.mjs (npm run photos: writes src/components/mannequin/garment-photos.ts
-                 from seed.json; run it after adding or re-licensing a photo)
+                 from seed.json; run it after adding or re-licensing a photo), subset-fonts.mjs (npm run
+                 fonts: the Latin font subsets in assets/fonts; rerun if the copy needs a new character)
   jest/          garment-photo-transformer.js (tests see app/public/garments PNGs registered like Metro
                  does, with their real pixel size)
 app/dev/       landmarks.html + landmarksServer.ts: the picker page and its save endpoint,
@@ -182,6 +200,8 @@ app/dev/       landmarks.html + landmarksServer.ts: the picker page and its save
 app/build/     build-only: pagesBase.ts (PAGES_BASE '/Choudo/'), leaveOutLocalPhotos.ts (Vite
                plugin: deletes local-only photos from dist/), serviceWorker.ts (stamps dist/sw.js)
 app/public/sw.js  service worker (offline), registered by the production build only
+app/public/privacy.html, support.html  static pages the App Store listing links to (the site's tokens and its
+               own font files in public/fonts/); dist:check fails without them or a link back to the app
 .github/workflows/deploy-pages.yml  checks core + app, builds app/ and deploys it to GitHub Pages on every push to main
 app/scripts/   stamp-glyphs.mjs (one-off: ちょうど outlined from Shippori Mincho B1, OFL, via opentype.js),
                data-check.mjs (npm run data:check), fit-report.mjs (npm run fit:report),
@@ -189,7 +209,8 @@ app/scripts/   stamp-glyphs.mjs (one-off: ちょうど outlined from Shippori Mi
                MIT; mask clean-up in photo-mask.mjs). Model weights download to app/.models/
 app/chart-snapshots/, app/photo-sources/   local copies of charts and source photos, git-ignored
 app/public/garments/   committed cut-outs the app shows (not ones from retailer photos, listed in app/.gitignore)
-docs/          adding-garments.md (checklist for adding a garment by hand),
+docs/          adding-garments.md (checklist for adding a garment by hand), app-store-release.md
+               (Ryo's step-by-step: Apple Developer, EAS, TestFlight, fit-test builds, the listing),
                clothing-categories-design.md (design + PR plan for categories beyond tees),
                parked-ideas.md (ideas on hold, and the rules that still hold for them)
 data/fit_tests.csv    (repo root) fit-test results, pasted from Test mode's CSV export.
@@ -439,6 +460,7 @@ From `mobile/`:
 npx expo start     # dev server + QR code: open it with the iPhone camera, runs in Expo Go
 npm run check      # typecheck + Jest
 npm run photos     # regenerate the bundled garment photo map (after a photo is added or re-licensed)
+npm run fonts      # regenerate the Latin font subsets in assets/fonts/
 npx expo install <pkg>  # add a package at the version SDK 58 expects
 npx expo-doctor    # dependency and config checks (keep it at all checks passed)
 ```
@@ -453,7 +475,7 @@ npm run dist:check # after npm run build: URLs under /Choudo/, sw.js, no dev pag
 npm run fit:report # fit-test report from ../data/fit_tests.csv (or a path after --)
 npm run photos     # cut garment photos out into public/garments/ (commit the PNG)
                    # then place landmarks at http://localhost:5173/dev/landmarks?id=<garment>
-npm run icons      # favicon, Apple touch and manifest icons from the SVG masters in app/icons/
+npm run icons      # favicon, Apple touch and manifest icons from the SVG masters in app/icons/, and the phone's (mobile/assets/images/)
 npm run build      # typecheck + production build (base /Choudo/; vite preview serves it there)
 ```
 CI and cloud sessions install from the repo root with `npm ci --ignore-scripts` then

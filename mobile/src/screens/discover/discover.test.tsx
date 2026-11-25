@@ -138,6 +138,8 @@ describe('the end of the feed', () => {
     expect(onCatalogueChange).toHaveBeenCalledWith('all');
   });
 
+  // Passes through every card, and each step works the next two cards' odds out for real
+  // (the prefetch): slower than the rest, so it gets more than Jest's default 5 s.
   test('after passing the rest, it counts the one liked', async () => {
     const feed = feedOf('all');
     store([liked(feed[0]!)]);
@@ -148,7 +150,7 @@ describe('the end of the feed', () => {
     }
     expect(screen.getByText('No more garments')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'See your 1 liked in the Closet' })).toBeTruthy();
-  });
+  }, 30_000);
 });
 
 test('a new feed key rebuilds the feed: liked ones gone, passed ones at the back, from the first card', async () => {
