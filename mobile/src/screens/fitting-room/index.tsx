@@ -24,6 +24,8 @@ import { ThemedText } from '@/components/themed-text';
 import { Wordmark } from '@/components/wordmark';
 import { colors, fonts, radius, spacing } from '@/theme';
 
+import { firstLook } from '@/utils/odds-log';
+
 import { Stage } from './stage';
 
 export interface FittingRoomProps {
@@ -50,29 +52,26 @@ export interface FittingRoomProps {
   devTools?: React.ReactNode;
 }
 
-interface Slot {
+/** A worn garment, fitted: what the drawing needs. */
+interface Worn {
   garment: Garment;
   size: string;
   fits: GarmentFit[];
   fit: GarmentFit;
+}
+
+/** The slot whose tab is open: its odds too (face, stamp, answer, size dots). */
+interface Slot extends Worn {
   odds: GarmentOdds;
   recommended: string | null;
 }
 
 const CAROUSEL_LABEL: Record<GarmentCategory, string> = { top: 'Tops', bottom: 'Bottoms', onepiece: 'Dresses', outer: 'Jackets' };
 
-/** Garments (with what's under them) whose odds this launch has already worked out: the dev timing log's first-look list. */
-const timed = new Set<string>();
-
-/** garmentOdds, timed the first time per garment in development (Review Focus: 500 samples on Hermes, no JIT). */
+/** garmentOdds, timed the first time per garment (and what's under it) in development. */
 function oddsFor(model: BodyModel, garment: Garment, preference: PreferenceSpec, under?: UnderLayer): GarmentOdds {
   const key = under ? `${garment.id} over ${under.garment.id} ${under.sizeLabel}` : garment.id;
-  if (!__DEV__ || timed.has(key) || process.env.NODE_ENV === 'test') return garmentOdds(model, garment, preference, under);
-  timed.add(key);
-  const start = performance.now();
-  const odds = garmentOdds(model, garment, preference, under);
-  console.log(`[odds] ${key}: ${Math.round(performance.now() - start)} ms`);
-  return odds;
+  return firstLook(key, () => garmentOdds(model, garment, preference, under));
 }
 
 /** The haptic for a size or garment picked by tap or swipe (the phone's own settings decide if it plays). */
@@ -105,17 +104,16 @@ export function FittingRoom({
   // Which side of the mannequin is shown; a drawing choice only, not stored.
   const [view, setView] = useState<Side>('front');
 
-  const slot = (id: string | null, size: string | null, under?: UnderLayer): Slot | null => {
+  const wornIn = (id: string | null, size: string | null, under?: UnderLayer): Worn | null => {
     const garment = id ? findGarment(id) : undefined;
     if (!garment || !size) return null;
     const fits = fitAllSizes(model, garment, under);
-    const odds = oddsFor(model, garment, preference, under);
-    return { garment, size, fits, fit: fits.find((f) => f.sizeLabel === size)!, odds, recommended: odds.recommended };
+    return { garment, size, fits, fit: fits.find((f) => f.sizeLabel === size)! };
   };
-  // A handful of sizes per garment, and the odds are cached: cheap enough every render.
-  const top = slot(outfit.topId, outfit.topSize);
-  const bottom = slot(outfit.bottomId, outfit.bottomSize);
-  const onepiece = slot(outfit.onepieceId, outfit.onepieceSize);
+  // A handful of sizes per garment: cheap enough every render.
+  const top = wornIn(outfit.topId, outfit.topSize);
+  const bottom = wornIn(outfit.bottomId, outfit.bottomSize);
+  const onepiece = wornIn(outfit.onepieceId, outfit.onepieceSize);
   // A jacket is fitted over the top (or the dress) under it; its size cards elsewhere stay bare-body.
   const topGarment = (top ?? onepiece)?.garment;
   const topSize = (top ?? onepiece)?.size;
@@ -123,12 +121,16 @@ export function FittingRoom({
     () => (topGarment && topSize ? { garment: topGarment, sizeLabel: topSize } : undefined),
     [topGarment, topSize],
   );
-  const outer = slot(outfit.outerId, outfit.outerSize, under);
+  const outer = wornIn(outfit.outerId, outfit.outerSize, under);
 
   // The Dress tab shows when there's a dress on show or one is worn (none for a men's body on its own sizing).
   const hasDresses = onepiece !== null || shown.some((g) => g.category === 'onepiece');
   const tab: GarmentCategory = browsing === 'onepiece' && !hasDresses ? 'top' : browsing;
-  const active = { top, bottom, outer, onepiece }[tab];
+  // Odds (500 samples the first time) only for the open tab's garment: a jacket worn over a
+  // top isn't re-sampled each time the top changes on the Top tab (cached when its tab opens).
+  const shownSlot = { top, bottom, outer, onepiece }[tab];
+  const activeOdds = shownSlot ? oddsFor(model, shownSlot.garment, preference, tab === 'outer' ? under : undefined) : null;
+  const active: Slot | null = shownSlot && activeOdds ? { ...shownSlot, odds: activeOdds, recommended: activeOdds.recommended } : null;
 
   // The face follows the shown size's verdict tone; the ちょうど stamp shows when it is the
   // suggested size and the headline says it fits, and drops once per garment + size.
@@ -140,8 +142,10 @@ export function FittingRoom({
     const garment = findGarment(id);
     if (!garment) return;
     tick();
-    // A jacket starts in the size suggested over the top it goes on.
+    // A jacket starts in the size suggested over the top it goes on; anything else in its
+    // suggested size (timed here, where it's first worked out, not in the render after).
     const overTop = garment.category === 'outer' ? oddsFor(model, garment, preference, under).recommended : null;
+    if (garment.category !== 'outer') oddsFor(model, garment, preference);
     setSaved(wearGarment(outfit, garment, overTop ?? defaultSize(model, garment, preference)));
   }
 
@@ -160,7 +164,7 @@ export function FittingRoom({
   const carousel = active && !inCategory.includes(active.garment) ? [active.garment, ...inCategory] : inCategory;
   const show = catalogueToggle(body.bodyType, catalogue);
 
-  const worn = (s: Slot | null): WornGarment | undefined => (s ? { garment: s.garment, sizeLabel: s.size, fit: s.fit } : undefined);
+  const worn = (s: Worn | null): WornGarment | undefined => (s ? { garment: s.garment, sizeLabel: s.size, fit: s.fit } : undefined);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic">

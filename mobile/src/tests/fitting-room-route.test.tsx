@@ -11,6 +11,7 @@ import { EMPTY_OUTFIT, STORAGE_KEYS, type Outfit } from '@choudo/core/ui-logic/s
 
 import { byTestId, nodes, type Node } from '@/components/mannequin/svg-tree';
 import { forgetThisLaunch } from '@/hooks/use-persistent-state';
+import { forgetFirstLooks, setOddsLog } from '@/utils/odds-log';
 
 const appDir = './src/app';
 const MENS: BodyInput = { heightCm: 170, weightKg: 65, bodyType: 'mens' };
@@ -146,4 +147,37 @@ test('Save outfit opens its sheet', async () => {
   await open();
   await fireEvent.press(screen.getByRole('button', { name: 'Save outfit' }));
   expect(screen).toHavePathname('/save-outfit');
+});
+
+describe('the dev-only [odds] log (Review Focus 1: first odds on Hermes)', () => {
+  const lines: { line: string; storedTop: string | null }[] = [];
+  beforeEach(() => {
+    lines.length = 0;
+    forgetFirstLooks();
+    setOddsLog((line) => lines.push({ line, storedTop: Storage.getItemSync(STORAGE_KEYS.outfit) && read<Outfit>(STORAGE_KEYS.outfit).topId }));
+  });
+  afterEach(() => setOddsLog(null));
+
+  test('picking a garment times the sampling itself, not a cache hit after it', async () => {
+    await open(MENS, { ...EMPTY_OUTFIT, topId: 'gildan-5000', topSize: 'L' });
+    const tops = shown.filter((g) => g.category === 'top');
+    const other = tops[tops.findIndex((g) => g.id === 'gildan-5000') + 1]!;
+    await fireEvent.press(card(other));
+    const logged = lines.find((l) => l.line.startsWith(`[odds] ${other.id}:`));
+    expect(logged).toBeDefined();
+    // Timed while choosing (before the outfit was stored), where defaultSize samples it.
+    expect(logged!.storedTop).toBe('gildan-5000');
+  });
+
+  test("a first launch times the outfit's default sizes", async () => {
+    await open();
+    expect(lines.some((l) => /^\[odds\] outfit defaults: \d+ ms$/.test(l.line))).toBe(true);
+  });
+
+  test('a worn jacket is not re-sampled while the top changes on the Top tab', async () => {
+    await open(MENS, { ...EMPTY_OUTFIT, topId: 'gildan-18500', topSize: 'L', outerId: 'port-authority-j317', outerSize: 'L' });
+    await fireEvent.press(screen.getByRole('radio', { name: /^M, / }));
+    expect(read<Outfit>(STORAGE_KEYS.outfit).topSize).toBe('M');
+    expect(lines.filter((l) => l.line.includes('port-authority-j317'))).toEqual([]);
+  });
 });

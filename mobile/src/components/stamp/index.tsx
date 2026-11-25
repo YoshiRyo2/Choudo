@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Circle, G, Path } from 'react-native-svg';
@@ -27,15 +27,25 @@ const FADE_MS = 160;
  */
 export function Stamp({ dropping, onLanded }: StampProps) {
   const reduceMotion = useReducedMotion();
-  const opacity = useSharedValue(dropping ? 0 : 1);
-  const scale = useSharedValue(dropping && !reduceMotion ? 1.5 : 1);
+  // Mounted unseen: the Stage mounts the stamp a render before useStampDrop decides (in a
+  // layout effect) whether it drops, so no frame shows it at full ink before the drop.
+  const opacity = useSharedValue(0);
+  const scale = useSharedValue(reduceMotion ? 1 : 1.5);
 
-  useEffect(() => {
-    if (!dropping) return;
+  // Before paint, on every decision: a stamp already seen is simply there; a new one drops.
+  useLayoutEffect(() => {
+    if (!dropping) {
+      opacity.value = 1;
+      scale.value = 1;
+      return;
+    }
     const ease = Easing.out(Easing.ease);
+    opacity.value = 0;
     if (reduceMotion) {
+      scale.value = 1;
       opacity.value = withTiming(1, { duration: FADE_MS, easing: ease });
     } else {
+      scale.value = 1.5;
       opacity.value = withTiming(1, { duration: DROP_MS * LANDS_AT, easing: ease });
       scale.value = withSequence(
         withTiming(0.94, { duration: DROP_MS * LANDS_AT, easing: ease }),

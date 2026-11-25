@@ -7,6 +7,13 @@ import { EMPTY_OUTFIT, STORAGE_KEYS, type Outfit } from '@choudo/core/ui-logic/s
 
 import { forgetThisLaunch } from '@/hooks/use-persistent-state';
 
+// measurementHint samples (uncached): counted, to check a sheet doesn't re-run it for nothing.
+jest.mock('@choudo/core/domain/fit', () => {
+  const actual = jest.requireActual('@choudo/core/domain/fit');
+  return { ...actual, measurementHint: jest.fn(actual.measurementHint) };
+});
+const hint = jest.requireMock('@choudo/core/domain/fit').measurementHint as jest.Mock;
+
 const appDir = './src/app';
 const BODY = { heightCm: 176, weightKg: 75, bodyType: 'mens' } as const;
 const outfit = (): Outfit => JSON.parse(Storage.getItemSync(STORAGE_KEYS.outfit)!) as Outfit;
@@ -56,4 +63,16 @@ test('an unknown garment closes the sheet', async () => {
   await renderRouter(appDir, { initialUrl: '/fit-details?garmentId=garment-that-does-not-exist&size=L&from=fitting' });
   expect(screen).toHavePathname('/');
   expect(screen.queryByRole('button', { name: 'Done' })).toBeNull();
+});
+
+test("Done on a worn jacket's sheet doesn't work its hint out again", async () => {
+  Storage.setItemSync(
+    STORAGE_KEYS.outfit,
+    JSON.stringify({ ...EMPTY_OUTFIT, topId: 'gildan-18500', topSize: 'L', outerId: 'port-authority-j317', outerSize: 'L' }),
+  );
+  await renderRouter(appDir, { initialUrl: '/fit-details?garmentId=port-authority-j317&size=L&from=fitting' });
+  const before = hint.mock.calls.length;
+  expect(before).toBeGreaterThan(0);
+  await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
+  expect(hint.mock.calls.length).toBe(before);
 });

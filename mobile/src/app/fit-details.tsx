@@ -1,9 +1,10 @@
 import { Redirect, router, useLocalSearchParams, useNavigation } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import type { UnderLayer } from '@choudo/core/domain/fit';
 import { findGarment } from '@choudo/core/domain/garments';
 import { wearGarment } from '@choudo/core/ui-logic/state/outfit';
 
-import { underLayer, useWardrobe } from '@/hooks/use-wardrobe';
+import { useWardrobe } from '@/hooks/use-wardrobe';
 import { FitDetails } from '@/screens/fit-details';
 
 /** Leave the sheet for whatever is under it (the Fitting room on a cold start). */
@@ -21,6 +22,15 @@ export default function FitDetailsRoute() {
   const params = useLocalSearchParams<{ garmentId?: string; size?: string; from?: string }>();
   const wardrobe = useWardrobe();
   const garment = params.garmentId ? findGarment(params.garmentId) : undefined;
+  // What a worn jacket goes over, kept the same object while that garment and size stay
+  // (as the web Fitting room's memo): the sheet memoises its sampling hint on it.
+  const outfit = wardrobe?.outfit;
+  const underId = outfit ? (outfit.topId ?? outfit.onepieceId) : null;
+  const underSize = outfit ? (outfit.topId ? outfit.topSize : outfit.onepieceSize) : null;
+  const worn = useMemo<UnderLayer | undefined>(() => {
+    const g = underId ? findGarment(underId) : undefined;
+    return g && underSize ? { garment: g, sizeLabel: underSize } : undefined;
+  }, [underId, underSize]);
   const missing = !wardrobe || !garment;
   // A garment we don't have (a stale link): close at once. The screen's own navigation, as
   // the imperative router isn't bound until after the first render.
@@ -31,11 +41,11 @@ export default function FitDetailsRoute() {
   }, [missing, canGoBack, navigation]);
   if (missing) return canGoBack ? null : <Redirect href="/" />;
 
-  const { model, preference, units, outfit, setOutfit } = wardrobe;
+  const { model, preference, units, setOutfit } = wardrobe;
   const fromFitting = params.from !== 'browse';
   const size = garment.sizes.some((s) => s.label === params.size) ? params.size! : garment.sizes[0]!.label;
   // As the web Fitting room's activeUnder: the jacket on the mannequin is fitted over what's under it.
-  const under = fromFitting && garment.category === 'outer' && outfit.outerId === garment.id ? underLayer(outfit) : undefined;
+  const under = fromFitting && garment.category === 'outer' && wardrobe.outfit.outerId === garment.id ? worn : undefined;
 
   return (
     <FitDetails
@@ -47,7 +57,7 @@ export default function FitDetailsRoute() {
       under={under}
       actionLabel={(s) => (fromFitting ? (s === size ? 'Done' : `Wear ${s}`) : `Try ${s} in the fitting room`)}
       onAction={(s) => {
-        setOutfit(wearGarment(outfit, garment, s));
+        setOutfit(wearGarment(wardrobe.outfit, garment, s));
         if (fromFitting) close();
         else router.dismissTo('/');
       }}
