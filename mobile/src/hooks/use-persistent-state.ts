@@ -10,6 +10,14 @@ import { kv } from '@/storage/kv';
 const setThisLaunch = new Map<string, unknown>();
 const listeners = new Map<string, Set<(value: unknown) => void>>();
 
+/**
+ * Forget the values set during this launch, as a relaunch would (tests: start each one from
+ * what's in storage). Mounted hooks keep what they show until they read again.
+ */
+export function forgetThisLaunch() {
+  setThisLaunch.clear();
+}
+
 function current<T>(key: string, fallback: T, isValid: (value: unknown) => value is T): T {
   return setThisLaunch.has(key) ? (setThisLaunch.get(key) as T) : readStored(kv, key, fallback, isValid);
 }

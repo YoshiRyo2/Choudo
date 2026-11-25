@@ -13,10 +13,12 @@ export interface ButtonProps {
    */
   disabled?: boolean;
   testID?: string;
+  /** Fill the row (a sheet's main action) instead of hugging the label. */
+  stretch?: boolean;
 }
 
 /** Choudo's pill button: primary = ink fill, outline = ink edge, quiet = underlined text. */
-export function Button({ title, onPress, variant = 'primary', size = 'md', disabled = false, testID }: ButtonProps) {
+export function Button({ title, onPress, variant = 'primary', size = 'md', disabled = false, testID, stretch = false }: ButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -27,6 +29,7 @@ export function Button({ title, onPress, variant = 'primary', size = 'md', disab
       style={({ pressed }) => [
         styles.base,
         size === 'sm' && styles.small,
+        stretch && styles.stretch,
         styles[variant],
         variant === 'primary' && disabled && styles.primaryDisabled,
         pressed && styles.pressed,
@@ -54,6 +57,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   small: { minHeight: 44, paddingHorizontal: 14 },
+  stretch: { alignSelf: 'stretch' },
   primary: { backgroundColor: colors.ink },
   primaryDisabled: { backgroundColor: colors.inkDisabled },
   outline: { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.ink },

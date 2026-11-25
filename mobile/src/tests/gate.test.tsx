@@ -18,8 +18,8 @@ test('a stored body opens the Fitting room', async () => {
   Storage.setItemSync(STORAGE_KEYS.body, JSON.stringify({ heightCm: 175, weightKg: 70, bodyType: 'mens' }));
   await renderRouter(appDir, { initialUrl: '/' });
   expect(screen).toHavePathname('/');
-  expect(screen.getByText('Fitting room')).toBeTruthy();
-  expect(screen.getByText(/175 cm/)).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Edit body' })).toBeTruthy();
+  expect(screen.getByLabelText(/^Mannequin, 175 cm tall/)).toBeTruthy();
 });
 
 test('a corrupt stored body is treated as none', async () => {
