@@ -6,6 +6,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { MascotHeadContext } from '@/components/mannequin/head-context';
 import { useHead } from '@/hooks/use-head';
@@ -34,44 +35,47 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <MascotHeadContext.Provider value={head}>
-      <StatusBar style="dark" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.bg },
-        }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="body" />
-        <Stack.Screen name="fit-reference" />
-        <Stack.Screen
-          name="fit-details"
-          options={{
-            presentation: 'formSheet',
-            sheetGrabberVisible: true,
-            sheetAllowedDetents: [0.75, 1],
-            contentStyle: { backgroundColor: colors.surface },
-          }}
-        />
-        <Stack.Screen
-          name="save-outfit"
-          options={{
-            presentation: 'formSheet',
-            sheetGrabberVisible: true,
-            sheetAllowedDetents: [0.35],
-            contentStyle: { backgroundColor: colors.surface },
-          }}
-        />
-        <Stack.Screen
-          name="about"
-          options={{
-            presentation: 'formSheet',
-            sheetGrabberVisible: true,
-            sheetAllowedDetents: [0.6, 1],
+    // Gestures (Discover's swipe card) only reach views under this root.
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <MascotHeadContext.Provider value={head}>
+        <StatusBar style="dark" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
             contentStyle: { backgroundColor: colors.bg },
-          }}
-        />
-      </Stack>
-    </MascotHeadContext.Provider>
+          }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="body" />
+          <Stack.Screen name="fit-reference" />
+          <Stack.Screen
+            name="fit-details"
+            options={{
+              presentation: 'formSheet',
+              sheetGrabberVisible: true,
+              sheetAllowedDetents: [0.75, 1],
+              contentStyle: { backgroundColor: colors.surface },
+            }}
+          />
+          <Stack.Screen
+            name="save-outfit"
+            options={{
+              presentation: 'formSheet',
+              sheetGrabberVisible: true,
+              sheetAllowedDetents: [0.35],
+              contentStyle: { backgroundColor: colors.surface },
+            }}
+          />
+          <Stack.Screen
+            name="about"
+            options={{
+              presentation: 'formSheet',
+              sheetGrabberVisible: true,
+              sheetAllowedDetents: [0.6, 1],
+              contentStyle: { backgroundColor: colors.bg },
+            }}
+          />
+        </Stack>
+      </MascotHeadContext.Provider>
+    </GestureHandlerRootView>
   );
 }
