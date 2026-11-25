@@ -92,8 +92,8 @@ app/src/
                  from the outline), seedWrite.ts (writes one "image" into seed.json), pickerModel.ts
                  (a kit per template: place order, labels, diagram)
 mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id com.choudo.app)
-  src/app/       routes only (Expo Router): _layout.tsx (root Stack: runs migrations, loads the font,
-                 holds the splash), (tabs)/ (NativeTabs: Fitting room, Discover, Closet; redirects to
+  src/app/       routes only (Expo Router): _layout.tsx (root Stack in a GestureHandlerRootView: runs
+                 migrations, loads the font, holds the splash), (tabs)/ (NativeTabs: Fitting room, Discover, Closet; redirects to
                  /body until a body is stored), body.tsx (first run, or Edit body), fit-reference.tsx
                  (`?first=1` on first run: no back swipe, always on to the tabs), about.tsx (form sheet),
                  fit-details.tsx (form sheet `?garmentId=&size=&from=fitting|browse`: from the Fitting
@@ -102,7 +102,10 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  resolved outfit under a name or the next "Outfit N"),
                  dev/mannequin.tsx (the mannequin lab; redirects to / unless __DEV__, so never in a store
                  build; the Fitting room shows its button in development only).
-                 (tabs)/index.tsx is the Fitting room; Discover and Closet are placeholders until PR 6+.
+                 (tabs)/index.tsx is the Fitting room; (tabs)/discover.tsx is Discover: native tabs stay
+                 mounted, so it builds a fresh feed each time the tab gains focus (useFocusEffect bumps
+                 `feedKey`), never while it's on screen; a card's Fit details opens `from=browse`.
+                 Closet is a placeholder until PR 7.
   src/storage/   kv.ts (expo-sqlite/kv-store as a StorageLike; runMigrations)
   src/hooks/     use-persistent-state.ts (the web hook's twin on kv), use-body.ts, use-units.ts,
                  use-fit-reference.ts (anchor + fit style together), use-test-mode.ts, use-head.ts
@@ -122,7 +125,10 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  (snapping FlatList: the card that settles in the middle is selected), fit-readout ("View
                  the chart" in expo-web-browser), name-form, tone.ts (fit tone → colour), hop.ts (useHop:
                  the figure's translate-only hop, none under Reduce Motion), stamp/ (Stamp with Reanimated,
-                 no ink-noise filter, onLanded at 55 % for the haptic; useStampDrop).
+                 no ink-noise filter, onLanded at 55 % for the haptic; useStampDrop),
+                 swipe-card.tsx (the web SwipeCard: a Gesture Handler pan raced with a tap, on Reanimated;
+                 swipe.ts decides, `decideDrag` turns px/s into px/ms, `leanFor` is tilt as a worklet;
+                 Like / Pass / Fit details accessibility actions; NextCard, the plain stand-in behind).
                  mannequin/ — the web Mannequin.tsx + MascotHead.tsx ported to react-native-svg, same props,
                  same draw order; every shape comes from @choudo/core, this only paints it:
                    index.tsx (Mannequin, WornGarment), mascot-head.tsx (+ MascotHeadIcon), height-tape.tsx,
@@ -141,11 +147,15 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  fit pins via fitOutfit; nothing saved), fitting-room/ (FittingRoom, the web screen top to
                  bottom; stage.tsx: circle, hopping figure, heads, stamp, Save outfit; haptics on picks and
                  when the stamp lands; odds only for the open tab's garment), fit-details/, save-outfit/,
+                 discover/ (Discover: the feed is built when `feedKey` or the scope changes, never on a
+                 swipe; one decision per card, a light impact on each, replaced at once under Reduce Motion),
                  placeholder.tsx. Screens take props and call back; the routes in src/app/ do storage and
                  navigation. Wording and validation come from @choudo/core, copied from the web screens.
   src/tests/     tests that render routes (not in src/app: expo-router would treat them as routes)
-                 Other tests sit next to their code (`*.test.ts(x)`); jest.setup.ts mocks the kv-store
-                 and runs Reanimated's setUpTests (jest.config.js uses Reanimated's resolver).
+                 Other tests sit next to their code (`*.test.ts(x)`); jest.setup.ts mocks the kv-store,
+                 loads Gesture Handler's jestSetup (fire gestures with its jest-utils; wrap a GestureDetector
+                 in GestureHandlerRootView) and runs Reanimated's setUpTests (jest.config.js uses
+                 Reanimated's resolver). renderRouter runs on fake timers.
   scripts/       garment-photos.mjs (npm run photos: writes src/components/mannequin/garment-photos.ts
                  from seed.json; run it after adding or re-licensing a photo)
   jest/          garment-photo-transformer.js (tests see app/public/garments PNGs registered like Metro
