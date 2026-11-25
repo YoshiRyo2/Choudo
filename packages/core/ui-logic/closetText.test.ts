@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_OUTFIT } from '@choudo/core/ui-logic/state/stored';
-import { outfitLine } from './OutfitCard';
+import { EMPTY_OUTFIT } from './state/stored';
+import { outfitLine } from './closetText';
 
 describe('outfitLine', () => {
   it('lists the top, the bottom and the jacket over them, with sizes', () => {

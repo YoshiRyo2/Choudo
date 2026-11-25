@@ -26,3 +26,8 @@ export function garmentOdds(body: BodyModel, garment: Garment, spec: PreferenceS
   cache.set(key, odds);
   return odds;
 }
+
+/** The odds `garmentOdds` would return, if they're already worked out; never samples. */
+export function cachedOdds(body: BodyModel, garment: Garment, spec: PreferenceSpec, under?: UnderLayer): GarmentOdds | undefined {
+  return cache.get(keyOf(body, garment, spec, under));
+}

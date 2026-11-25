@@ -66,6 +66,15 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="folder-picker"
+            options={{
+              presentation: 'formSheet',
+              sheetGrabberVisible: true,
+              sheetAllowedDetents: [0.5, 1],
+              contentStyle: { backgroundColor: colors.surface },
+            }}
+          />
+          <Stack.Screen
             name="about"
             options={{
               presentation: 'formSheet',

@@ -4,7 +4,8 @@ import { NameForm } from '../../components/NameForm';
 import { nextOutfitName, outfitOf } from '@choudo/core/ui-logic/state/closet';
 import type { Outfit, SavedOutfit } from '@choudo/core/ui-logic/state/stored';
 import { FoldersButton } from './FolderPicker';
-import { OutfitFigure, outfitLine } from './OutfitCard';
+import { outfitLine } from '@choudo/core/ui-logic/closetText';
+import { OutfitFigure } from './OutfitCard';
 
 interface OutfitsTabProps {
   model: BodyModel;

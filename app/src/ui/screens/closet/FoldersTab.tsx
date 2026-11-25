@@ -6,7 +6,8 @@ import { GarmentIcon } from '../../components/GarmentIcon';
 import { NameForm } from '../../components/NameForm';
 import { folderSummary, outfitOf } from '@choudo/core/ui-logic/state/closet';
 import type { Folder, FolderItem, Outfit, SavedOutfit } from '@choudo/core/ui-logic/state/stored';
-import { OutfitFigure, outfitLine } from './OutfitCard';
+import { outfitLine } from '@choudo/core/ui-logic/closetText';
+import { OutfitFigure } from './OutfitCard';
 
 interface FoldersTabProps {
   model: BodyModel;
