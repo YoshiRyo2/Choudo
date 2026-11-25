@@ -90,3 +90,12 @@ test('opening a garment in it goes to Fit details, from browsing', async () => {
   expect(screen).toHavePathname('/fit-details');
   expect(screen).toHaveSearchParams(expect.objectContaining({ garmentId: tee.id, from: 'browse' }));
 });
+
+test('Open on an outfit in a folder (from the Closet) wears it on the Fitting room', async () => {
+  Storage.setItemSync(STORAGE_KEYS.outfit, JSON.stringify({ ...EMPTY_OUTFIT, topId: 'gildan-5000', topSize: 'S' }));
+  await renderRouter(appDir, { initialUrl: '/closet' });
+  await act(() => router.push('/folder/f1'));
+  await fireEvent.press(screen.getByRole('button', { name: 'Open' }));
+  expect(screen).toHavePathname('/');
+  expect(JSON.parse(Storage.getItemSync(STORAGE_KEYS.outfit)!)).toMatchObject({ topId: 'gildan-18500', topSize: 'L' });
+});

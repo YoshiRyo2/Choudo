@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
 import { StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import type { BodyMeasurements } from '@choudo/core/domain/body';
-import { findGarment } from '@choudo/core/domain/garments';
+import { outfitGarmentLines } from '@choudo/core/ui-logic/closetText';
 import type { HeadKind } from '@choudo/core/ui-logic/components/Mannequin/heads';
 import type { Outfit } from '@choudo/core/ui-logic/state/stored';
 
@@ -21,20 +21,6 @@ export interface ShareCardProps {
   head: HeadKind;
 }
 
-/** "{brand} {name} · {size}" per garment, in outfitLine's order; ones that are gone are left out. */
-export function garmentLines(outfit: Outfit): string[] {
-  const slots: [string | null, string | null][] = [
-    [outfit.topId, outfit.topSize],
-    [outfit.bottomId, outfit.bottomSize],
-    [outfit.onepieceId, outfit.onepieceSize],
-    [outfit.outerId, outfit.outerSize],
-  ];
-  return slots.flatMap(([id, size]) => {
-    const g = id ? findGarment(id) : undefined;
-    return g && size ? [`${g.brand} ${g.name} · ${size}`] : [];
-  });
-}
-
 /**
  * The image a saved outfit is shared as: the mascot mannequin wearing it, the outfit's name,
  * each garment and size, and the wordmark. Never the body in words (no height, weight,
@@ -51,7 +37,7 @@ export const ShareCard = forwardRef<ViewInstance, ShareCardProps>(function Share
         <Text style={styles.name} numberOfLines={2}>
           {outfit.name}
         </Text>
-        {garmentLines(outfit).map((line) => (
+        {outfitGarmentLines(outfit).map((line) => (
           <Text key={line} style={styles.line} numberOfLines={1}>
             {line}
           </Text>

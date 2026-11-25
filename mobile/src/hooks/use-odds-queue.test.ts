@@ -28,12 +28,27 @@ test('works the odds out one garment per tick, in list order, after the first re
 });
 
 test('odds already worked out show at once', async () => {
-  const { result } = await renderHook(() => useOddsQueue(first, preference, garments));
-  // The test above filled the cache for `first`.
+  const warm = estimateBody({ heightCm: 158, weightKg: 52, bodyType: 'mens' });
+  for (const g of garments) garmentOdds(warm, g, preference);
+  const { result } = await renderHook(() => useOddsQueue(warm, preference, garments));
   expect(result.current.size).toBe(3);
 });
 
+test('paused (its tab not on screen), it works nothing out; it carries on when resumed', async () => {
+  const later = estimateBody({ heightCm: 191, weightKg: 88, bodyType: 'mens' });
+  const { result, rerender } = await renderHook(({ active }: { active: boolean }) => useOddsQueue(later, preference, garments, active), {
+    initialProps: { active: false },
+  });
+  await tick();
+  await tick();
+  expect(result.current.size).toBe(0);
+  await rerender({ active: true });
+  await tick();
+  expect(result.current.size).toBe(1);
+});
+
 test('a body change starts over', async () => {
+  for (const g of garments) garmentOdds(first, g, preference);
   const { result, rerender } = await renderHook(({ body }: { body: BodyModel }) => useOddsQueue(body, preference, garments), { initialProps: { body: first } });
   expect(result.current.size).toBe(3);
   await rerender({ body: second });

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { estimateBody } from '../../domain/body';
 import { preferenceSpec, recommendSize } from '../../domain/fit';
 import { canWarp, findGarment, garmentsByCategory } from '../../domain/garments';
-import { defaultSize, firstGarment, resolveOutfit, suggestedFit, wearGarment } from './outfit';
+import { defaultSize, firstGarment, middleSize, resolveOutfit, suggestedFit, suggestedSize, wearGarment } from './outfit';
+import { garmentOdds } from './odds';
 import { EMPTY_OUTFIT } from './stored';
 import { UNKNOWN_CHEST_TEE } from '../../domain/garments/testFixtures';
 
@@ -172,5 +173,17 @@ describe('the dress slot', () => {
     expect(gone.onepieceId).toBeNull();
     expect(gone.topId).not.toBeNull();
     expect(resolveOutfit({ ...EMPTY_OUTFIT, onepieceId: tee.id, onepieceSize: 'M' }, woman, pref).onepieceId).toBeNull();
+  });
+});
+
+describe('suggestedSize', () => {
+  it('is the recommended size from odds already worked out, or the middle size when there is none', () => {
+    const body = estimateBody({ heightCm: 176, weightKg: 75, bodyType: 'mens' });
+    const tee = findGarment('gildan-5000')!;
+    const spec = preferenceSpec(null, null);
+    const odds = garmentOdds(body, tee, spec);
+    expect(suggestedSize(odds, tee)).toEqual({ size: odds.recommended ?? middleSize(tee), recommended: odds.recommended !== null });
+    expect(suggestedSize(odds, tee).size).toBe(suggestedFit(body, tee, spec).fit.sizeLabel);
+    expect(suggestedSize({ ...odds, recommended: null }, tee)).toEqual({ size: middleSize(tee), recommended: false });
   });
 });

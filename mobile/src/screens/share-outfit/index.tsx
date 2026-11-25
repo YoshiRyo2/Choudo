@@ -1,6 +1,6 @@
 import * as Sharing from 'expo-sharing';
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, useWindowDimensions, View, type ViewInstance } from 'react-native';
+import { PixelRatio, ScrollView, StyleSheet, useWindowDimensions, View, type ViewInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 import type { BodyMeasurements } from '@choudo/core/domain/body';
@@ -19,8 +19,8 @@ export interface ShareOutfitProps {
   head: HeadKind;
 }
 
-/** Captured at 3× the card: 1080 × 1350, a 4:5 picture. */
-const IMAGE = { width: CARD_WIDTH * 3, height: CARD_HEIGHT * 3 };
+/** The picture: 1080 × 1350 px, 4:5 (3× the card). */
+const IMAGE_PX = { width: CARD_WIDTH * 3, height: CARD_HEIGHT * 3 };
 
 /** Share a saved outfit as a picture: the card as a preview, then the iOS share sheet. */
 export function ShareOutfit({ outfit, body, head }: ShareOutfitProps) {
@@ -45,10 +45,12 @@ export function ShareOutfit({ outfit, body, head }: ShareOutfitProps) {
     if (busy) return;
     setBusy(true);
     try {
-      const uri = await captureRef(card, { format: 'png', quality: 1, ...IMAGE });
+      // iOS takes the size in points and draws at the screen's scale, so divide by it.
+      const scale = PixelRatio.get();
+      const uri = await captureRef(card, { format: 'png', quality: 1, width: IMAGE_PX.width / scale, height: IMAGE_PX.height / scale });
       await Sharing.shareAsync(uri, { mimeType: 'image/png', UTI: 'public.png', dialogTitle: outfit.name });
     } catch {
-      // Closing the share sheet without sharing lands here too: nothing to tell.
+      // A cancel resolves; this is a capture or share-sheet failure, which has no wording yet.
     } finally {
       setBusy(false);
     }

@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useIsFocused } from 'expo-router';
 import { useCallback, useState } from 'react';
 
 import { useCloset } from '@/hooks/use-closet';
@@ -12,6 +12,8 @@ export default function ClosetRoute() {
   // All native tabs render at launch: like Discover, draw nothing until this one is opened.
   const [opened, setOpened] = useState(false);
   useFocusEffect(useCallback(() => setOpened(true), []));
+  // Mounted for good once opened: the Liked tiles only work their odds out while it's on screen.
+  const focused = useIsFocused();
   if (!wardrobe || !opened) return null;
   return (
     <Closet
@@ -30,6 +32,7 @@ export default function ClosetRoute() {
       onDeleteOutfit={(id, name) => confirmDelete(name, () => closet.deleteOutfit(id))}
       onOpenDiscover={() => router.navigate('/discover')}
       onAbout={() => router.push('/about')}
+      active={focused}
     />
   );
 }

@@ -2,22 +2,30 @@
  * Wording for the Closet, shared by the web app and the phone.
  */
 
-import { findGarment } from '../domain/garments';
+import { findGarment, type Garment } from '../domain/garments';
 import type { Outfit } from './state/stored';
 
-/** "Name, size" for one slot of an outfit, or null when it's empty or the garment is gone. */
-function part(id: string | null, size: string | null): string | null {
-  const garment = id ? findGarment(id) : undefined;
-  return garment && size ? `${garment.name}, ${size}` : null;
+/** An outfit's garments with their sizes, top, bottom, dress, then the jacket over them; ones that are gone are left out. */
+function wornIn(outfit: Outfit): { garment: Garment; size: string }[] {
+  const slots: [string | null, string | null][] = [
+    [outfit.topId, outfit.topSize],
+    [outfit.bottomId, outfit.bottomSize],
+    [outfit.onepieceId, outfit.onepieceSize],
+    [outfit.outerId, outfit.outerSize],
+  ];
+  return slots.flatMap(([id, size]) => {
+    const garment = id ? findGarment(id) : undefined;
+    return garment && size ? [{ garment, size }] : [];
+  });
 }
 
 /** "Heavy Cotton T-Shirt (5000), L · Slim Chino, 32": top, bottom, dress, then the jacket over them. */
 export function outfitLine(outfit: Outfit): string {
-  const parts = [
-    part(outfit.topId, outfit.topSize),
-    part(outfit.bottomId, outfit.bottomSize),
-    part(outfit.onepieceId, outfit.onepieceSize),
-    part(outfit.outerId, outfit.outerSize),
-  ].filter((p): p is string => p !== null);
+  const parts = wornIn(outfit).map(({ garment, size }) => `${garment.name}, ${size}`);
   return parts.length > 0 ? parts.join(' · ') : 'These garments are no longer available';
+}
+
+/** One line per garment for a shared outfit picture: "{brand} {name} · {size}", in outfitLine's order. */
+export function outfitGarmentLines(outfit: Outfit): string[] {
+  return wornIn(outfit).map(({ garment, size }) => `${garment.brand} ${garment.name} · ${size}`);
 }

@@ -3,7 +3,7 @@
  */
 
 import type { BodyModel } from '../../domain/body';
-import { fitGarment, type GarmentFit, type PreferenceSpec } from '../../domain/fit';
+import { fitGarment, type GarmentFit, type GarmentOdds, type PreferenceSpec } from '../../domain/fit';
 import { canWarp, findGarment, GARMENTS, type Garment, type GarmentCategory } from '../../domain/garments';
 import { garmentOdds } from './odds';
 import type { Outfit } from './stored';
@@ -89,12 +89,20 @@ export function wearGarment(outfit: Outfit, garment: Garment, size: string): Out
   return { ...outfit, ...noDress, bottomId: garment.id, bottomSize: size };
 }
 
+/**
+ * The size we'd show a garment in, from odds already worked out (the Closet's tiles get them
+ * one at a time): the recommended size, or the middle size when there's none.
+ */
+export function suggestedSize(odds: GarmentOdds, garment: Garment): { size: string; recommended: boolean } {
+  return { size: odds.recommended ?? middleSize(garment), recommended: odds.recommended !== null };
+}
+
 /** The size we'd show a garment in, and how it fits. `recommended` is false for the middle-size fallback. */
 export function suggestedFit(
   body: BodyModel,
   garment: Garment,
   preference: PreferenceSpec,
 ): { fit: GarmentFit; recommended: boolean } {
-  const pick = garmentOdds(body, garment, preference).recommended;
-  return { fit: fitGarment(body, garment, pick ?? middleSize(garment)), recommended: pick !== null };
+  const { size, recommended } = suggestedSize(garmentOdds(body, garment, preference), garment);
+  return { fit: fitGarment(body, garment, size), recommended };
 }

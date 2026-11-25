@@ -33,6 +33,8 @@ export interface ClosetProps {
   onDeleteOutfit: (outfitId: string, name: string) => void;
   onOpenDiscover: () => void;
   onAbout: () => void;
+  /** False while another tab is on screen (the Liked tiles wait to fill in). */
+  active?: boolean;
 }
 
 /** Liked garments, folders of them, and saved outfits (the web Closet). */
@@ -76,6 +78,7 @@ export function Closet(props: ClosetProps) {
             onUnlike={closet.unlike}
             onFolders={(g) => props.onFolders({ kind: 'garment', id: g.id }, g.name)}
             onOpenDiscover={props.onOpenDiscover}
+            active={props.active ?? true}
           />
         )}
         {section === 'folders' && <Folders folders={closet.folders} onCreate={closet.createFolder} onOpenFolder={props.onOpenFolder} />}

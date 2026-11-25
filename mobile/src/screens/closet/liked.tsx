@@ -4,7 +4,7 @@ import type { BodyModel } from '@choudo/core/domain/body';
 import type { PreferenceSpec } from '@choudo/core/domain/fit';
 import { findGarment, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
 import { sizeLine, verdictLine } from '@choudo/core/ui-logic/fitText';
-import { defaultSize, middleSize } from '@choudo/core/ui-logic/state/outfit';
+import { defaultSize, suggestedSize } from '@choudo/core/ui-logic/state/outfit';
 
 import { Button } from '@/components/button';
 import { FoldersButton } from '@/components/folders-button';
@@ -31,6 +31,8 @@ export interface LikedProps {
   onUnlike: (garmentId: string) => void;
   onFolders: (garment: Garment) => void;
   onOpenDiscover: () => void;
+  /** False while the Closet isn't the tab on screen: tiles wait to fill in. */
+  active?: boolean;
 }
 
 const FILTER_WORD: Record<Filter, string> = { all: 'garments', top: 'tops', bottom: 'bottoms', outer: 'jackets', onepiece: 'dresses' };
@@ -39,12 +41,12 @@ const FILTER_WORD: Record<Filter, string> = { all: 'garments', top: 'tops', bott
  * Everything you've liked, newest first, filterable by tops, bottoms, jackets and dresses
  * (the web LikedTab). Each tile's size and verdict fill in as its odds are worked out.
  */
-export function Liked({ model, preference, likedIds, folderCount, onOpen, onUnlike, onFolders, onOpenDiscover }: LikedProps) {
+export function Liked({ model, preference, likedIds, folderCount, onOpen, onUnlike, onFolders, onOpenDiscover, active = true }: LikedProps) {
   const [filter, setFilter] = useState<Filter>('all');
   // Likes for garments no longer in the catalogue are skipped.
   const liked = useMemo(() => likedIds.map((id) => findGarment(id)).filter((g): g is Garment => g !== undefined), [likedIds]);
   const shown = useMemo(() => (filter === 'all' ? liked : liked.filter((g) => g.category === filter)), [liked, filter]);
-  const odds = useOddsQueue(model, preference, shown);
+  const odds = useOddsQueue(model, preference, shown, active);
 
   if (liked.length === 0) {
     return (
@@ -89,7 +91,8 @@ export function Liked({ model, preference, likedIds, folderCount, onOpen, onUnli
       }
       renderItem={({ item: g }) => {
         const o = odds.get(g.id);
-        const size = o ? (o.recommended ?? middleSize(g)) : null;
+        const pick = o ? suggestedSize(o, g) : null;
+        const size = pick?.size ?? null;
         const verdict = o && size ? verdictLine(o, size, g) : null;
         return (
           <Tile>
@@ -97,7 +100,7 @@ export function Liked({ model, preference, likedIds, folderCount, onOpen, onUnli
               testID={`garment-tile-${g.id}`}
               accessibilityRole="button"
               accessibilityLabel={`${g.brand} ${g.name}`}
-              accessibilityValue={o && size && verdict ? { text: `${sizeLine(size, o.recommended !== null)}. ${verdict.headline}` } : undefined}
+              accessibilityValue={pick && verdict ? { text: `${sizeLine(pick.size, pick.recommended)}. ${verdict.headline}` } : undefined}
               onPress={() => onOpen(g, size ?? defaultSize(model, g, preference))}
               style={({ pressed }) => [styles.main, pressed && styles.pressed]}>
               <View style={styles.icon}>
@@ -105,9 +108,9 @@ export function Liked({ model, preference, likedIds, folderCount, onOpen, onUnli
               </View>
               <Text style={tileText.brand}>{g.brand}</Text>
               <Text style={tileText.name}>{g.name}</Text>
-              {o && size && verdict ? (
+              {pick && verdict ? (
                 <>
-                  <Text style={tileText.size}>{sizeLine(size, o.recommended !== null)}</Text>
+                  <Text style={tileText.size}>{sizeLine(pick.size, pick.recommended)}</Text>
                   <Text style={[tileText.verdict, { color: toneColor[verdict.tone] }]}>{verdict.headline}</Text>
                 </>
               ) : (

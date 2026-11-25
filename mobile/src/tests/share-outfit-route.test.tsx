@@ -1,6 +1,7 @@
 import Storage from 'expo-sqlite/kv-store';
 import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import { router } from 'expo-router';
+import { PixelRatio } from 'react-native';
 import { findGarment } from '@choudo/core/domain/garments';
 import { EMPTY_OUTFIT, STORAGE_KEYS, type SavedOutfit } from '@choudo/core/ui-logic/state/stored';
 
@@ -90,15 +91,20 @@ test('nothing about the body in words: no measurements, no body type, no height'
   expect(words).not.toContain('183');
 });
 
-test('Share captures the card at 1080 × 1350 and opens the share sheet with it', async () => {
+test('Share captures the card at 1080 × 1350 px on any screen and opens the share sheet with it', async () => {
   await openShare();
   await act(() => fireEvent.press(screen.getByRole('button', { name: 'Share' })));
-  expect(captureRef).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ format: 'png', quality: 1, width: 1080, height: 1350 }));
+  // iOS takes the size in points and draws at the screen's scale: points × scale = 1080 × 1350 px.
+  const [, options] = captureRef.mock.calls[0]! as [unknown, { format: string; quality: number; width: number; height: number }];
+  expect(options).toMatchObject({ format: 'png', quality: 1 });
+  expect(options.width * PixelRatio.get()).toBeCloseTo(1080);
+  expect(options.height * PixelRatio.get()).toBeCloseTo(1350);
   expect(Sharing.shareAsync).toHaveBeenCalledWith('file:///tmp/outfit.png', { mimeType: 'image/png', UTI: 'public.png', dialogTitle: 'Weekend' });
 });
 
 test('a cancelled share shows nothing', async () => {
-  Sharing.shareAsync.mockRejectedValue(new Error('User did not share'));
+  // On iOS, closing the share sheet without sharing resolves (expo-sharing never rejects for it).
+  Sharing.shareAsync.mockResolvedValue(undefined);
   await openShare();
   await act(() => fireEvent.press(screen.getByRole('button', { name: 'Share' })));
   expect(Sharing.shareAsync).toHaveBeenCalled();

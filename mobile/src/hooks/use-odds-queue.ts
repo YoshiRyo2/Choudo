@@ -14,14 +14,21 @@ interface Found {
  * Odds for a list of garments, worked out one per tick (setTimeout 0) in list order after the
  * first render, so a screen of tiles appears at once and fills in (a first sampling is
  * 60–180 ms on the phone). Odds already in the cache show straight away. Starts over when
- * the list, the body or the preference changes.
+ * the list, the body or the preference changes. While `active` is false (its tab isn't on
+ * screen) it works nothing out, so it never slows another tab down.
  */
-export function useOddsQueue(model: BodyModel, preference: PreferenceSpec, garments: readonly Garment[]): Map<string, GarmentOdds> {
+export function useOddsQueue(
+  model: BodyModel,
+  preference: PreferenceSpec,
+  garments: readonly Garment[],
+  active = true,
+): Map<string, GarmentOdds> {
   const listKey = garments.map((g) => g.id).join('|');
   const [found, setFound] = useState<Found>(() => ({ model, preference, odds: new Map() }));
 
   useEffect(() => {
-    setFound({ model, preference, odds: new Map() });
+    setFound((f) => (f.model === model && f.preference === preference ? f : { model, preference, odds: new Map() }));
+    if (!active) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const next = (from: number) => {
       let i = from;
@@ -39,7 +46,7 @@ export function useOddsQueue(model: BodyModel, preference: PreferenceSpec, garme
       if (timer) clearTimeout(timer);
     };
     // The list is compared by its ids, so a new array of the same garments doesn't restart it.
-  }, [model, preference, listKey]);
+  }, [model, preference, listKey, active]);
 
   return useMemo(() => {
     const current = found.model === model && found.preference === preference ? found.odds : undefined;
