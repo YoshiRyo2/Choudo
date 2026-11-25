@@ -6,7 +6,7 @@ import type { UnitSystem } from '@choudo/core/ui-logic/state/stored';
 import './FitAnswer.css';
 
 interface FitAnswerProps {
-  garment: Pick<Garment, 'category' | 'fitIntent' | 'grade' | 'type'>;
+  garment: Pick<Garment, 'category' | 'fitIntent' | 'grade' | 'type' | 'source'>;
   /** The size on the mannequin. */
   size: string;
   /** The garment's odds; `odds.recommended` (recommendSize) is the suggested size, or null. */

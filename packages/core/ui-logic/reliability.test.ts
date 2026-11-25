@@ -16,16 +16,32 @@ const zone = (z: Pick<ZoneFit, 'zone' | 'kind'> & Partial<ZoneFit>): ZoneFit => 
   ...z,
 });
 const fitOf = (zones: ZoneFit[]): GarmentFit => ({ garmentId: 'g', sizeLabel: 'M', bodyType: 'mens', zones, overall: 'good' });
-const tee = (grade: Garment['grade']) => ({ grade, type: 'tee' }) as const;
-const jeans = (grade: Garment['grade']) => ({ grade, type: 'jeans' }) as const;
+const real = { placeholder: false };
+const tee = (grade: Garment['grade']) => ({ grade, type: 'tee', source: real }) as const;
+const jeans = (grade: Garment['grade']) => ({ grade, type: 'jeans', source: real }) as const;
 const noRef = { hasFitReference: false };
 
 describe('reliability', () => {
   const estimatedTee = fitOf([zone({ zone: 'chest', kind: 'girth' }), zone({ zone: 'length', kind: 'length' })]);
   const enteredTee = fitOf([zone({ zone: 'chest', kind: 'girth', bodySource: 'entered' }), zone({ zone: 'length', kind: 'length' })]);
 
-  it('is rough when the garment’s own sizes are estimated', () => {
-    expect(reliability(enteredTee, tee('estimated'), noRef)).toEqual({ level: 'rough', reason: 'estimated-sizes' });
+  it('is rough when a number this size needs is estimated, not when the grade alone says so', () => {
+    const estimatedChest = fitOf([
+      zone({ zone: 'chest', kind: 'girth', bodySource: 'entered', garmentOrigin: 'estimated' }),
+      zone({ zone: 'length', kind: 'length' }),
+    ]);
+    expect(reliability(estimatedChest, tee('charted'), noRef)).toEqual({ level: 'rough', reason: 'estimated-sizes' });
+    // An estimated number in an optional zone (a hem band) doesn't count.
+    const estimatedHemBand = fitOf([
+      ...enteredTee.zones,
+      zone({ zone: 'hemBand', kind: 'girth', garmentOrigin: 'estimated', optional: true }),
+    ]);
+    expect(reliability(estimatedHemBand, tee('estimated'), noRef)).toEqual({ level: 'fair', reason: 'estimated-extras' });
+    expect(reliability(estimatedTee, tee('estimated'), noRef)).toEqual({ level: 'fair', reason: 'estimated-body', zone: 'chest' });
+  });
+
+  it('is rough for a placeholder garment, whatever its zones say', () => {
+    expect(reliability(enteredTee, { ...tee('charted'), source: { placeholder: true } }, noRef)).toEqual({ level: 'rough', reason: 'estimated-sizes' });
   });
 
   it('is rough when the chart can’t be scored', () => {
@@ -73,7 +89,7 @@ describe('reliability', () => {
       zone({ zone: 'hips', kind: 'girth', label: 'unknown', diffCm: null, bodySource: 'entered' }),
       zone({ zone: 'inseam', kind: 'landing' }),
     ]);
-    expect(reliability(noHips, { grade: 'charted', type: 'leggings' }, noRef)).toEqual({ level: 'fair', reason: 'unchecked-girth', zone: 'hips' });
+    expect(reliability(noHips, { grade: 'charted', type: 'leggings', source: real }, noRef)).toEqual({ level: 'fair', reason: 'unchecked-girth', zone: 'hips' });
   });
 
   it('reads the real catalogue: Gildan 5000 is fair on an estimated chest and good on a measured one', () => {
@@ -88,6 +104,31 @@ describe('reliability', () => {
   });
 });
 
+describe('reliability of the real hoodies (only the optional hem band estimated)', () => {
+  const hoodie = findGarment('gildan-18500')!;
+  it('reads Gildan 18500 as fair or good, never rough', () => {
+    expect(hoodie.grade).toBe('estimated');
+    const bodies = [
+      { heightCm: 176, weightKg: 80, bodyType: 'mens' },
+      { heightCm: 176, weightKg: 80, bodyType: 'mens', overrides: { chestCm: 104 } },
+      { heightCm: 165, weightKg: 62, bodyType: 'womens' },
+    ] as const;
+    for (const body of bodies) {
+      for (const fit of fitAllSizes(estimateBody(body), hoodie)) {
+        // The hem band is the only estimated number, and it is optional.
+        const estimated = fit.zones.filter((z) => z.garmentOrigin === 'estimated');
+        expect(estimated.map((z) => [z.zone, z.optional])).toEqual(estimated.length ? [['hemBand', true]] : []);
+        const r = reliability(fit, hoodie, noRef);
+        expect(['fair', 'good'], `${fit.sizeLabel}: ${r.reason}`).toContain(r.level);
+      }
+    }
+    const m = fitAllSizes(estimateBody(bodies[0]), hoodie).find((f) => f.sizeLabel === 'M')!;
+    expect(reliability(m, hoodie, noRef)).toEqual({ level: 'fair', reason: 'estimated-body', zone: 'chest' });
+    const measured = fitAllSizes(estimateBody(bodies[1]), hoodie).find((f) => f.sizeLabel === 'L')!;
+    expect(reliability(measured, hoodie, noRef)).toEqual({ level: 'fair', reason: 'estimated-extras' });
+  });
+});
+
 describe('reliabilityText', () => {
   it('words each level and cause', () => {
     expect(reliabilityText({ level: 'good', reason: 'own-measurements' })).toBe('Good confidence: real size chart and your own measurements.');
@@ -95,6 +136,7 @@ describe('reliabilityText', () => {
     expect(reliabilityText({ level: 'fair', reason: 'estimated-body', zone: 'chest' })).toBe(
       'Fair confidence: your chest is estimated from height and weight.',
     );
+    expect(reliabilityText({ level: 'fair', reason: 'estimated-extras' })).toBe('Fair confidence: a few of this garment’s numbers are estimated.');
     expect(reliabilityText({ level: 'fair', reason: 'unchecked-girth', zone: 'hips' })).toBe('Fair confidence: this chart doesn’t let us check the hips.');
     expect(reliabilityText({ level: 'rough', reason: 'incomplete-chart' })).toBe('Rough guess: this brand’s chart is incomplete.');
     expect(reliabilityText({ level: 'rough', reason: 'estimated-sizes' })).toBe('Rough guess: this garment’s sizes are estimated.');

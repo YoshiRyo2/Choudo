@@ -758,6 +758,8 @@ export function reliabilityText(r: Reliability, bodyType: BodyType = 'mens', opt
       const from = r.zone === 'chest' && options.bustFromBra ? 'your bra size' : 'height and weight';
       return `Fair confidence: your ${zoneIs(r.zone, bodyType)} estimated from ${from}.`;
     }
+    case 'estimated-extras':
+      return 'Fair confidence: a few of this garment’s numbers are estimated.';
     case 'unchecked-girth':
       return `Fair confidence: this chart doesn’t let us check the ${zoneName(r.zone ?? 'chest', bodyType).toLowerCase()}.`;
     case 'estimated-sizes':

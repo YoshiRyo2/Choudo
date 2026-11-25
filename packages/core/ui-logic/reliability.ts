@@ -12,15 +12,19 @@ export type ReliabilityLevel = 'good' | 'fair' | 'rough';
 /**
  * Why the level is what it is:
  * good  — `own-measurements` (every girth typed in) or `fit-reference` (a tee you know fits covers the chest);
- * fair  — `estimated-body` (a girth estimated from height and weight, `zone` names the first) or
- *         `unchecked-girth` (the chart can't check a girth the size needs, `zone` names it);
- * rough — `estimated-sizes` (the garment's own numbers are estimated) or `incomplete-chart`.
+ * fair  — `estimated-body` (a girth estimated from height and weight, `zone` names the first),
+ *         `unchecked-girth` (the chart can't check a girth the size needs, `zone` names it) or
+ *         `estimated-extras` (nothing against this size, but the garment isn't graded verified / charted:
+ *         some of its numbers, ones this size doesn't need, are estimated);
+ * rough — `estimated-sizes` (a number this size needs is estimated, or the garment is a placeholder)
+ *         or `incomplete-chart`.
  */
 export type ReliabilityReason =
   | 'own-measurements'
   | 'fit-reference'
   | 'estimated-body'
   | 'unchecked-girth'
+  | 'estimated-extras'
   | 'estimated-sizes'
   | 'incomplete-chart';
 
@@ -39,15 +43,17 @@ export interface ReliabilityOptions {
 /**
  * The rules, in one place. A first guess until the fit test says otherwise: tune these
  * against data/fit_tests.csv once there are enough results.
- * - rough when the garment's grade is in ROUGH_GRADES, or at least ROUGH_UNKNOWN_SHARE of
- *   the size's non-optional zones can't be checked;
+ * - rough when the garment is a placeholder, a non-optional zone of this size compares an
+ *   estimated garment number (`garmentOrigin: 'estimated'`), the grade is in roughGrades
+ *   (unscored), or at least roughUnknownShare of the size's non-optional zones can't be checked.
+ *   An estimated number in an optional zone (a hoodie's hem band) doesn't make it rough;
  * - good when the grade is in GOOD_GRADES and every non-optional girth is checked against
  *   a body number the user typed in (or, for the girth a fit reference speaks to, one
  *   the anchor tee already pins down);
  * - fair otherwise (typically a real size chart with a body estimated from height and weight).
  */
 export const RELIABILITY_RULES = {
-  roughGrades: ['estimated', 'unscored'] as readonly Garment['grade'][],
+  roughGrades: ['unscored'] as readonly Garment['grade'][],
   roughUnknownShare: 0.5,
   goodGrades: ['verified', 'charted'] as readonly Garment['grade'][],
 } as const;
@@ -57,14 +63,15 @@ const required = (z: ZoneFit) => !z.optional;
 /** How much to trust this size's answer, and why. */
 export function reliability(
   fit: GarmentFit,
-  garment: Pick<Garment, 'grade' | 'type'>,
+  garment: Pick<Garment, 'grade' | 'type'> & { source: Pick<Garment['source'], 'placeholder'> },
   { hasFitReference }: ReliabilityOptions,
 ): Reliability {
   const zones = fit.zones.filter(required);
 
-  if (RELIABILITY_RULES.roughGrades.includes(garment.grade)) {
-    return { level: 'rough', reason: garment.grade === 'estimated' ? 'estimated-sizes' : 'incomplete-chart' };
+  if (garment.source.placeholder || zones.some((z) => z.garmentOrigin === 'estimated')) {
+    return { level: 'rough', reason: 'estimated-sizes' };
   }
+  if (RELIABILITY_RULES.roughGrades.includes(garment.grade)) return { level: 'rough', reason: 'incomplete-chart' };
   const unknown = zones.filter((z) => z.label === 'unknown').length;
   if (zones.length > 0 && unknown / zones.length >= RELIABILITY_RULES.roughUnknownShare) {
     return { level: 'rough', reason: 'incomplete-chart' };
@@ -82,6 +89,6 @@ export function reliability(
   }
   if (estimated) return { level: 'fair', reason: 'estimated-body', zone: estimated.zone };
   if (unchecked) return { level: 'fair', reason: 'unchecked-girth', zone: unchecked.zone };
-  // A grade outside both lists (none today) with nothing else against it.
-  return { level: 'fair', reason: 'estimated-body' };
+  // Nothing against this size, but the grade isn't verified / charted (an estimated number this size doesn't use).
+  return { level: 'fair', reason: 'estimated-extras' };
 }

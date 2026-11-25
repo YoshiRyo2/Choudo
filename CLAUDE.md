@@ -380,11 +380,13 @@ or `app/`. The UI only calls their public functions.
   chance; the per-zone odds (`labelOddsText`, `personalOddsText`) and the "Chances come from 500
   tries" note show in Fit details only with Test mode on (web `testing`, phone `DEV_TOOLS && useTestMode`).
   `formatPercent` and the odds stay for Test mode and `npm run fit:report`.
-- Reliability (`ui-logic/reliability.ts`, wording in `fitText.ts`): **rough** when the grade is
-  estimated / unscored or half the size's needed zones can't be checked; **good** with a verified /
-  charted grade and every needed girth typed in (or a top's chest covered by an anchor tee);
-  **fair** otherwise, naming the first estimated girth with an "Add your measurement" link to Edit
-  body. Shown as FitAnswer's last line and at the top of Fit details; estimated body numbers there
+- Reliability (`ui-logic/reliability.ts`, wording in `fitText.ts`): **rough** for a placeholder, when
+  a non-optional zone of this size compares an estimated garment number (`garmentOrigin:
+  'estimated'`), for an unscored grade, or when half the size's needed zones can't be checked — the
+  grade `estimated` alone doesn't make it rough (Gildan 18500's estimated hem band is optional);
+  **good** with a verified / charted grade and every needed girth typed in (or a top's chest covered
+  by an anchor tee); **fair** otherwise, naming the first estimated girth with an "Add your
+  measurement" link to Edit body, or "a few of this garment's numbers are estimated" (`estimated-extras`). Shown as FitAnswer's last line and at the top of Fit details; estimated body numbers there
   carry `ESTIMATED_MARK`. The rules are a first guess (`RELIABILITY_RULES`) until the fit test.
 - Why-line (`whyLine` in `fitText.ts`, web Fitting room only): the deciding girth (`DECIDING_ZONE`:
   chest for tops / knits / jackets / dresses, waist for bottoms) for this size and the next size up
