@@ -18,3 +18,8 @@ test('About has the privacy policy, opened in a Safari window inside the app', a
   await act(() => fireEvent.press(screen.getByRole('link', { name: 'Privacy policy' })));
   expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith('https://yoshiryo2.github.io/Choudo/privacy.html');
 });
+
+test('About says a pasted link is all that goes to Uniqlo', async () => {
+  await renderRouter('./src/app', { initialUrl: '/about' });
+  expect(screen.getByText(/only the link is sent to Uniqlo,\s+never your measurements/)).toBeTruthy();
+});

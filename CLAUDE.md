@@ -17,6 +17,11 @@ well-named modules over clever ones.
   `fit-details-opened`, `discover-opened`, `closet-opened`, `garment-saved`. Nothing personal
   is ever sent: no body numbers, sizes, garment names or stored data. Only `ui/analytics.ts`
   talks to GoatCounter; never rewrite the page URL before its first count. `mobile/` has none.
+- **Product links (phone only so far).** The Check tab reads Uniqlo US's public size-chart and
+  product JSON for a pasted link (`domain/links/`). Only the product code goes to Uniqlo, never
+  the body. Fetched garments live on the device (`choudo.fetched.v1`) and **never enter
+  seed.json**. Brand photos show as they are (a thumbnail only), never warped onto the mannequin.
+  The website gets this through a fetch service later (Uniqlo sends no CORS header).
 - **No face, no photo, no camera.** Body input = height + weight + body type ("Size me in
   women's / men's clothes"), plus optional chest (full bust) / waist / hips / inseam
   overrides and, for a women's body, an optional bra size.
@@ -68,6 +73,13 @@ packages/core/   @choudo/core, shared by the web app and the native app. TypeScr
                  preference.ts (anchor tee / fit style -> personal verdict), sampleFit.ts
                  (seeded odds, recommendSize, measurementHint), uncertainty.ts (every spread),
                  random.ts, fitTestCsv.ts + fitTestReport.ts (npm run fit:report)
+    links/       parse.ts (parseProductLink: the first link in pasted text → Uniqlo US product code
+                 + colour, or unknown with its host and why: other region / not a product page),
+                 uniqlo.ts (uniqloUrls: the size-chart and product requests; uniqloToSeedGarment: the
+                 responses → a tee / long-sleeve tee seed row, cm, chest flat, length and sleeve from the
+                 centre back, tier B, plus price, photo URL and the cleaned link as FetchedProduct;
+                 readyFetchedGarment: validateSeed + normalizeGarment, null when it fails),
+                 __fixtures__/ (trimmed real Uniqlo responses). No fetch, no React.
   ui-logic/      the UI's pure helpers, kept at their app/src/ui sub-paths
     screens/     bodyForm.ts, bodyFieldErrors.ts (per-field checks shown on blur), bodyPreview.ts
                  (a typical body until height + weight are valid), anchorForm.ts
@@ -77,7 +89,10 @@ packages/core/   @choudo/core, shared by the web app and the native app. TypeScr
                  app/scripts/stamp-glyphs.mjs), SwipeCard/swipe.ts, sizeRow.ts, garmentThumb.ts (picks a card photo)
     state/       stored.ts (keys + guards), persist.ts (readStored / writeStored on any StorageLike), outfit.ts, feed.ts (likes/passes, feed order), closet.ts
                  (folders, saved outfits; shownLikes / showsOutfit / shownFolderItems skip what the catalogue hides), odds.ts (cached sampleFit), fitTests.ts (Test mode records + CSV),
-                 stampSeen.ts (which stamps have dropped this session; sessionStorage), migrate.ts
+                 stampSeen.ts (which stamps have dropped this session; sessionStorage), migrate.ts,
+                 fetched.ts (the fetched list: addFetched max 30 newest first, 7-day isFresh, readyFetched
+                 drops rows that fail the seed checks; addUnsupportedHost max 50)
+    checkText.ts the Check tab's wording and its blameless error lines (linkError, canRetry)
     fitText.ts   all user-facing fit wording (and isJustRight: when the ちょうど stamp shows), incl.
                  reliabilityText / reliabilityAction and whyLine ("M gives you 8 cm of room at the
                  chest; L gives 14 cm.", DECIDING_ZONE per template); catalogueText.ts;
@@ -116,8 +131,8 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  from npm run fonts, OFL.txt; src/tests/font-coverage.test.ts checks every character the
                  copy draws is in them)
   src/app/       routes only (Expo Router): _layout.tsx (root Stack in a GestureHandlerRootView: runs
-                 migrations, loads the fonts from assets/fonts, holds the splash), (tabs)/ (NativeTabs: Fitting room, Discover, Closet; redirects to
-                 /body until a body is stored), body.tsx (first run, or Edit body), fit-reference.tsx
+                 migrations, loads the fonts from assets/fonts, holds the splash), (tabs)/ (NativeTabs: Check, Fitting room, Discover, Closet; redirects to
+                 /body until a body is stored), index.tsx (`/` redirects to `/check`: the app opens there), body.tsx (first run, or Edit body), fit-reference.tsx
                  (`?first=1` on first run: no back swipe, always on to the tabs), about.tsx (form sheet),
                  fit-details.tsx (form sheet `?garmentId=&size=&from=fitting|browse`: from the Fitting
                  room "Done" / "Wear M", a worn jacket fitted over the top under it; from browsing "Try M
@@ -128,17 +143,28 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  Rename and Delete in the header, native back; a folder that's gone goes back),
                  share-outfit.tsx (form sheet `?id=`: the share card, then captureRef 1080 × 1350 PNG and
                  expo-sharing's sheet; a cancel says nothing, no sharing says so),
-                 dev/mannequin.tsx (the mannequin lab; redirects to / unless __DEV__, so never in a store
+                 dev/mannequin.tsx (the mannequin lab; redirects to /fitting-room unless __DEV__, so never in a store
                  build; the Fitting room shows its button in development only).
-                 (tabs)/index.tsx is the Fitting room; (tabs)/discover.tsx is Discover: native tabs all
+                 (tabs)/check.tsx is the Check tab ("What size should I buy?": paste a Uniqlo US link,
+                 useLinkCheck; "Try it on" wears it and navigates to /fitting-room; "Open at Uniqlo" in
+                 expo-web-browser). (tabs)/fitting-room.tsx is the Fitting room (anything that means it
+                 goes to `/fitting-room`; a stale sheet on a cold start goes home, `/`). (tabs)/discover.tsx is Discover: native tabs all
                  render at launch and stay mounted, so it draws nothing until first opened, then builds a
                  fresh feed when the tab regains focus with swipes changed elsewhere (useFocusEffect bumps
                  `feedKey`), never while it's on screen or when a sheet over it closes; it reads body,
                  preference, catalogue and closet only (not useWardrobe). Fit details opens `from=browse`.
                  (tabs)/closet.tsx is the Closet, also drawn only once first opened.
   src/storage/   kv.ts (expo-sqlite/kv-store as a StorageLike; runMigrations)
+  src/links/     fetch-uniqlo.ts (fetchUniqlo: both requests in parallel, 10 s timeout, one retry on a
+                 network error → ok / not-found / network / blocked; checkUniqloLink: the stored copy under
+                 7 days old, else Uniqlo's, else (offline or blocked) an older stored copy),
+                 use-link-check.ts (the Check tab's flow: parse, fetch, store, the hosts it can't read)
   src/hooks/     use-persistent-state.ts (the web hook's twin on kv), use-body.ts, use-units.ts,
-                 use-garments.ts (publicGarments with __DEV__ or Test mode on (DEV_TOOLS): the Fitting room's and Discover's catalogue),
+                 use-garments.ts (publicGarments with __DEV__ or Test mode on (DEV_TOOLS): Discover's catalogue; the
+                 Fitting room's is the fetched garments first, then this, tagged "From your link"),
+                 use-fetched.ts (the fetched list and unsupported hosts; GarmentLookupContext, provided by the root
+                 layout: every screen finds a garment by id through useFindGarment, so outfits, likes and fit details
+                 can point at a fetched one; a dropped one isn't found and is skipped, never deleted),
                  use-fit-reference.ts (anchor + fit style together), use-test-mode.ts, use-fit-tests.ts
                  (Test mode's results, the fitTests key), use-head.ts
                  (the mascot head; _layout.tsx provides it through MascotHeadContext), use-closet.ts (the
@@ -184,6 +210,9 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  production; the mannequin lab stays __DEV__ only), export-fit-tests.ts (core's fitTestsCsv
                  to a cache file with expo-file-system, then the share sheet)
   src/screens/   body/ (BodyScreen + estimate-list; the mannequin preview, a typical body until yours),
+                 check/ (CheckScreen: field, inline loading, errors with Retry where it helps, recent checks,
+                 Test mode's unsupported hosts; result-card.tsx: name, price, the brand photo as a thumbnail,
+                 FitAnswer with `details` (why-line + confidence line, as the web), SizePicker chips),
                  fit-reference/ (FitReferenceScreen: choose / catalogue / measure / style steps, tee-diagram),
                  dev/mannequin-lab.tsx (every garment, size, head, face, side and frame, height ±5 cm,
                  fit pins via fitOutfit; nothing saved), fitting-room/ (FittingRoom, the web screen top to
@@ -390,13 +419,14 @@ or `app/`. The UI only calls their public functions.
   by an anchor tee); **fair** otherwise, naming the first estimated girth with an "Add your
   measurement" link to Edit body, or "a few of this garment's numbers are estimated" (`estimated-extras`). Shown as FitAnswer's last line and at the top of Fit details; estimated body numbers there
   carry `ESTIMATED_MARK`. The rules are a first guess (`RELIABILITY_RULES`) until the fit test.
-- Why-line (`whyLine` in `fitText.ts`, web Fitting room only): the deciding girth (`DECIDING_ZONE`:
+- Why-line (`whyLine` in `fitText.ts`, web Fitting room and the phone's Check tab): the deciding girth (`DECIDING_ZONE`:
   chest for tops / knits / jackets / dresses, waist for bottoms) for this size and the next size up
   (down for the largest), whole cm or inches to the half; leggings "stretch"; null when unscored.
 
 ## Garment data rules (source of truth is `domain/garments/`)
 - Garments live in `packages/core/domain/garments/seed.json`. To add one by hand, follow
-  `docs/adding-garments.md`.
+  `docs/adding-garments.md`. Garments read from a pasted link (`domain/links/`) live on the
+  device only and never enter seed.json; they go through the same validateSeed + normalizeGarment.
 - Every real row has a source tier (A brand spec … G photo only), `url`, `capturedOn`, and
   optionally a `snapshot` of the chart. Placeholders have `placeholder: true` and no tier.
 - **Placeholders are development / Test mode only.** `publicGarments(GARMENTS, { includeSamples })`
@@ -543,7 +573,8 @@ start-up). Keys today: `body` (v2: `bodyType`, optional `braSize`), `units`, `ou
 room: top, bottom, `outerId/outerSize` (a jacket slot never filled by default) and
 `onepieceId/onepieceSize` (a dress: top and bottom stay null while it's worn)), `swipes` (one
 `{garmentId, sizeShown, liked, at}` per garment), `folders`, `outfits` (v3, saved, with the jacket and dress slots), `anchor` (tee the user likes), `fitStyle`, `catalogue` (`matching` | `all`),
-`testMode` (dev only), `fitTests` (v3, Test mode results with a `category`: tops record chest + length,
+`testMode` (dev only), `fetched` (phone: garments read from pasted links, `{ product, fetchedAt }`,
+newest first, max 30; also the 7-day cache), `unsupportedHosts` (phone, Test mode list, max 50), `fitTests` (v3, Test mode results with a `category`: tops record chest + length,
 bottoms waist, thigh + inseam, jackets (`outer`) chest + sleeve with `wornOver`, dresses (`onepiece`)
 chest + waist (when scored) + length; the CSV column stays
 `sizing`, bottoms columns come last, then `worn_over`). Keys from
