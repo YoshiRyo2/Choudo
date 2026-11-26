@@ -6,6 +6,7 @@ export {
   readyFetchedGarment,
   UNIQLO_NOTES,
   UNIQLO_PART_KEYS,
+  uniqloGarmentId,
   uniqloToSeedGarment,
   uniqloUrls,
 } from './uniqlo';

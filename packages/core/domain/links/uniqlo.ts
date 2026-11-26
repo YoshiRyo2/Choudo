@@ -21,6 +21,9 @@ export function uniqloUrls(productCode: string): { sizeChart: string; product: s
   };
 }
 
+/** The id a fetched Uniqlo product gets in the catalogue (and the cache key). */
+export const uniqloGarmentId = (productCode: string): string => `uniqlo-${productCode}`;
+
 /** Uniqlo's part codes for tees, and the chart key each becomes. Any other code is ignored. */
 export const UNIQLO_PART_KEYS: Readonly<Record<string, MeasurementKey>> = {
   'body-width': 'chest',
@@ -153,7 +156,7 @@ export function uniqloToSeedGarment(sizeChartRaw: unknown, productRaw: unknown, 
   const name = item.name.trim();
   const long = LONG_SLEEVE.test(name);
   const garment: SeedGarment = {
-    id: `uniqlo-${link.productCode}`,
+    id: uniqloGarmentId(link.productCode),
     brand: 'Uniqlo',
     name,
     category: 'top',
