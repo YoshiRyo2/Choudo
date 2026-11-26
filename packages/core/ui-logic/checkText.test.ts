@@ -18,7 +18,7 @@ describe('linkError', () => {
 });
 
 describe('check error wording', () => {
-  const all: CheckError[] = ['no-link', 'unknown-brand', 'other-region', 'network', 'not-found', 'unsupported-parts', 'no-sizes', 'bad-response'];
+  const all: CheckError[] = ['no-link', 'unknown-brand', 'other-region', 'network', 'not-found', 'unsupported-parts', 'no-sizes', 'unreadable-chart', 'bad-response'];
 
   it('uses the agreed lines', () => {
     expect(checkErrorText('no-link')).toBe('Paste a product link from uniqlo.com.');

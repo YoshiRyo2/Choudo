@@ -14,10 +14,17 @@ test('first launch, nothing stored: lands on Body, not the tabs', async () => {
   expect(screen).toHavePathname('/body');
 });
 
-test('a stored body opens the Fitting room', async () => {
+test('a stored body opens the Check tab', async () => {
   Storage.setItemSync(STORAGE_KEYS.body, JSON.stringify({ heightCm: 175, weightKg: 70, bodyType: 'mens' }));
   await renderRouter(appDir, { initialUrl: '/' });
-  expect(screen).toHavePathname('/');
+  expect(screen).toHavePathname('/check');
+  expect(screen.getByRole('header', { name: 'What size should I buy?' })).toBeTruthy();
+});
+
+test('the Fitting room is its own tab', async () => {
+  Storage.setItemSync(STORAGE_KEYS.body, JSON.stringify({ heightCm: 175, weightKg: 70, bodyType: 'mens' }));
+  await renderRouter(appDir, { initialUrl: '/fitting-room' });
+  expect(screen).toHavePathname('/fitting-room');
   expect(screen.getByRole('button', { name: 'Edit body' })).toBeTruthy();
   expect(within(screen.getByTestId('stage')).getByLabelText(/^Mannequin, 175 cm tall/)).toBeTruthy();
 });
@@ -30,7 +37,7 @@ test('a corrupt stored body is treated as none', async () => {
 
 test('Edit body in the Fitting room opens the Body screen', async () => {
   Storage.setItemSync(STORAGE_KEYS.body, JSON.stringify({ heightCm: 175, weightKg: 70, bodyType: 'mens' }));
-  await renderRouter(appDir, { initialUrl: '/' });
+  await renderRouter(appDir, { initialUrl: '/fitting-room' });
   await fireEvent.press(screen.getByRole('button', { name: 'Edit body' }));
   expect(screen).toHavePathname('/body');
 });
@@ -44,7 +51,7 @@ test('first run end to end: Body, then Skip for now on the fit reference, lands 
   await fireEvent.press(screen.getByRole('button', { name: 'Go to fitting room' }));
   expect(screen).toHavePathname('/fit-reference');
   await fireEvent.press(screen.getByRole('button', { name: 'Skip for now' }));
-  expect(screen).toHavePathname('/');
+  expect(screen).toHavePathname('/check');
   expect(JSON.parse(Storage.getItemSync(STORAGE_KEYS.body)!)).toMatchObject({ heightCm: 170, weightKg: 65 });
   expect(Storage.getItemSync(STORAGE_KEYS.anchor)).toBeNull();
 });

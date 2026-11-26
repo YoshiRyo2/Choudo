@@ -29,6 +29,7 @@ export type CheckError =
   | 'not-found'
   | 'unsupported-parts'
   | 'no-sizes'
+  | 'unreadable-chart'
   | 'bad-response';
 
 const ERROR_TEXT: Record<CheckError, string> = {
@@ -39,6 +40,7 @@ const ERROR_TEXT: Record<CheckError, string> = {
   'not-found': 'Uniqlo has no product at this link. Paste another product link.',
   'unsupported-parts': 'Choudo can only check tops from Uniqlo for now.',
   'no-sizes': 'Uniqlo doesn’t list garment measurements for this product. Try another one.',
+  'unreadable-chart': 'Choudo can’t read this product’s size chart yet. Try another product.',
   'bad-response': 'Couldn’t read Uniqlo’s size chart. Try again in a moment.',
 };
 

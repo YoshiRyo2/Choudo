@@ -40,14 +40,14 @@ test('picking M makes the button "Wear M", which wears M and closes the sheet', 
   await fireEvent.press(screen.getByRole('radio', { name: /^M, / }));
   await fireEvent.press(screen.getByRole('button', { name: 'Wear M' }));
   expect(outfit()).toMatchObject({ topId: 'gildan-5000', topSize: 'M' });
-  expect(screen).toHavePathname('/');
+  expect(screen).toHavePathname('/fitting-room');
 });
 
 test('from browsing: "Try L in the fitting room" wears it and goes to the Fitting room', async () => {
   await renderRouter(appDir, { initialUrl: '/fit-details?garmentId=gildan-5000&size=L&from=browse' });
   await fireEvent.press(screen.getByRole('button', { name: 'Try L in the fitting room' }));
   expect(outfit()).toMatchObject({ topId: 'gildan-5000', topSize: 'L' });
-  expect(screen).toHavePathname('/');
+  expect(screen).toHavePathname('/fitting-room');
 });
 
 test('a jacket worn in the Fitting room is read over the top under it', async () => {
@@ -61,7 +61,8 @@ test('a jacket worn in the Fitting room is read over the top under it', async ()
 
 test('an unknown garment closes the sheet', async () => {
   await renderRouter(appDir, { initialUrl: '/fit-details?garmentId=garment-that-does-not-exist&size=L&from=fitting' });
-  expect(screen).toHavePathname('/');
+  // A cold start: nothing to go back to, so home (the Check tab).
+  expect(screen).toHavePathname('/check');
   expect(screen.queryByRole('button', { name: 'Done' })).toBeNull();
 });
 

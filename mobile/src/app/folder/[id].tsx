@@ -58,7 +58,7 @@ export default function FolderRoute() {
         }
         onOpenOutfit={(outfit) => {
           setOutfit(outfit);
-          router.dismissTo('/');
+          router.dismissTo('/fitting-room');
         }}
       />
     </>

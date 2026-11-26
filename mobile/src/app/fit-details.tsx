@@ -1,9 +1,9 @@
 import { Redirect, router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import type { UnderLayer } from '@choudo/core/domain/fit';
-import { findGarment } from '@choudo/core/domain/garments';
 import { wearGarment } from '@choudo/core/ui-logic/state/outfit';
 
+import { useFindGarment } from '@/hooks/use-fetched';
 import { useTestMode } from '@/hooks/use-test-mode';
 import { useWardrobe } from '@/hooks/use-wardrobe';
 import { DEV_TOOLS } from '@/utils/dev-tools';
@@ -12,7 +12,7 @@ import { FitDetails } from '@/screens/fit-details';
 /** Leave the sheet for whatever is under it (the Fitting room on a cold start). */
 function close() {
   if (router.canGoBack()) router.back();
-  else router.replace('/');
+  else router.replace('/fitting-room');
 }
 
 /**
@@ -24,6 +24,7 @@ export default function FitDetailsRoute() {
   const params = useLocalSearchParams<{ garmentId?: string; size?: string; from?: string }>();
   const wardrobe = useWardrobe();
   const [testMode] = useTestMode();
+  const findGarment = useFindGarment();
   const garment = params.garmentId ? findGarment(params.garmentId) : undefined;
   // What a worn jacket goes over, kept the same object while that garment and size stay
   // (as the web Fitting room's memo): the sheet memoises its sampling hint on it.
@@ -33,7 +34,7 @@ export default function FitDetailsRoute() {
   const worn = useMemo<UnderLayer | undefined>(() => {
     const g = underId ? findGarment(underId) : undefined;
     return g && underSize ? { garment: g, sizeLabel: underSize } : undefined;
-  }, [underId, underSize]);
+  }, [underId, underSize, findGarment]);
   const missing = !wardrobe || !garment;
   // A garment we don't have (a stale link): close at once. The screen's own navigation, as
   // the imperative router isn't bound until after the first render.
@@ -64,7 +65,7 @@ export default function FitDetailsRoute() {
       onAction={(s) => {
         setOutfit(wearGarment(wardrobe.outfit, garment, s));
         if (fromFitting) close();
-        else router.dismissTo('/');
+        else router.dismissTo('/fitting-room');
       }}
       onEditBody={() => {
         close();

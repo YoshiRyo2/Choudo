@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { FlatList, Pressable, StyleSheet, useWindowDimensions, View, type FlatListInstance } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, useWindowDimensions, View, type FlatListInstance } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import type { Garment } from '@choudo/core/domain/garments';
+import { CHECK_TEXT } from '@choudo/core/ui-logic/checkText';
 
 import { colors, fonts, radius } from '@/theme';
 
@@ -16,6 +17,8 @@ export interface GarmentCarouselProps {
   onSelect: (id: string) => void;
   /** A small control in the header row, after the count (the Fitting room's Show chip). */
   headerAction?: ReactNode;
+  /** Ids of garments read from pasted links: their cards add a "From your link" tag. */
+  fromLink?: ReadonlySet<string>;
 }
 
 /** GarmentCarousel.css: cards 74 % of the track (max 280), 10 apart; the track bleeds 16 to the screen edges. */
@@ -27,7 +30,7 @@ const cardWidth = (trackWidth: number) => Math.min(280, 0.74 * (trackWidth - 2 *
  * Swipe sideways through garments (the web GarmentCarousel). Whichever card settles in the
  * middle is selected; tapping a card or using the arrow buttons does the same.
  */
-export function GarmentCarousel({ label, garments, selectedId, onSelect, headerAction }: GarmentCarouselProps) {
+export function GarmentCarousel({ label, garments, selectedId, onSelect, headerAction, fromLink }: GarmentCarouselProps) {
   const window = useWindowDimensions();
   // The track spans the screen (it bleeds past the panel's padding): the window until it's laid out.
   const [trackWidth, setTrackWidth] = useState(window.width);
@@ -110,6 +113,13 @@ export function GarmentCarousel({ label, garments, selectedId, onSelect, headerA
                 </ThemedText>
                 <View style={styles.flag}>
                   <GarmentBadge garment={item} />
+                  {fromLink?.has(item.id) && (
+                    <View style={styles.linkTag}>
+                      <Text style={styles.linkTagText} numberOfLines={1}>
+                        {CHECK_TEXT.fromLink}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               </View>
             </Pressable>
@@ -173,5 +183,8 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
   text: { flex: 1, minWidth: 0 },
   name: { fontFamily: fonts.bold, lineHeight: 20 },
-  flag: { marginTop: 4 },
+  flag: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 },
+  // As GarmentBadge's tag, in ink: where this garment came from, not how far to trust it.
+  linkTag: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 1, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.ink },
+  linkTagText: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 17, color: colors.ink },
 });

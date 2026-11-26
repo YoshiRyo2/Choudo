@@ -8,6 +8,7 @@ import { Button } from '@/components/button';
 import { FoldersButton } from '@/components/folders-button';
 import { NameForm } from '@/components/name-form';
 import { ThemedText } from '@/components/themed-text';
+import { useKnownGarments } from '@/hooks/use-fetched';
 import { colors, fonts, radius, spacing } from '@/theme';
 
 import { OutfitFigure } from './outfit-figure';
@@ -28,6 +29,7 @@ export interface OutfitsProps {
 
 /** Outfits saved from the Fitting room (the web OutfitsTab), plus saving what's on now. */
 export function Outfits({ model, outfits, current, onSave, onOpen, onShare, onDelete, folderCount, onFolders }: OutfitsProps) {
+  const garments = useKnownGarments();
   return (
     <FlatList
       data={outfits}
@@ -41,7 +43,7 @@ export function Outfits({ model, outfits, current, onSave, onOpen, onShare, onDe
         <View style={styles.header}>
           <View style={styles.card}>
             <ThemedText variant="small" tone="muted">
-              In the fitting room now: <Text style={styles.now}>{outfitLine(current)}</Text>
+              In the fitting room now: <Text style={styles.now}>{outfitLine(current, garments)}</Text>
             </ThemedText>
             <NameForm label="Save it as" submitLabel="Save outfit" placeholder={nextOutfitName(outfits)} allowBlank onSubmit={onSave} />
           </View>
@@ -58,7 +60,7 @@ export function Outfits({ model, outfits, current, onSave, onOpen, onShare, onDe
           <Text style={tileText.name} accessibilityRole="header">
             {o.name}
           </Text>
-          <Text style={tileText.brand}>{outfitLine(o)}</Text>
+          <Text style={tileText.brand}>{outfitLine(o, garments)}</Text>
           <TileActions>
             <Button size="sm" title="Open" onPress={() => onOpen(outfitOf(o))} />
             <FoldersButton count={folderCount(o.id)} onPress={() => onFolders(o)} />

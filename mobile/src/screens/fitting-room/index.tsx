@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { BodyInput, BodyModel } from '@choudo/core/domain/body';
 import { fitAllSizes, type Anchor, type GarmentFit, type GarmentOdds, type PreferenceSpec, type UnderLayer } from '@choudo/core/domain/fit';
-import { findGarment, type CatalogueScope, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
+import type { CatalogueScope, Garment, GarmentCategory } from '@choudo/core/domain/garments';
 import { catalogueToggle, emptyCategoryText } from '@choudo/core/ui-logic/catalogueText';
 import type { HeadKind } from '@choudo/core/ui-logic/components/Mannequin/heads';
 import type { View as Side } from '@choudo/core/ui-logic/components/Mannequin/view';
@@ -24,6 +24,7 @@ import { SizePicker } from '@/components/size-picker';
 import { useStampDrop } from '@/components/stamp/use-stamp-drop';
 import { ThemedText } from '@/components/themed-text';
 import { Wordmark } from '@/components/wordmark';
+import { useFindGarment } from '@/hooks/use-fetched';
 import { usePrefetchOdds } from '@/hooks/use-prefetch-odds';
 import { DEV_TOOLS } from '@/utils/dev-tools';
 import { colors, fonts, radius, spacing } from '@/theme';
@@ -47,6 +48,8 @@ export interface FittingRoomProps {
   catalogue: CatalogueScope;
   onCatalogueChange: (scope: CatalogueScope) => void;
   shown: readonly Garment[];
+  /** Ids of garments read from pasted links: their cards say "From your link". */
+  fromLink?: ReadonlySet<string>;
   head: HeadKind;
   onHeadChange: (head: HeadKind) => void;
   onEditBody: () => void;
@@ -108,6 +111,7 @@ export function FittingRoom({
   catalogue,
   onCatalogueChange,
   shown,
+  fromLink,
   head,
   onHeadChange,
   onEditBody,
@@ -121,6 +125,8 @@ export function FittingRoom({
   const [browsing, setBrowsing] = useState<GarmentCategory>(() => (outfit.onepieceId ? 'onepiece' : 'top'));
   // Which side of the mannequin is shown; a drawing choice only, not stored.
   const [view, setView] = useState<Side>('front');
+  // Seed garments and ones read from pasted links (the Check tab's "Try it on").
+  const findGarment = useFindGarment();
 
   const wornIn = (id: string | null, size: string | null, under?: UnderLayer): Worn | null => {
     const garment = id ? findGarment(id) : undefined;
@@ -302,6 +308,7 @@ export function FittingRoom({
             garments={carousel}
             selectedId={active?.garment.id ?? null}
             onSelect={chooseGarment}
+            fromLink={fromLink}
             headerAction={
               <Pressable
                 accessibilityRole="button"

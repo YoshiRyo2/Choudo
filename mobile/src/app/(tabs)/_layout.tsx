@@ -11,7 +11,12 @@ export default function TabsLayout() {
 
   return (
     <NativeTabs tintColor={colors.ink}>
-      <NativeTabs.Trigger name="index">
+      {/* First: the app opens here (src/app/index.tsx redirects to it). */}
+      <NativeTabs.Trigger name="check">
+        <NativeTabs.Trigger.Icon sf="link" md="link" />
+        <NativeTabs.Trigger.Label>Check</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="fitting-room">
         <NativeTabs.Trigger.Icon sf="hanger" md="checkroom" />
         <NativeTabs.Trigger.Label>Fitting room</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>

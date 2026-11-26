@@ -19,7 +19,7 @@ const press = (name: string) => act(() => fireEvent.press(screen.getByRole('butt
 const pressInCloset = (name: string) => act(() => fireEvent.press(within(screen.getByTestId('closet')).getByRole('button', { name })));
 /** Discover's card fly-off (renderRouter runs on fake timers). */
 const flyOff = () => act(() => jest.advanceTimersByTime(220));
-const go = (href: '/' | '/discover' | '/closet') => act(() => router.navigate(href));
+const go = (href: '/fitting-room' | '/discover' | '/closet') => act(() => router.navigate(href));
 
 beforeEach(() => {
   Storage.clearSync();
@@ -28,7 +28,7 @@ beforeEach(() => {
 });
 
 test('the Closet draws nothing until it is first opened', async () => {
-  await renderRouter(appDir, { initialUrl: '/' });
+  await renderRouter(appDir, { initialUrl: '/fitting-room' });
   expect(screen.queryByText('Nothing liked yet')).toBeNull();
   await go('/closet');
   expect(screen.getByText('Nothing liked yet')).toBeTruthy();
@@ -74,7 +74,7 @@ describe('Outfits', () => {
     Storage.setItemSync(STORAGE_KEYS.outfit, JSON.stringify({ ...EMPTY_OUTFIT, topId: 'gildan-5000', topSize: 'L' }));
     await showOutfits();
     await press('Open');
-    expect(screen).toHavePathname('/');
+    expect(screen).toHavePathname('/fitting-room');
     expect(read<Outfit>(STORAGE_KEYS.outfit, EMPTY_OUTFIT)).toMatchObject({ topId: 'gildan-5000', topSize: 'S' });
   });
 

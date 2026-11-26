@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BodyModel } from '@choudo/core/domain/body';
 import type { PreferenceSpec } from '@choudo/core/domain/fit';
-import { findGarment, type Garment, type GarmentCategory } from '@choudo/core/domain/garments';
+import type { Garment, GarmentCategory } from '@choudo/core/domain/garments';
 import { sizeLine, verdictLine } from '@choudo/core/ui-logic/fitText';
 import { defaultSize, suggestedSize } from '@choudo/core/ui-logic/state/outfit';
 
@@ -15,6 +15,7 @@ import { ThemedText } from '@/components/themed-text';
 import { toneColor } from '@/components/tone';
 import { useOddsQueue } from '@/hooks/use-odds-queue';
 import { colors, fonts, spacing } from '@/theme';
+import { useFindGarment } from '@/hooks/use-fetched';
 
 import { Heart, Tile, TILE_GAP, TileActions, tileText } from './tile';
 
@@ -43,8 +44,9 @@ const FILTER_WORD: Record<Filter, string> = { all: 'garments', top: 'tops', bott
  */
 export function Liked({ model, preference, likedIds, folderCount, onOpen, onUnlike, onFolders, onOpenDiscover, active = true }: LikedProps) {
   const [filter, setFilter] = useState<Filter>('all');
-  // Likes for garments no longer in the catalogue are skipped.
-  const liked = useMemo(() => likedIds.map((id) => findGarment(id)).filter((g): g is Garment => g !== undefined), [likedIds]);
+  const findGarment = useFindGarment();
+  // Likes for garments no longer in the catalogue (or a link's garment that was dropped) are skipped.
+  const liked = useMemo(() => likedIds.map((id) => findGarment(id)).filter((g): g is Garment => g !== undefined), [likedIds, findGarment]);
   const shown = useMemo(() => (filter === 'all' ? liked : liked.filter((g) => g.category === filter)), [liked, filter]);
   const odds = useOddsQueue(model, preference, shown, { active });
 

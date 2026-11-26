@@ -56,7 +56,7 @@ describe('a store build (production)', () => {
   });
 
   test('no Test mode panel in the Fitting room, even with Test mode stored on', async () => {
-    await renderRouter(appDir, { initialUrl: '/' });
+    await renderRouter(appDir, { initialUrl: '/fitting-room' });
     expect(screen.getByRole('button', { name: 'Edit body' })).toBeTruthy();
     expect(screen.queryByText('Test mode')).toBeNull();
   });
@@ -74,7 +74,7 @@ describe('development or a preview build', () => {
   });
 
   test('the panel records a top’s chest and length; Export writes the web’s CSV and opens the share sheet', async () => {
-    await renderRouter(appDir, { initialUrl: '/' });
+    await renderRouter(appDir, { initialUrl: '/fitting-room' });
     await act(() => fireEvent.changeText(screen.getByLabelText('Tester'), 'T01'));
     await act(() => fireEvent.press(screen.getByRole('radio', { name: 'Chest: Too tight' })));
     await act(() => fireEvent.press(screen.getByRole('radio', { name: 'Length: Just right' })));

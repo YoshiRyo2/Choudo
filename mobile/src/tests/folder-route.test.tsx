@@ -38,7 +38,7 @@ beforeEach(() => {
 
 /** The Fitting room first, then the folder pushed on top (as the Closet does). */
 async function openFolder(id = 'f1') {
-  await renderRouter(appDir, { initialUrl: '/' });
+  await renderRouter(appDir, { initialUrl: '/fitting-room' });
   await act(() => router.push(`/folder/${id}`));
 }
 
@@ -75,13 +75,13 @@ test('Delete asks, then the folder is gone and the screen goes back', async () =
   await fireEvent.press(screen.getByRole('button', { name: 'Delete' }));
   expect(alert).toHaveBeenCalledWith('Delete “Work”?', undefined, expect.any(Array));
   expect(folders()).toEqual([]);
-  expect(screen).toHavePathname('/');
+  expect(screen).toHavePathname('/fitting-room');
   alert.mockRestore();
 });
 
 test('a folder that no longer exists goes back', async () => {
   await openFolder('folder-that-is-gone');
-  expect(screen).toHavePathname('/');
+  expect(screen).toHavePathname('/fitting-room');
 });
 
 test('opening a garment in it goes to Fit details, from browsing', async () => {
@@ -96,6 +96,6 @@ test('Open on an outfit in a folder (from the Closet) wears it on the Fitting ro
   await renderRouter(appDir, { initialUrl: '/closet' });
   await act(() => router.push('/folder/f1'));
   await fireEvent.press(screen.getByRole('button', { name: 'Open' }));
-  expect(screen).toHavePathname('/');
+  expect(screen).toHavePathname('/fitting-room');
   expect(JSON.parse(Storage.getItemSync(STORAGE_KEYS.outfit)!)).toMatchObject({ topId: 'gildan-18500', topSize: 'L' });
 });
