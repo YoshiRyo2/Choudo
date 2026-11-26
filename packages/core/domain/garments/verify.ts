@@ -310,11 +310,7 @@ export function unscorableZones(g: SeedGarment): UnscorableZone[] {
   const length = chartDefinition(g.chart, 'length');
   const scored = spec.scoredDefinitions;
   if (spec.lengthDefinition === 'required' && present.has('length') && !(length !== undefined && scored?.length.includes(length))) {
-    const reason =
-      length === 'center_back'
-        ? 'length is measured from the back of the neck, not the shoulder'
-        : 'chart doesn’t say where length is measured from';
-    out.push({ key: 'length', reason, required: true });
+    out.push({ key: 'length', reason: 'chart doesn’t say where length is measured from', required: true });
   }
   // Pants legs: optional zones, so never required.
   if (present.has('thigh')) {

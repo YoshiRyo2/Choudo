@@ -96,9 +96,11 @@ describe('knit zones', () => {
     expect(z.bodyAt).toBeUndefined();
   });
 
-  it('still never scores a tee by its centre-back length', () => {
+  it('scores a tee by its centre-back length against the same target as a knit', () => {
     const tee = normalizeGarment({ ...UNKNOWN_CHEST_SEED, chart: { unit: 'in', girth: 'flat', lengthDefinition: 'center_back' } });
-    expect(fitGarment(body, tee, 'L').zones.find((z) => z.zone === 'length')!.label).toBe('unknown');
+    const length = fitGarment(body, tee, 'L').zones.find((z) => z.zone === 'length')!;
+    expect(length.label).not.toBe('unknown');
+    expect(length).toMatchObject({ bodyCm: m.torsoLengthCm - BACK_NECK_DROP_CM, bodyAt: 'centre_back' });
   });
 
   it('compares the hem band with the hips; rib stretch moves tight down', () => {

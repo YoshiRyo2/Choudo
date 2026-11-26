@@ -3,7 +3,7 @@ import { estimateBody, type BodyModel } from '../body';
 import { findGarment, normalizeGarment, type Garment, type SeedGarment } from '../garments';
 import { cmToIn, inToCm } from '../units';
 import { fitAllSizes, fitGarment, labelGirth, labelLength } from './fitEngine';
-import { BOTTOM_WAIST, INSEAM, TOP_CHEST, WOMENS_TOP_CHEST } from './rules';
+import { BACK_NECK_DROP_CM, BOTTOM_WAIST, INSEAM, TOP_CHEST, WOMENS_TOP_CHEST } from './rules';
 import { UNKNOWN_CHEST_TEE } from '../garments/testFixtures';
 
 /** A body with exact, entered measurements so tests don't depend on the estimator. */
@@ -208,7 +208,7 @@ describe('fitGarment', () => {
     }
   });
 
-  it('only scores a top length measured from the high point of the shoulder', () => {
+  it('scores a top length from the high point of the shoulder or the centre back, never an unknown start', () => {
     const body = bodyWith({ chestCm: inToCm(38), torsoLengthCm: 72 });
     const lengthOf = (def: 'hps' | 'center_back' | 'unknown') => {
       const tee = normalizeGarment({
@@ -218,9 +218,13 @@ describe('fitGarment', () => {
       });
       return fitGarment(body, tee, 'M').zones.find((z) => z.zone === 'length')!;
     };
-    expect(lengthOf('hps').label).not.toBe('unknown');
-    expect(lengthOf('center_back')).toMatchObject({ label: 'unknown', diffCm: null });
-    expect(lengthOf('center_back').note).toMatch(/back of the neck/);
+    // HPS compares with the torso as it is: not a worked-out number.
+    expect(lengthOf('hps')).toMatchObject({ bodyCm: 72 });
+    expect(lengthOf('hps').bodyAt).toBeUndefined();
+    // Centre back: the back neck sits BACK_NECK_DROP_CM below the high shoulder point.
+    expect(lengthOf('center_back')).toMatchObject({ bodyCm: 72 - BACK_NECK_DROP_CM, bodyAt: 'centre_back' });
+    expect(lengthOf('center_back').label).not.toBe('unknown');
+    expect(lengthOf('unknown')).toMatchObject({ label: 'unknown', diffCm: null });
     expect(lengthOf('unknown').note).toMatch(/doesn't say where length/);
   });
 

@@ -183,13 +183,17 @@ describe('checkRanges', () => {
 });
 
 describe('unscorableZones', () => {
-  it('lists girths with an unknown method and non-hps lengths', () => {
-    const g: SeedGarment = { ...tee, sleeve: 'long', chart: { unit: 'in', girth: 'unknown', lengthDefinition: 'center_back', sleeveDefinition: 'top_of_sleeve' }, sizes: [{ label: 'M', measurements: { chest: 40, length: 29, sleeve: 25 } }] };
+  it('lists girths with an unknown method and lengths with an unknown start', () => {
+    const g: SeedGarment = { ...tee, sleeve: 'long', chart: { unit: 'in', girth: 'unknown', lengthDefinition: 'unknown', sleeveDefinition: 'top_of_sleeve' }, sizes: [{ label: 'M', measurements: { chest: 40, length: 29, sleeve: 25 } }] };
     expect(unscorableZones(g)).toEqual([
       { key: 'chest', reason: 'chart doesn’t say flat or full circumference', required: true },
-      { key: 'length', reason: 'length is measured from the back of the neck, not the shoulder', required: true },
+      { key: 'length', reason: 'chart doesn’t say where length is measured from', required: true },
       { key: 'sleeve', reason: 'sleeve isn’t measured shoulder to cuff', required: false },
     ]);
+  });
+
+  it('scores a tee length measured from the centre back', () => {
+    expect(unscorableZones({ ...tee, chart: { ...tee.chart, lengthDefinition: 'center_back' } })).toEqual([]);
   });
 
   it('ignores short sleeves', () => {

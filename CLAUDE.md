@@ -248,8 +248,9 @@ or `app/`. The UI only calls their public functions.
 - Missing or unverified garment measurements give `unknown`, never a guess
   (same rule as `src/report.py`'s "Method unverified").
 - Flat (half-chest) chart values are doubled to full circumference.
-- A top's length is only scored when the chart measures it from the high point of the
-  shoulder (`lengthDefinition: "hps"`); a sleeve only when it's `shoulder_to_cuff` on a long sleeve.
+- A top's length is only scored when the chart says where it starts: the high point of the
+  shoulder (`hps`), or the centre back (`center_back`, target = torso − `BACK_NECK_DROP_CM`, as
+  knits); a tee's sleeve only when it's `shoulder_to_cuff` on a long sleeve.
 - A size's overall result is never "good" when a girth couldn't be checked; it's "unknown"
   (unless something is definitely bad). `recommendSize` never picks a size on length alone.
 - Stretch fabric moves the "tight" boundary (`STRETCH_ALLOWANCE` in `rules.ts`; `compression`
@@ -289,7 +290,8 @@ or `app/`. The UI only calls their public functions.
   `shoulder_to_cuff` or `center_back_to_cuff` (target = arm + shoulder / 2 + `SHOULDER_CURVE_CM`,
   men 5.3 / women 5.5 from ANSUR II spine-to-wrist means). `bodyAt: 'centre_back'` marks those
   targets. Hem band (relaxed rib) vs hips, `HEM_BAND` (assumed); rows give `stretch.hemBand: high`.
-  Tees still score only `hps` length and `shoulder_to_cuff` sleeves.
+  Tees and shirts score `hps` or `center_back` length the same way (Uniqlo charts tees from the
+  centre back), but still only `shoulder_to_cuff` sleeves.
 - Jackets (jacket, coat → template `jacket`, category **`outer`**, worn over the top): chest and a
   charted waist are `layered` zones; shoulder (optional, `JACKET_SHOULDER` ±1.5 cm fitted); sleeve as
   knits; length a landing against the hip line (`JACKET_LENGTH`: cropped / hip / thigh /

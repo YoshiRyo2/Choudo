@@ -200,7 +200,7 @@ const TOP_SPEC = {
   landmarks: TOP_LANDMARKS,
   checks: TOP_CHECKS,
   defaultWeight: 'light',
-  scoredDefinitions: { length: ['hps'], sleeve: ['shoulder_to_cuff'] },
+  scoredDefinitions: { length: ['hps', 'center_back'], sleeve: ['shoulder_to_cuff'] },
 } as const satisfies Omit<CategorySpec, 'template'>;
 
 // A dress: the top's checks for the bust, length and sleeve, the skirt's for the waist and hips.

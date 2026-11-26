@@ -161,14 +161,15 @@ const TOP_ZONES: readonly ZoneSpec[] = [
     garmentKey: 'length',
     bodyKey: 'torsoLengthCm',
     rule: TOP_LENGTH,
-    // Body length targets run from the high point of the shoulder; any other start point can't be compared.
+    // From the high point of the shoulder, or from the back neck once the back-neck drop is
+    // allowed for (as knits; Uniqlo's tee charts measure from the centre back). An HPS length
+    // compares with the torso itself, so it isn't a worked-out target.
+    bodyTarget: (m, g) => lengthTargetCm(m, definitionOf(g, 'length')) ?? m.torsoLengthCm,
+    bodyAt: 'centre_back',
     needs: {
       definition: 'length',
-      accepts: ['hps'],
-      reason: (brand, value) =>
-        value === 'center_back'
-          ? `${brand} measures length from the back of the neck, so we can't compare it to your body.`
-          : `${brand}'s chart doesn't say where length is measured from.`,
+      accepts: ['hps', 'center_back'],
+      reason: (brand) => `${brand}'s chart doesn't say where length is measured from.`,
     },
   },
   {
