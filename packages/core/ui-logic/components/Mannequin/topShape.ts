@@ -27,7 +27,7 @@
 
 import type { BodyMeasurements } from '../../../domain/body';
 import { hpsLengthCm, sleeveFromShoulderPointCm } from '../../../domain/fit/tops';
-import { girthKnown, templateOf, type Garment, type SizeMeasurements, type TopLandmarkName } from '../../../domain/garments';
+import { girthKnown, templateOf, type Garment, type Neckline, type SizeMeasurements, type TopLandmarkName } from '../../../domain/garments';
 import { SLEEVE_STRIPS, type SleeveEdges } from './photoWarp';
 import type { View } from './view';
 import {
@@ -88,6 +88,86 @@ const HOOD_BACK_DROP_CM = 22;
 /** Rib lines are drawn this far apart. */
 const RIB_PITCH_CM = 1.4;
 
+/**
+ * Front necklines other than crew (`garment.neckline`), as shares of the body so they
+ * scale with it. Depths are a share of the way from the neck base down to the armpit
+ * line; widths add to the crew's collar point. Drawing choices, assumed.
+ */
+export const NECKLINE = {
+  /** A V's point (0.35 sat about 1.4 cm under a crew on a 176 cm body: it didn't read as a V). */
+  vDepth: 0.55,
+  /** A scoop: wider at the shoulder line and deeper than a crew, rounded. */
+  scoopDepth: 0.45,
+  scoopWidenCm: 2.5,
+  /** A boat neck meets the shoulder line this share of the way from the neck to the shoulder point, and dips this little. */
+  boatOut: 0.55,
+  boatDipCm: 1.2,
+  /** A mock neck's band: how far up the neck it stands (never closer than 2 cm to the chin). */
+  mockBandCm: 2.5,
+  /** A henley's placket: its length (a share, as depths), half its width, and its buttons. */
+  placketDepth: 0.4,
+  placketHalfCm: 0.9,
+  buttons: 3,
+} as const;
+
+/** A front neckline: where it meets the shoulder line (right side), the points across the neck (left to right), and its details. */
+interface NeckOpening {
+  collar: Pt;
+  across: Pt[];
+  /** The neckline's centre point (a photo's neckFront landmark). */
+  centre: Pt;
+  details?: { lines: string[]; buttons: Pt[] };
+}
+
+/** The opening for a neckline. Crew is exactly the shape every top had before necklines. */
+function neckOpening(g: BodyGeometry, neckline: Neckline, crewCollar: Pt, crewCentre: Pt): NeckOpening {
+  const down = (share: number) => g.y.neckBase + share * (g.y.armpit - g.y.neckBase);
+  switch (neckline) {
+    case 'crew':
+      return { collar: crewCollar, across: [crewCentre], centre: crewCentre };
+    case 'v': {
+      const point: Pt = { x: 0, y: down(NECKLINE.vDepth), corner: true };
+      return { collar: crewCollar, across: [point], centre: point };
+    }
+    case 'scoop': {
+      const collar: Pt = { x: crewCollar.x + NECKLINE.scoopWidenCm, y: crewCollar.y, corner: true };
+      const centre: Pt = { x: 0, y: down(NECKLINE.scoopDepth) };
+      const side = (sign: 1 | -1): Pt => ({ x: sign * collar.x * 0.8, y: lerp(collar.y, centre.y, 0.75) });
+      return { collar, across: [side(-1), centre, side(1)], centre };
+    }
+    case 'boat': {
+      const collar: Pt = { x: lerp(g.half.neck, g.half.shoulder, NECKLINE.boatOut), y: lerp(g.y.hps, g.y.shoulder, 0.35), corner: true };
+      const centre: Pt = { x: 0, y: collar.y + NECKLINE.boatDipCm };
+      const side = (sign: 1 | -1): Pt => ({ x: sign * collar.x * 0.55, y: collar.y + NECKLINE.boatDipCm * 0.8 });
+      return { collar, across: [side(-1), centre, side(1)], centre };
+    }
+    case 'mock': {
+      const collar: Pt = { x: g.half.neck + 0.4, y: crewCollar.y, corner: true };
+      const top = Math.max(g.y.neckBase - NECKLINE.mockBandCm, g.y.chin + 2);
+      const edge = (sign: 1 | -1): Pt => ({ x: sign * (g.half.neck + 0.2), y: top, corner: true });
+      // Where the band joins the body: a seam across the base of the neck.
+      const seam = smoothPath([{ ...collar, x: -collar.x }, { x: 0, y: collar.y + 0.6 }, collar], false);
+      return { collar, across: [edge(-1), edge(1)], centre: { x: 0, y: top }, details: { lines: [seam], buttons: [] } };
+    }
+    case 'henley': {
+      const top = crewCentre.y + 0.2;
+      const bottom = crewCentre.y + NECKLINE.placketDepth * (g.y.armpit - g.y.neckBase);
+      const w = NECKLINE.placketHalfCm;
+      const placket = smoothPath(
+        [
+          { x: -w, y: top, corner: true },
+          { x: -w, y: bottom, corner: true },
+          { x: w, y: bottom, corner: true },
+          { x: w, y: top, corner: true },
+        ],
+        false,
+      );
+      const buttons = Array.from({ length: NECKLINE.buttons }, (_, i) => ({ x: 0, y: lerp(top, bottom, (i + 1) / (NECKLINE.buttons + 1)) }));
+      return { collar: crewCollar, across: [crewCentre], centre: crewCentre, details: { lines: [placket], buttons } };
+    }
+  }
+}
+
 export interface TopShape {
   body: string;
   sleeves: [string, string];
@@ -103,6 +183,8 @@ export interface TopShape {
   rib?: { hem: string; hemTopY: number; cuffs: string[]; lines: string[] };
   /** Hoodies: the hood lying behind the neck (drawn behind the body), its front edge and drawcords (stroke only). */
   hood?: { back: string; edges: string[]; cords: string[] };
+  /** A mock neck's band seam or a henley's placket (stroke only), and a henley's buttons. Front view only. */
+  neck?: { lines: string[]; buttons: Pt[] };
   /** Hoodies: the top of the hood, matching a photo's optional hoodTop landmark. */
   hoodTop?: Pt;
   /** Hoodies, back view: the hood lying flat on the upper back (closed path, drawn over the top). */
@@ -279,7 +361,13 @@ export function topShape(
       ? Math.max(snug + (halfWidth.waist(size.waist) - snug) * HANG, bodyHalfAt(g, g.y.waist) + 0.6)
       : sideAt(g.y.waist, flare * 0.3);
 
-  const collar: Pt = { x: g.half.neck + 0.8, y: g.y.hps, corner: true };
+  const crewCollar: Pt = { x: g.half.neck + 0.8, y: g.y.hps, corner: true };
+  const necklineDip = ['button-up', 'polo', 'jacket', 'coat'].includes(garment.type) ? 1.5 : 3.5;
+  // The centre of the neckline: the front's dips; the back's sits just under the neck base.
+  const neckCentre: Pt = { x: 0, y: g.y.neckBase + (view === 'back' ? BACK_NECKLINE_DIP_CM : necklineDip) };
+  // Necklines are front details: the back is always drawn as it was.
+  const opening = neckOpening(g, view === 'back' ? 'crew' : (garment.neckline ?? 'crew'), crewCollar, neckCentre);
+  const collar = opening.collar;
   // The side seam starts at the armpit and falls straight; the sleeve covers the join.
   const underarm: Pt = { x: sideHalf, y: underY };
   // A rib band gathers to the chart's hem band, stretched onto the body where it's
@@ -315,10 +403,7 @@ export function topShape(
   right.push(hem, { x: hem.x * 0.55, y: hemY - hemLift * 0.15 });
 
   const left = [...right].reverse().map((p) => ({ ...p, x: -p.x }));
-  const necklineDip = ['button-up', 'polo', 'jacket', 'coat'].includes(garment.type) ? 1.5 : 3.5;
-  // The centre of the neckline: the front's dips; the back's sits just under the neck base.
-  const neckCentre: Pt = { x: 0, y: g.y.neckBase + (view === 'back' ? BACK_NECKLINE_DIP_CM : necklineDip) };
-  const body = smoothPath([...right, { x: 0, y: hemY }, ...left, neckCentre], true);
+  const body = smoothPath([...right, { x: 0, y: hemY }, ...left, ...opening.across], true);
 
   // ----- folds and strain -----
   // Spare width falls into a few soft vertical folds of uneven length, hanging
@@ -473,10 +558,11 @@ export function topShape(
     ...(hood ? { hood } : {}),
     ...(hoodTop ? { hoodTop } : {}),
     ...(hoodOnBack ? { hoodOnBack } : {}),
+    ...(opening.details ? { neck: opening.details } : {}),
     landmarks: {
       collarRight: collar,
       collarLeft: mirrorPt(collar),
-      neckFront: { x: 0, y: neckCentre.y },
+      neckFront: { x: 0, y: opening.centre.y },
       shoulderRight: seam,
       shoulderLeft: mirrorPt(seam),
       armpitRight: underarm,

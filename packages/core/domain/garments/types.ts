@@ -118,6 +118,15 @@ export const DEFINITION_VALUES: { [K in DefinitionName]-?: readonly NonNullable<
   waistSeam: ['natural', 'empire', 'drop', 'none', 'unknown'],
 };
 
+/**
+ * A top's neckline, as drawn (front view only): crew (the default, also when unset), v,
+ * scoop (wider and deeper), mock (a short band up the neck), henley (crew + a short
+ * button placket), boat (wide and shallow, out towards the shoulders). Drawing only:
+ * the fit engine never reads it.
+ */
+export type Neckline = 'crew' | 'v' | 'scoop' | 'mock' | 'henley' | 'boat';
+export const NECKLINES: readonly Neckline[] = ['crew', 'v', 'scoop', 'mock', 'henley', 'boat'];
+
 /** How the brand means the garment to sit. Used to judge whether its ease is plausible. */
 export type FitIntent = 'slim' | 'regular' | 'relaxed' | 'oversized';
 
@@ -388,6 +397,8 @@ interface GarmentBase {
   color: string;
   /** Tops only. */
   sleeve?: 'short' | 'long';
+  /** Tees and shirts: how the neckline is drawn. Unset = crew (every seed row so far). */
+  neckline?: Neckline;
   stretch: Stretch;
   /**
    * The chart gives no stretch data, so the stretch level is ours (a spandex legging

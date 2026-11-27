@@ -1,6 +1,7 @@
 import { parseProductLink, uniqloUrls, type UniqloLink } from '@choudo/core/domain/links';
 import sizeChart from '@choudo/core/domain/links/__fixtures__/uniqlo-size-charts-E424873-000.json';
-import product from '@choudo/core/domain/links/__fixtures__/uniqlo-product-E424873-000.json';
+import product from '@choudo/core/domain/links/__fixtures__/uniqlo-details-E424873-000.json';
+import missing from '@choudo/core/domain/links/__fixtures__/uniqlo-details-missing.json';
 import { FETCH_CACHE_MS } from '@choudo/core/ui-logic/state/fetched';
 import type { StoredFetched } from '@choudo/core/ui-logic/state/stored';
 
@@ -18,7 +19,7 @@ const reply = (body: unknown, status = 200) =>
 function mockFetch(by: Partial<Record<'chart' | 'product', () => Promise<Response>>> = {}) {
   return jest.fn((url: string) => {
     if (url === urls.sizeChart) return by.chart ? by.chart() : reply(sizeChart);
-    if (url === urls.product) return by.product ? by.product() : reply(product);
+    if (url === urls.details) return by.product ? by.product() : reply(product);
     return Promise.reject(new Error(`unexpected ${url}`));
   }) as unknown as jest.Mock & typeof fetch;
 }
@@ -27,8 +28,8 @@ describe('fetchUniqlo', () => {
   test('asks for both addresses and returns their text', async () => {
     const fetchImpl = mockFetch();
     const r = await fetchUniqlo(CODE, { fetchImpl });
-    expect(r).toEqual({ kind: 'ok', sizeChart: JSON.stringify(sizeChart), product: JSON.stringify(product) });
-    expect(fetchImpl.mock.calls.map((c) => c[0]).sort()).toEqual([urls.product, urls.sizeChart].sort());
+    expect(r).toEqual({ kind: 'ok', sizeChart: JSON.stringify(sizeChart), details: JSON.stringify(product) });
+    expect(fetchImpl.mock.calls.map((c) => c[0]).sort()).toEqual([urls.details, urls.sizeChart].sort());
     // Only the product code goes out: no body, no cookies.
     for (const [, init] of fetchImpl.mock.calls) expect(init).not.toHaveProperty('body');
   });
@@ -58,7 +59,7 @@ describe('fetchUniqlo', () => {
   test('says network after two network errors', async () => {
     const fetchImpl = mockFetch({ product: () => Promise.reject(new TypeError('Network request failed')) });
     expect(await fetchUniqlo(CODE, { fetchImpl })).toEqual({ kind: 'network' });
-    expect(fetchImpl.mock.calls.filter((c) => c[0] === urls.product)).toHaveLength(2);
+    expect(fetchImpl.mock.calls.filter((c) => c[0] === urls.details)).toHaveLength(2);
   });
 
   test('gives up on a request after the timeout (and its retry)', async () => {
@@ -81,6 +82,13 @@ describe('fetchUniqlo', () => {
     const fetchImpl = mockFetch({ chart: () => reply('denied', 403) });
     expect(await fetchUniqlo(CODE, { fetchImpl })).toEqual({ kind: 'blocked', status: 403 });
     expect(fetchImpl.mock.calls.filter((c) => c[0] === urls.sizeChart)).toHaveLength(1);
+  });
+
+  test("says not-found for the details' 404 (Uniqlo has no such product)", async () => {
+    const fetchImpl = mockFetch({ product: () => reply(missing, 404) });
+    expect(await fetchUniqlo(CODE, { fetchImpl })).toEqual({ kind: 'not-found' });
+    // Any other error status is still blocked.
+    expect(await fetchUniqlo(CODE, { fetchImpl: mockFetch({ product: () => reply('nope', 404) }) })).toEqual({ kind: 'blocked', status: 404 });
   });
 
   test('says not-found when Uniqlo answers ok with no product', async () => {

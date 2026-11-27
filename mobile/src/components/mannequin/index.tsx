@@ -286,6 +286,17 @@ export function Mannequin({
                 ))}
               </G>
             )}
+            {/* A mock neck's band seam, or a henley's placket and buttons (front only; drawn shapes, never a photo). */}
+            {topDraw.neck && (
+              <G testID="neck-details">
+                {topDraw.neck.lines.map((d, i) => (
+                  <Path key={`neck-${i}`} {...paint.placket} d={d} />
+                ))}
+                {topDraw.neck.buttons.map((b, i) => (
+                  <Circle key={`button-${i}`} {...paint.button} cx={b.x} cy={b.y} />
+                ))}
+              </G>
+            )}
           </G>
         )}
 

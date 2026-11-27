@@ -1,9 +1,9 @@
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { RECENT_CHECKS } from '@choudo/core/ui-logic/state/fetched';
+import { findFetched, RECENT_CHECKS, replaceFetched, withColor } from '@choudo/core/ui-logic/state/fetched';
 import { wearGarment } from '@choudo/core/ui-logic/state/outfit';
 
-import { useReadyFetched, useUnsupportedHosts } from '@/hooks/use-fetched';
+import { useFetchedList, useReadyFetched, useUnsupportedHosts } from '@/hooks/use-fetched';
 import { useTestMode } from '@/hooks/use-test-mode';
 import { useWardrobe } from '@/hooks/use-wardrobe';
 import { useLinkCheck } from '@/links/use-link-check';
@@ -18,6 +18,7 @@ export default function CheckRoute() {
   const wardrobe = useWardrobe();
   const link = useLinkCheck();
   const fetched = useReadyFetched();
+  const [list, setList] = useFetchedList();
   const [hosts] = useUnsupportedHosts();
   const [testMode] = useTestMode();
   // The result as the rest of the app has it (the context's one ready list), once it's stored;
@@ -43,6 +44,11 @@ export default function CheckRoute() {
       }}
       onOpenProduct={(url) => void WebBrowser.openBrowserAsync(url).catch(() => {})}
       onEditBody={() => router.push('/body')}
+      onColor={(garmentId, code) => {
+        // Stored with the entry: the preview, the Fitting room and "Try it on" all draw it in this colour.
+        const entry = findFetched(list, garmentId);
+        if (entry) setList(replaceFetched(list, withColor(entry, code)));
+      }}
       unsupportedHosts={DEV_TOOLS && testMode ? hosts : undefined}
     />
   );

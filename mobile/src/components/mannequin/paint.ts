@@ -75,6 +75,8 @@ export const paint = {
   }),
   ribLine: { fill: 'none', stroke: ink, strokeOpacity: 0.18, strokeWidth: 0.18, strokeLinecap: 'round' as const },
   placket: { fill: 'none', stroke: ink, strokeOpacity: 0.45, strokeWidth: 0.35 },
+  /** A henley's placket buttons (topShape's neck.buttons). */
+  button: { fill: ink, fillOpacity: 0.55, r: 0.45 },
   hoodEdge: { fill: 'none', stroke: ink, strokeOpacity: 0.4, strokeWidth: 0.3, strokeLinecap: 'round' as const },
   cord: { fill: 'none', stroke: mixHex(colors.surface, ink, 0.8), strokeWidth: 0.45, strokeLinecap: 'round' as const },
 

@@ -35,6 +35,32 @@ export function addUnsupportedHost(list: readonly string[], host: string): strin
   return [host, ...list.filter((h) => h !== host)].slice(0, MAX_UNSUPPORTED_HOSTS);
 }
 
+/**
+ * The entry in another of its product's colours (a colour chip on the Check tab): the
+ * garment is drawn in that colour's hex and the photo is that colour's. Unchanged when the
+ * product doesn't list the colour (an entry stored before colours were kept).
+ */
+export function withColor(entry: StoredFetched, colorCode: string): StoredFetched {
+  const color = entry.product.colors?.find((c) => c.code === colorCode);
+  if (!color) return entry;
+  return {
+    ...entry,
+    product: {
+      ...entry.product,
+      garment: { ...entry.product.garment, color: color.hex },
+      colorCode: color.code,
+      colorName: color.name,
+      imageUrl: color.imageUrl ?? entry.product.imageUrl,
+    },
+  };
+}
+
+/** `entry` in place of the stored one for the same garment, where it was (no reordering). */
+export function replaceFetched(list: readonly StoredFetched[], entry: StoredFetched): StoredFetched[] {
+  const id = entry.product.garment.id;
+  return list.some((e) => e.product.garment.id === id) ? list.map((e) => (e.product.garment.id === id ? entry : e)) : addFetched(list, entry);
+}
+
 /** The stored entry for a garment id, or undefined. */
 export const findFetched = (list: readonly StoredFetched[], garmentId: string): StoredFetched | undefined =>
   list.find((e) => e.product.garment.id === garmentId);

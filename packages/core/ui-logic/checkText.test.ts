@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseProductLink } from '../domain/links';
-import { canRetry, checkErrorText, linkError, type CheckError } from './checkText';
+import { canRetry, checkErrorText, colourLabel, linkError, type CheckError } from './checkText';
 
 const errorOf = (text: string) => linkError(parseProductLink(text));
 
@@ -38,5 +38,13 @@ describe('check error wording', () => {
 
   it('offers Retry only where trying again can help', () => {
     expect(all.filter(canRetry)).toEqual(['network', 'bad-response']);
+  });
+});
+
+describe('colourLabel', () => {
+  it('reads a colour name in title case', () => {
+    expect(colourLabel('OFF WHITE')).toBe('Off White');
+    expect(colourLabel('DARK  GRAY')).toBe('Dark Gray');
+    expect(colourLabel('black')).toBe('Black');
   });
 });

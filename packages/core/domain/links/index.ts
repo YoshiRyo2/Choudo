@@ -1,3 +1,6 @@
+export { COLOR_BASES, colorHex, DARK_MIX, LIGHT_MIX } from './colors';
+export { uniqloCut } from './cut';
+export type { UniqloCut } from './cut';
 export { parseProductLink } from './parse';
 export type { ProductLink, UniqloLink, UnknownLink } from './parse';
 export {
@@ -7,7 +10,8 @@ export {
   UNIQLO_NOTES,
   UNIQLO_PART_KEYS,
   uniqloGarmentId,
+  uniqloColor,
   uniqloToSeedGarment,
   uniqloUrls,
 } from './uniqlo';
-export type { FetchedProduct, UniqloFailure, UniqloResult } from './uniqlo';
+export type { FetchedColor, FetchedProduct, UniqloFailure, UniqloResult } from './uniqlo';

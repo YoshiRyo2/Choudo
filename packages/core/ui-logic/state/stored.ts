@@ -338,6 +338,11 @@ export const isFitTestList = isArrayOf(isFitTestRecord);
  * The shape of a stored fetched garment. Its garment is checked properly on load
  * (readyFetchedGarment: validateSeed + normalizeGarment), which drops a bad one.
  */
+function isFetchedColor(v: unknown): boolean {
+  return isRecord(v) && isString(v.code) && isString(v.name) && isString(v.hex) && isStringOrNull(v.imageUrl);
+}
+
+/** Entries stored before the details endpoint have no colours, cut text or other sleeve: those stay optional. */
 function isStoredFetched(v: unknown): v is StoredFetched {
   if (!isRecord(v) || !isString(v.fetchedAt) || !isRecord(v.product)) return false;
   const p = v.product;
@@ -347,7 +352,12 @@ function isStoredFetched(v: unknown): v is StoredFetched {
     Array.isArray(p.garment.sizes) &&
     isStringOrNull(p.priceText) &&
     isStringOrNull(p.imageUrl) &&
-    isString(p.productUrl)
+    isString(p.productUrl) &&
+    optional(isString)(p.colorCode) &&
+    optional(isString)(p.colorName) &&
+    (p.colors === undefined || (Array.isArray(p.colors) && p.colors.every(isFetchedColor))) &&
+    optional(isString)(p.cutText) &&
+    optional(isString)(p.otherSleeve)
   );
 }
 

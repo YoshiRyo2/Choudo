@@ -1,23 +1,32 @@
 /**
- * Uniqlo's public size-chart and product JSON → a seed garment. Pure: the caller
- * fetches (the phone app; the website through a fetch service later) and passes
+ * Uniqlo's public size-chart and product-details JSON → a seed garment. Pure: the
+ * caller fetches (the phone app; the website through a fetch service later) and passes
  * the responses in, parsed or as text.
  *
- * Fetched garments live on the device only. They never go into seed.json.
+ * Fetched garments live on the device only. They never go into seed.json. Uniqlo's
+ * photos are only ever shown as they are: the garment is drawn by Choudo in the
+ * product's colour (colors.ts) and cut (cut.ts).
  */
 
 import { normalizeGarment, validateSeed } from '../garments';
 import type { Garment, GarmentSizing, MeasurementKey, SeedGarment, SeedSize } from '../garments';
+import { colorHex, FETCHED_COLOR } from './colors';
+import { uniqloCut } from './cut';
 import type { UniqloLink } from './parse';
+
+export { FETCHED_COLOR } from './colors';
 
 const API = 'https://www.uniqlo.com/us/api/commerce/v5/en';
 
-/** The two requests for one product: its size chart (garment measurements) and its name, price and photo. */
-export function uniqloUrls(productCode: string): { sizeChart: string; product: string } {
+/**
+ * The two requests for one product: its size chart (garment measurements) and its
+ * details (name, price, colours with a photo each, and the fit / sleeve / neck tags).
+ */
+export function uniqloUrls(productCode: string): { sizeChart: string; details: string } {
   const code = encodeURIComponent(productCode);
   return {
     sizeChart: `${API}/products/size-charts?productIdsWithColorCode=${code}&includeBodyMeasurements=true&simpleSizeChart=true&httpFailure=true`,
-    product: `${API}/products?productIds=${code}&httpFailure=true`,
+    details: `${API}/products/${code}/price-groups/00/details?includeModelSize=false&httpFailure=true`,
   };
 }
 
@@ -32,20 +41,41 @@ export const UNIQLO_PART_KEYS: Readonly<Record<string, MeasurementKey>> = {
   'sleeve-length-cb': 'sleeve',
 };
 
-/** Drawn colour for fetched garments: the brand photo is a thumbnail only, never on the mannequin. */
-export const FETCHED_COLOR = '#a39e96';
-
 export const UNIQLO_NOTES = "Garment measurements from Uniqlo's size chart (laid flat; length and sleeve from centre back).";
 
-/** A fetched garment and what the Check screen shows beside it. */
+/** One of a product's colours: Uniqlo's display code and name, our drawing hex, and its photo. */
+export interface FetchedColor {
+  /** The link's last path part, e.g. "09". */
+  code: string;
+  /** As Uniqlo names it, e.g. "BLACK". */
+  name: string;
+  /** colorHex(name): what the mannequin is drawn in. */
+  hex: string;
+  /** The product photo in this colour, shown as it is; null when there's none. */
+  imageUrl: string | null;
+}
+
+/**
+ * A fetched garment and what the Check screen shows beside it. The fields after
+ * productUrl came with the details endpoint: entries stored before it lack them.
+ */
 export interface FetchedProduct {
   garment: SeedGarment;
   /** "$14.90", or null when the product JSON has no price. */
   priceText: string | null;
-  /** Shown as it is (a thumbnail), never warped. */
+  /** The photo for the chosen colour, shown as it is (never cropped, recoloured or warped). */
   imageUrl: string | null;
   /** The cleaned product page link ("Open at Uniqlo"). */
   productUrl: string;
+  /** The chosen colour's code and name; `garment.color` is its hex. */
+  colorCode?: string;
+  colorName?: string;
+  /** Every colour the product comes in, as the details list them. */
+  colors?: FetchedColor[];
+  /** The tags in words: "Crew Neck · Short sleeve · Regular fit". */
+  cutText?: string;
+  /** A sleeve Choudo draws as short for now ("Sleeveless", "Half", "8/10"). */
+  otherSleeve?: string;
 }
 
 export type UniqloFailure = 'no-sizes' | 'unsupported-parts' | 'bad-response';
@@ -66,24 +96,43 @@ function asResponse(raw: unknown): Json | null {
   return isObject(raw) ? raw : null;
 }
 
+/**
+ * The product from a details response (`result` is the product), or from the older
+ * products?productIds= shape (`result.items[0]`), which is what entries fetched before
+ * the details endpoint came from. undefined = no product; null = malformed.
+ */
+function productOf(result: unknown): Json | undefined | null {
+  if (!isObject(result)) return null;
+  if (Array.isArray(result.items)) {
+    const item = result.items[0];
+    return item === undefined ? undefined : isObject(item) ? item : null;
+  }
+  return Object.keys(result).length === 0 ? undefined : result;
+}
+
 /** Each response's `result`, or null when it's malformed or its status isn't "ok". */
-function results(sizeChartRaw: unknown, productRaw: unknown): { chart: Json | undefined; item: Json | undefined } | null {
+function results(sizeChartRaw: unknown, detailsRaw: unknown): { chart: Json | undefined; item: Json | undefined } | null {
   const sizeChart = asResponse(sizeChartRaw);
-  const product = asResponse(productRaw);
-  if (!sizeChart || !product || sizeChart.status !== 'ok' || product.status !== 'ok') return null;
-  if (!Array.isArray(sizeChart.result) || !isObject(product.result) || !Array.isArray(product.result.items)) return null;
+  const details = asResponse(detailsRaw);
+  if (!sizeChart || !details || sizeChart.status !== 'ok' || details.status !== 'ok') return null;
+  if (!Array.isArray(sizeChart.result)) return null;
   const chart = sizeChart.result[0];
-  const item = product.result.items[0];
-  if ((chart !== undefined && !isObject(chart)) || (item !== undefined && !isObject(item))) return null;
+  const item = productOf(details.result);
+  if ((chart !== undefined && !isObject(chart)) || item === null) return null;
   return { chart, item };
 }
 
+/** Uniqlo's catalogue error for a product it doesn't have (sent with a 404). */
+const NO_SUCH_PRODUCT = 25;
+
 /**
- * True when both responses are well formed with status "ok" but Uniqlo has no such
- * product (no result): the link's product is gone, not a network problem.
+ * True when Uniqlo has no such product: a well-formed "ok" with no result, or the
+ * details' "nok" with the catalogue's no-such-product code. Gone, not a network problem.
  */
-export function isMissingProduct(sizeChartRaw: unknown, productRaw: unknown): boolean {
-  const r = results(sizeChartRaw, productRaw);
+export function isMissingProduct(sizeChartRaw: unknown, detailsRaw: unknown): boolean {
+  const details = asResponse(detailsRaw);
+  if (details?.status === 'nok' && isObject(details.error) && details.error.code === NO_SUCH_PRODUCT) return true;
+  const r = results(sizeChartRaw, detailsRaw);
   return r !== null && (r.chart === undefined || r.item === undefined);
 }
 
@@ -110,7 +159,6 @@ function sizeOf(entry: unknown): SeedSize | null {
 }
 
 const SIZING: Readonly<Record<string, GarmentSizing>> = { WOMEN: 'womens', MEN: 'mens' };
-const LONG_SLEEVE = /\blong[\s-]*sleeve/i;
 
 function priceText(item: Json): string | null {
   const base = isObject(item.prices) && isObject(item.prices.base) ? item.prices.base : null;
@@ -121,22 +169,52 @@ function priceText(item: Json): string | null {
   return typeof currency.code === 'string' ? `${amount} ${currency.code}` : amount;
 }
 
+const mainImages = (item: Json): Json => (isObject(item.images) && isObject(item.images.main) ? item.images.main : {});
+const photo = (v: unknown) => (isObject(v) && typeof v.image === 'string' && /^https:\/\//.test(v.image) ? v.image : null);
+
 function imageUrl(item: Json, chart: Json, colorCode: string | undefined): string | null {
-  const main = isObject(item.images) && isObject(item.images.main) ? item.images.main : {};
-  const pick = (v: unknown) => (isObject(v) && typeof v.image === 'string' && /^https:\/\//.test(v.image) ? v.image : null);
-  const byColor = colorCode !== undefined ? pick(main[colorCode]) : null;
-  const first = Object.values(main).map(pick).find((u) => u !== null) ?? null;
+  const main = mainImages(item);
+  const byColor = colorCode !== undefined ? photo(main[colorCode]) : null;
+  const first = Object.values(main).map(photo).find((u) => u !== null) ?? null;
   const fallback = typeof chart.imageUrl === 'string' && /^https:\/\//.test(chart.imageUrl) ? chart.imageUrl : null;
   return byColor ?? first ?? fallback;
 }
 
+/** The product's colours (details `colors[]`), each with its drawing hex and photo. */
+function colorsOf(item: Json): FetchedColor[] {
+  if (!Array.isArray(item.colors)) return [];
+  const main = mainImages(item);
+  const seen = new Set<string>();
+  const out: FetchedColor[] = [];
+  for (const c of item.colors) {
+    if (!isObject(c) || typeof c.displayCode !== 'string' || typeof c.name !== 'string' || seen.has(c.displayCode)) continue;
+    seen.add(c.displayCode);
+    out.push({ code: c.displayCode, name: c.name, hex: colorHex(c.name), imageUrl: photo(main[c.displayCode]) });
+  }
+  return out;
+}
+
 /**
- * Uniqlo's size chart and product JSON as a seed garment (a top: tee or long-sleeve
- * tee), copied as printed in cm, chest laid flat. Sizes without a chest and a length
- * are left out rather than guessed. `capturedOn` is the ISO date it was fetched.
+ * The colour to draw for a link: the details colour whose display code matches the
+ * link's last path part, else the first colour; null when the details list none.
  */
-export function uniqloToSeedGarment(sizeChartRaw: unknown, productRaw: unknown, link: UniqloLink, capturedOn: string): UniqloResult {
-  const r = results(sizeChartRaw, productRaw);
+export function uniqloColor(detailsRaw: unknown, colorCode: string | undefined): FetchedColor | null {
+  const details = asResponse(detailsRaw);
+  const item = details ? productOf(details.result) : null;
+  if (!item) return null;
+  const colors = colorsOf(item);
+  return colors.find((c) => c.code === colorCode) ?? colors[0] ?? null;
+}
+
+/**
+ * Uniqlo's size chart and product details as a seed garment (a top: tee or long-sleeve
+ * tee), copied as printed in cm, chest laid flat, drawn in the link's colour with the
+ * tags' sleeve and neckline (the fit tag is only shown, in cutText). Sizes without a chest and a length are left out
+ * rather than guessed. The older products?productIds= JSON still reads (no colours or
+ * tags: neutral colour, cut from the name). `capturedOn` is the ISO date it was fetched.
+ */
+export function uniqloToSeedGarment(sizeChartRaw: unknown, detailsRaw: unknown, link: UniqloLink, capturedOn: string): UniqloResult {
+  const r = results(sizeChartRaw, detailsRaw);
   if (r === null || r.item === undefined || r.chart === undefined) return { ok: false, reason: 'bad-response' };
   const { chart, item } = r;
   if (typeof item.name !== 'string' || item.name.trim() === '') return { ok: false, reason: 'bad-response' };
@@ -154,28 +232,41 @@ export function uniqloToSeedGarment(sizeChartRaw: unknown, productRaw: unknown, 
   if (kept.length === 0) return { ok: false, reason: 'unsupported-parts' };
 
   const name = item.name.trim();
-  const long = LONG_SLEEVE.test(name);
+  const cut = uniqloCut(item.tags, name);
+  const colors = colorsOf(item);
+  const color = colors.find((c) => c.code === link.colorCode) ?? colors[0];
   const garment: SeedGarment = {
     id: uniqloGarmentId(link.productCode),
     brand: 'Uniqlo',
     name,
     category: 'top',
-    type: long ? 'long-sleeve-tee' : 'tee',
+    type: cut.sleeve === 'long' ? 'long-sleeve-tee' : 'tee',
     sizing: (typeof item.genderCategory === 'string' && SIZING[item.genderCategory]) || 'unisex',
-    color: FETCHED_COLOR,
-    sleeve: long ? 'long' : 'short',
+    color: color?.hex ?? FETCHED_COLOR,
+    sleeve: cut.sleeve,
+    ...(cut.neckline ? { neckline: cut.neckline } : {}),
     stretch: 'none',
     stretchAssumed: true,
+    // Not cut.fit: the fit tag is shown (cutText) but doesn't size yet. See UniqloCut.fit.
     fitIntent: 'regular',
     source: { placeholder: false, tier: 'B', url: link.url, capturedOn, notes: UNIQLO_NOTES },
     chart: { unit: 'cm', girth: 'flat', definitions: { length: 'center_back', sleeve: 'center_back_to_cuff' } },
     sizes: kept,
   };
-  return {
-    ok: true,
+  const product: FetchedProduct = {
     garment,
-    product: { garment, priceText: priceText(item), imageUrl: imageUrl(item, chart, link.colorCode), productUrl: link.url },
+    priceText: priceText(item),
+    imageUrl: color?.imageUrl ?? imageUrl(item, chart, link.colorCode),
+    productUrl: link.url,
   };
+  if (color) {
+    product.colorCode = color.code;
+    product.colorName = color.name;
+  }
+  if (colors.length > 0) product.colors = colors;
+  if (cut.text) product.cutText = cut.text;
+  if (cut.otherSleeve) product.otherSleeve = cut.otherSleeve;
+  return { ok: true, garment, product };
 }
 
 /**
