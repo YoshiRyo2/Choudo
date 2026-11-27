@@ -35,6 +35,7 @@ export default function FittingRoomRoute() {
       catalogue={wardrobe.catalogue}
       onCatalogueChange={wardrobe.setCatalogue}
       shown={wardrobe.shown}
+      fromLink={wardrobe.fromLink}
       head={head}
       onHeadChange={setHead}
       onEditBody={() => router.push('/body')}

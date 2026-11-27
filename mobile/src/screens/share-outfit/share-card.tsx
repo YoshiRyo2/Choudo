@@ -9,6 +9,8 @@ import { Mannequin } from '@/components/mannequin';
 import { Wordmark } from '@/components/wordmark';
 import { colors, fonts, type } from '@/theme';
 
+import { useFindGarment, useKnownGarments } from '@/hooks/use-fetched';
+
 import { wornOf } from '../closet/outfit-figure';
 
 /** The card's size in points (4:5); it's captured at 3× (1080 × 1350). */
@@ -27,17 +29,19 @@ export interface ShareCardProps {
  * measurements or body type): the figure is drawn to the body, nothing more is said.
  */
 export const ShareCard = forwardRef<ViewInstance, ShareCardProps>(function ShareCard({ outfit, body, head }, ref) {
+  const find = useFindGarment();
+  const garments = useKnownGarments();
   return (
     <View ref={ref} collapsable={false} style={styles.card} testID="share-card">
       <View style={styles.stage}>
         <View style={styles.circle} />
-        <Mannequin body={body} {...wornOf(outfit)} head={head} showFit={false} frame="body" showHeightTape={false} face="unknown" style={styles.figure} />
+        <Mannequin body={body} {...wornOf(outfit, find)} head={head} showFit={false} frame="body" showHeightTape={false} face="unknown" style={styles.figure} />
       </View>
       <View style={styles.text}>
         <Text style={styles.name} numberOfLines={2}>
           {outfit.name}
         </Text>
-        {outfitGarmentLines(outfit).map((line) => (
+        {outfitGarmentLines(outfit, garments).map((line) => (
           <Text key={line} style={styles.line} numberOfLines={1}>
             {line}
           </Text>

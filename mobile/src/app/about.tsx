@@ -26,6 +26,10 @@ export default function About() {
         There’s no account and nothing is uploaded: your body, likes, folders and outfits are saved on this phone
         only. Deleting the app removes them.
       </ThemedText>
+      <ThemedText>
+        When you paste a product link, Choudo reads Uniqlo’s public size chart for it: only the link is sent to Uniqlo,
+        never your measurements.
+      </ThemedText>
       <ThemedText style={styles.link} accessibilityRole="link" onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_URL).catch(() => {})}>
         Privacy policy
       </ThemedText>

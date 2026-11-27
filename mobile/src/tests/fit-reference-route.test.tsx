@@ -23,7 +23,7 @@ test('a stored tee we no longer list: Edit body falls back to the plain line, th
 
 test('from Edit body: a style saves, clears the anchor, and goes back to Edit body', async () => {
   Storage.setItemSync(STORAGE_KEYS.anchor, JSON.stringify({ kind: 'measured', chestFlatCm: 52, lengthCm: 72 }));
-  await renderRouter(appDir, { initialUrl: '/' });
+  await renderRouter(appDir, { initialUrl: '/fitting-room' });
   await press('Edit body');
   await press('Change');
   await press('Back');

@@ -55,6 +55,7 @@ test('an outfit can be filed too', async () => {
 
 test('an item that is no longer liked (or saved) closes the sheet', async () => {
   await renderRouter(appDir, { initialUrl: url('garment', 'gildan-18500') });
-  expect(screen).toHavePathname('/');
+  // A cold start: nothing to go back to, so home (the Check tab).
+  expect(screen).toHavePathname('/check');
   expect(screen.queryByRole('checkbox')).toBeNull();
 });

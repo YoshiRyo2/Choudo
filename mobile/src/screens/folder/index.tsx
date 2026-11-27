@@ -1,6 +1,6 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BodyModel } from '@choudo/core/domain/body';
-import { findGarment, type Garment } from '@choudo/core/domain/garments';
+import type { Garment } from '@choudo/core/domain/garments';
 import { outfitLine } from '@choudo/core/ui-logic/closetText';
 import { outfitOf } from '@choudo/core/ui-logic/state/closet';
 import type { Folder, FolderItem, Outfit, SavedOutfit } from '@choudo/core/ui-logic/state/stored';
@@ -9,6 +9,7 @@ import { Button } from '@/components/button';
 import { GarmentIcon } from '@/components/garment-icon';
 import { NameForm } from '@/components/name-form';
 import { ThemedText } from '@/components/themed-text';
+import { useFindGarment, useKnownGarments } from '@/hooks/use-fetched';
 import { colors, spacing } from '@/theme';
 
 import { OutfitFigure } from '../closet/outfit-figure';
@@ -31,6 +32,8 @@ type Entry = { key: string; item: FolderItem } & ({ garment: Garment } | { outfi
 
 /** One folder's garments and outfits (the web FolderView); its name, Rename and Delete are in the header. */
 export function FolderScreen({ folder, model, outfits, renaming, onRename, onCancelRename, onRemove, onOpenGarment, onOpenOutfit }: FolderScreenProps) {
+  const findGarment = useFindGarment();
+  const garments = useKnownGarments();
   // Items that are gone (a garment left the catalogue, an outfit deleted) are skipped.
   const entries = folder.items.flatMap((item): Entry[] => {
     if (item.kind === 'garment') {
@@ -89,7 +92,7 @@ export function FolderScreen({ folder, model, outfits, renaming, onRename, onCan
             <Text style={tileText.name} accessibilityRole="header">
               {o.name}
             </Text>
-            <Text style={tileText.brand}>{outfitLine(o)}</Text>
+            <Text style={tileText.brand}>{outfitLine(o, garments)}</Text>
             <TileActions>
               <Button size="sm" title="Open" onPress={() => onOpenOutfit(outfitOf(o))} />
               {remove}

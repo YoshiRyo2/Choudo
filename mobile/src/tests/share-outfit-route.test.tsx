@@ -41,7 +41,7 @@ beforeEach(() => {
 });
 
 async function openShare(id = 'o1') {
-  await renderRouter(appDir, { initialUrl: '/' });
+  await renderRouter(appDir, { initialUrl: '/fitting-room' });
   await act(() => router.push(`/share-outfit?id=${id}`));
 }
 
@@ -121,5 +121,5 @@ test('where sharing isn’t available, it says so in place of the button', async
 
 test('an outfit that is gone closes the sheet', async () => {
   await openShare('outfit-that-is-gone');
-  expect(screen).toHavePathname('/');
+  expect(screen).toHavePathname('/fitting-room');
 });

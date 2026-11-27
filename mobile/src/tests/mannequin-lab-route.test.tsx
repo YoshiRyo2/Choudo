@@ -17,7 +17,7 @@ test('the lab opens with an empty store (development build)', async () => {
 
 test('the Fitting room has a Mannequin lab button in development', async () => {
   Storage.setItemSync(STORAGE_KEYS.body, JSON.stringify({ heightCm: 175, weightKg: 70, bodyType: 'mens' }));
-  await renderRouter(appDir, { initialUrl: '/' });
+  await renderRouter(appDir, { initialUrl: '/fitting-room' });
   await fireEvent.press(screen.getByRole('button', { name: 'Mannequin lab' }));
   expect(screen).toHavePathname('/dev/mannequin');
   expect(screen.getByLabelText('Mannequin, 175 cm tall')).toBeTruthy();
@@ -30,7 +30,7 @@ test('a store build (no __DEV__) redirects the lab to the Fitting room and hides
   g.__DEV__ = false;
   try {
     await renderRouter(appDir, { initialUrl: '/dev/mannequin' });
-    expect(screen).toHavePathname('/');
+    expect(screen).toHavePathname('/fitting-room');
     expect(screen.queryByRole('button', { name: 'Mannequin lab' })).toBeNull();
   } finally {
     g.__DEV__ = was;

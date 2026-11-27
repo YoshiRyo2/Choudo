@@ -3,7 +3,7 @@ import { useEffect, type ReactElement } from 'react';
 
 /**
  * For a sheet or screen whose item is gone (deleted elsewhere, a stale link): go back at once,
- * or to the Fitting room on a cold start. Returns what to render instead (null or a Redirect)
+ * or home (the Check tab) on a cold start. Returns what to render instead (null or a Redirect)
  * while `gone`, or undefined to render the screen. Uses the screen's own navigation: the
  * imperative router isn't bound until after the first render.
  */

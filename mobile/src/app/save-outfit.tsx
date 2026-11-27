@@ -17,7 +17,7 @@ export default function SaveOutfitRoute() {
       onSave={(name) => closet.saveOutfit(wardrobe.outfit, name)}
       onDone={() => {
         if (router.canGoBack()) router.back();
-        else router.replace('/');
+        else router.replace('/fitting-room');
       }}
     />
   );

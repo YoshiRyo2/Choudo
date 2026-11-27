@@ -7,6 +7,7 @@ import type { Outfit, UnitSystem } from '@choudo/core/ui-logic/state/stored';
 
 import { useBody } from './use-body';
 import { useCatalogue } from './use-catalogue';
+import { useFetchedGarments } from './use-fetched';
 import { useGarments } from './use-garments';
 import { useOutfit } from './use-outfit';
 import { usePreference } from './use-preference';
@@ -21,8 +22,10 @@ export interface Wardrobe {
   setUnits: (units: UnitSystem) => void;
   catalogue: CatalogueScope;
   setCatalogue: (scope: CatalogueScope) => void;
-  /** What the catalogue toggle shows for this body type. */
+  /** What the catalogue toggle shows for this body type: garments from pasted links first. */
   shown: readonly Garment[];
+  /** Ids of the garments read from pasted links (tagged "From your link"). */
+  fromLink: ReadonlySet<string>;
   /** The stored outfit, resolved (resolveOutfit): never stale. */
   outfit: Outfit;
   setOutfit: (outfit: Outfit) => void;
@@ -39,7 +42,14 @@ export function useWardrobe(): Wardrobe | null {
   const [catalogue, setCatalogue] = useCatalogue();
   const [saved, setOutfit] = useOutfit();
   // No sample rows in a store build: a stored sample is swapped, not shown (storage is left alone).
-  const garments = useGarments();
+  const seed = useGarments();
+  // Garments read from pasted links (Check tab) come first; a dropped one is simply not here.
+  const fetched = useFetchedGarments();
+  const fromLink = useMemo(() => new Set(fetched.map((f) => f.garment.id)), [fetched]);
+  const garments = useMemo(
+    () => [...fetched.map((f) => f.garment), ...seed.filter((g) => !fromLink.has(g.id))],
+    [fetched, seed, fromLink],
+  );
   const model = useMemo(() => (body ? estimateBody(body) : null), [body]);
   const bodyType = body?.bodyType;
   const shown = useMemo(() => (bodyType ? catalogueFor(garments, bodyType, catalogue) : []), [garments, bodyType, catalogue]);
@@ -49,5 +59,5 @@ export function useWardrobe(): Wardrobe | null {
     [saved, model, preference, shown, garments],
   );
   if (!body || !model) return null;
-  return { body, model, preference, units, setUnits, catalogue, setCatalogue, shown, outfit, setOutfit };
+  return { body, model, preference, units, setUnits, catalogue, setCatalogue, shown, fromLink, outfit, setOutfit };
 }

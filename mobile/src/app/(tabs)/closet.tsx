@@ -26,7 +26,7 @@ export default function ClosetRoute() {
       onOpenFolder={(id) => router.push({ pathname: '/folder/[id]', params: { id } })}
       onWear={(outfit) => {
         wardrobe.setOutfit(outfit);
-        router.navigate('/');
+        router.navigate('/fitting-room');
       }}
       onShare={(id) => router.push({ pathname: '/share-outfit', params: { id } })}
       onDeleteOutfit={(id, name) => confirmDelete(name, () => closet.deleteOutfit(id))}

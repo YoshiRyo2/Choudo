@@ -61,7 +61,7 @@ test('Fit details from a card, then "Try M in the fitting room", wears it in M o
   expect(screen).toHaveSearchParams({ garmentId: first.id, size, from: 'browse' });
   await act(() => fireEvent.press(screen.getByRole('radio', { name: /^M, / })));
   await press('Try M in the fitting room');
-  expect(screen).toHavePathname('/');
+  expect(screen).toHavePathname('/fitting-room');
   const slot = first.category === 'onepiece' ? 'onepiece' : first.category;
   expect(read<Outfit>(STORAGE_KEYS.outfit)).toMatchObject({ [`${slot}Id`]: first.id, [`${slot}Size`]: 'M' });
   // The Fitting room shows it (the radio for M is the one checked).
@@ -98,7 +98,7 @@ test('closing Fit details keeps the feed where it was', async () => {
 
 test('Discover is not drawn behind the Fitting room until it is first opened', async () => {
   Storage.setItemSync(STORAGE_KEYS.body, JSON.stringify(BODY));
-  await renderRouter(appDir, { initialUrl: '/' });
+  await renderRouter(appDir, { initialUrl: '/fitting-room' });
   expect(screen.queryByText(/ to go$/)).toBeNull();
   await act(() => router.navigate('/discover'));
   expect(screen.getByText(/ to go$/)).toBeTruthy();

@@ -25,7 +25,7 @@ test('a blank name saves under the next default name, then says where it went', 
   expect(screen.getByRole('header', { name: 'Saved to your Closet' })).toBeTruthy();
   expect(screen.getByText('Find it under Closet → Outfits.')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Done' }));
-  expect(screen).toHavePathname('/');
+  expect(screen).toHavePathname('/fitting-room');
 });
 
 test('the outfit saved is the one on the mannequin: a stale stored one is resolved first', async () => {

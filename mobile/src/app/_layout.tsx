@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { MascotHeadContext } from '@/components/mannequin/head-context';
+import { GarmentLookupContext, useGarmentLookup } from '@/hooks/use-fetched';
 import { useHead } from '@/hooks/use-head';
 import { runMigrations } from '@/storage/kv';
 import { colors } from '@/theme';
@@ -16,6 +17,8 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [head] = useHead();
+  // Garments read from pasted links are found everywhere a seed garment is.
+  const garments = useGarmentLookup();
   // Keys are the family names used in theme/typography.ts. The files are Latin subsets of
   // M PLUS Rounded 1c (npm run fonts), about 65 KB each instead of 3.4 MB.
   const [fontsLoaded, fontError] = useFonts({
@@ -36,6 +39,7 @@ export default function RootLayout() {
     // Gestures (Discover's swipe card) only reach views under this root.
     <GestureHandlerRootView style={{ flex: 1 }}>
       <MascotHeadContext.Provider value={head}>
+        <GarmentLookupContext.Provider value={garments}>
         <StatusBar style="dark" />
         <Stack
           screenOptions={{
@@ -95,6 +99,7 @@ export default function RootLayout() {
             }}
           />
         </Stack>
+        </GarmentLookupContext.Provider>
       </MascotHeadContext.Provider>
     </GestureHandlerRootView>
   );

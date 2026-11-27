@@ -6,6 +6,7 @@
 import { validateBodyInput, type BodyInput } from '../../domain/body';
 import { FIT_STYLES, validateMeasuredAnchor, type Anchor, type FitStyle } from '../../domain/fit';
 import { CATALOGUE_SCOPES, type CatalogueScope } from '../../domain/garments';
+import type { FetchedProduct } from '../../domain/links';
 
 export const STORAGE_KEYS = {
   /** v2: `sizing` became `bodyType`, plus an optional bra size (migrate.ts moves v1 over). */
@@ -29,7 +30,20 @@ export const STORAGE_KEYS = {
   fitTests: 'choudo.fitTests.v3',
   /** The mascot head on the mannequin: "cloud", "peach" or "bunny" (a drawing choice only). */
   head: 'choudo.head.v1',
+  /**
+   * Garments read from pasted product links (phone: Uniqlo US), newest first, at most 30, each
+   * with when it was fetched. Also the 7-day cache by product code. Device only: never seed.json.
+   */
+  fetched: 'choudo.fetched.v1',
+  /** Hosts of pasted links Choudo can't read yet, newest first, at most 50 (listed in Test mode only). */
+  unsupportedHosts: 'choudo.unsupportedHosts.v1',
 } as const;
+
+/** A garment read from a product link, and when (ISO timestamp). See ui-logic/state/fetched.ts. */
+export interface StoredFetched {
+  product: FetchedProduct;
+  fetchedAt: string;
+}
 
 /** Display units. Metric = cm + kg, imperial = in + lb. Storage is always metric. */
 export type UnitSystem = 'metric' | 'imperial';
@@ -319,3 +333,23 @@ function isFitTestRecord(v: unknown): v is FitTestRecord {
 }
 
 export const isFitTestList = isArrayOf(isFitTestRecord);
+
+/**
+ * The shape of a stored fetched garment. Its garment is checked properly on load
+ * (readyFetchedGarment: validateSeed + normalizeGarment), which drops a bad one.
+ */
+function isStoredFetched(v: unknown): v is StoredFetched {
+  if (!isRecord(v) || !isString(v.fetchedAt) || !isRecord(v.product)) return false;
+  const p = v.product;
+  return (
+    isRecord(p.garment) &&
+    isString(p.garment.id) &&
+    Array.isArray(p.garment.sizes) &&
+    isStringOrNull(p.priceText) &&
+    isStringOrNull(p.imageUrl) &&
+    isString(p.productUrl)
+  );
+}
+
+export const isFetchedList = isArrayOf(isStoredFetched);
+export const isStringList = isArrayOf(isString);

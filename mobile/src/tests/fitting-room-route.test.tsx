@@ -23,7 +23,7 @@ const card = (g: Garment) => screen.getByRole('button', { name: `${g.brand} ${g.
 async function open(body: BodyInput = MENS, outfit?: Outfit) {
   Storage.setItemSync(STORAGE_KEYS.body, JSON.stringify(body));
   if (outfit) Storage.setItemSync(STORAGE_KEYS.outfit, JSON.stringify(outfit));
-  await renderRouter(appDir, { initialUrl: '/' });
+  await renderRouter(appDir, { initialUrl: '/fitting-room' });
 }
 
 beforeEach(() => {
