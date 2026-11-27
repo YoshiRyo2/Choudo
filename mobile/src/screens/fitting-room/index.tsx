@@ -185,13 +185,14 @@ export function FittingRoom({
 
   // The carousel: what's on show in this category, plus the worn garment if the filter hides it.
   const inCategory = shown.filter((g) => g.category === tab);
-  const carousel = active && !inCategory.includes(active.garment) ? [active.garment, ...inCategory] : inCategory;
+  // By id, never by object: two copies of one garment (say, a fetched one readied twice) are the same garment.
+  const carousel = active && !inCategory.some((g) => g.id === active.garment.id) ? [active.garment, ...inCategory] : inCategory;
   const show = catalogueToggle(body.bodyType, catalogue);
 
   // The garments either side of the one on show (or the first, when none is worn), worked out
   // a tick at a time after this render, so swiping on to them is instant. A jacket's are worked
   // out over the top under it, as they'll be shown; a new tab drops the old tab's queue.
-  const at = active ? carousel.indexOf(active.garment) : -1;
+  const at = active ? carousel.findIndex((g) => g.id === active.garment.id) : -1;
   const neighbours = (at < 0 ? [carousel[0]] : [carousel[at - 1], carousel[at + 1]]).filter((g): g is Garment => g !== undefined);
   usePrefetchOdds(model, preference, neighbours, { active: prefetch, under: tab === 'outer' ? under : undefined });
 

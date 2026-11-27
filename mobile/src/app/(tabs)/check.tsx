@@ -3,7 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { RECENT_CHECKS } from '@choudo/core/ui-logic/state/fetched';
 import { wearGarment } from '@choudo/core/ui-logic/state/outfit';
 
-import { useFetchedGarments, useUnsupportedHosts } from '@/hooks/use-fetched';
+import { useReadyFetched, useUnsupportedHosts } from '@/hooks/use-fetched';
 import { useTestMode } from '@/hooks/use-test-mode';
 import { useWardrobe } from '@/hooks/use-wardrobe';
 import { useLinkCheck } from '@/links/use-link-check';
@@ -17,9 +17,14 @@ import { DEV_TOOLS } from '@/utils/dev-tools';
 export default function CheckRoute() {
   const wardrobe = useWardrobe();
   const link = useLinkCheck();
-  const fetched = useFetchedGarments();
+  const fetched = useReadyFetched();
   const [hosts] = useUnsupportedHosts();
   const [testMode] = useTestMode();
+  // The result as the rest of the app has it (the context's one ready list), once it's stored;
+  // the check's own copy only until then.
+  const checked = link.state.kind === 'result' ? link.state.fetched.garment.id : null;
+  const stored = checked ? fetched.find((f) => f.garment.id === checked) : undefined;
+  const state = stored ? { kind: 'result' as const, fetched: stored } : link.state;
   if (!wardrobe) return null;
   return (
     <CheckScreen
@@ -27,7 +32,7 @@ export default function CheckRoute() {
       preference={wardrobe.preference}
       units={wardrobe.units}
       hasFitReference={wardrobe.preference.source === 'anchor'}
-      state={link.state}
+      state={state}
       recent={fetched.slice(0, RECENT_CHECKS)}
       onCheck={link.check}
       onRetry={link.retry}
