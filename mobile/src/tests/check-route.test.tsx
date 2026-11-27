@@ -6,7 +6,7 @@ import { fitAllSizes, preferenceSpec } from '@choudo/core/domain/fit';
 import { templateOf } from '@choudo/core/domain/garments';
 import { parseProductLink, readyFetchedGarment, uniqloToSeedGarment, uniqloUrls, type UniqloLink } from '@choudo/core/domain/links';
 import sizeChart from '@choudo/core/domain/links/__fixtures__/uniqlo-size-charts-E424873-000.json';
-import product from '@choudo/core/domain/links/__fixtures__/uniqlo-product-E424873-000.json';
+import product from '@choudo/core/domain/links/__fixtures__/uniqlo-details-E424873-000.json';
 import { fittingHeadline, reliabilityText, whyLine } from '@choudo/core/ui-logic/fitText';
 import { reliability } from '@choudo/core/ui-logic/reliability';
 import { garmentOdds } from '@choudo/core/ui-logic/state/odds';
@@ -47,7 +47,7 @@ let fetchMock: jest.Mock;
 function answerWith(by: { chart?: () => Promise<Response>; product?: () => Promise<Response> } = {}) {
   fetchMock = jest.fn((url: string) => {
     if (url === urls.sizeChart) return by.chart ? by.chart() : reply(sizeChart);
-    if (url === urls.product) return by.product ? by.product() : reply(product);
+    if (url === urls.details) return by.product ? by.product() : reply(product);
     return Promise.reject(new TypeError(`unexpected ${url}`));
   });
   globalThis.fetch = fetchMock as unknown as typeof fetch;
@@ -105,12 +105,12 @@ test('a Uniqlo link: reading shows inline, then the product, the answer, the why
   });
   expect(screen.queryByTestId('check-loading')).toBeNull();
   // Only Uniqlo's two addresses, with the product code: nothing about the body.
-  expect(fetchMock.mock.calls.map((c) => c[0]).sort()).toEqual([urls.product, urls.sizeChart].sort());
+  expect(fetchMock.mock.calls.map((c) => c[0]).sort()).toEqual([urls.details, urls.sizeChart].sort());
 
   const r = result();
   expect(r.getByRole('header', { name: 'Crew Neck T-Shirt' })).toBeTruthy();
   expect(r.getByText('$14.90')).toBeTruthy();
-  expect(r.getByTestId('check-thumb').props.source).toEqual({ uri: 'https://image.uniqlo.com/UQ/ST3/us/imagesgoods/424873/item/usgoods_15_424873_3x4.jpg' });
+  expect(r.getByTestId('check-thumb').props.source).toEqual({ uri: 'https://image.uniqlo.com/UQ/ST3/us/imagesgoods/424873/item/usgoods_00_424873_3x4.jpg' });
   expect(odds.recommended).not.toBeNull();
   const lines = linesFor(odds.recommended!);
   expect(r.getByText(lines.headline)).toBeTruthy();
@@ -241,8 +241,8 @@ test('recent checks: the stored products are listed, and a tap shows one again f
   // A second product, so the first is in the recent list.
   const second = 'E000001-000';
   const secondUrls = uniqloUrls(second);
-  const renamed = { ...product, result: { items: [{ ...product.result.items[0]!, productId: second, name: 'Supima Cotton T-Shirt' }] } };
-  fetchMock = jest.fn((url: string) => (url === secondUrls.sizeChart ? reply(sizeChart) : url === secondUrls.product ? reply(renamed) : reply(product)));
+  const renamed = { ...product, result: { ...product.result, productId: second, name: 'Supima Cotton T-Shirt' } };
+  fetchMock = jest.fn((url: string) => (url === secondUrls.sizeChart ? reply(sizeChart) : url === secondUrls.details ? reply(renamed) : reply(product)));
   globalThis.fetch = fetchMock as unknown as typeof fetch;
   await checkLink(`https://www.uniqlo.com/us/en/products/${second}`);
   expect(result().getByRole('header', { name: 'Supima Cotton T-Shirt' })).toBeTruthy();

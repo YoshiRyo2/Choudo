@@ -12,6 +12,7 @@ import {
   GARMENT_WEIGHTS,
   GIRTH_METHODS,
   MEASUREMENT_ORIGINS,
+  NECKLINES,
   PHOTO_LICENCES,
   SOURCE_TIERS,
   STRETCHES,
@@ -44,6 +45,10 @@ export function validateGarment(g: SeedGarment): string[] {
   if (spec.sleeve === 'required' && !g.sleeve) problems.push(spec.category === 'onepiece' ? `a ${g.type} needs a sleeve type` : 'tops need a sleeve type');
   if (spec.sleeve === 'forbidden' && g.sleeve) problems.push("bottoms can't have a sleeve");
   if (spec.category === 'top' && g.ankleZip !== undefined) problems.push("tops can't have an ankle zip");
+  if (g.neckline !== undefined) {
+    if (spec.template !== 'tee' && spec.template !== 'shirt') problems.push('only tees and shirts give a neckline');
+    else if (!NECKLINES.includes(g.neckline)) problems.push(`neckline must be one of ${NECKLINES.join(', ')}`);
+  }
   if ((spec.category === 'outer' || spec.category === 'onepiece') && g.ankleZip !== undefined) problems.push(`a ${g.type} can't have an ankle zip`);
   problems.push(...validateStretch(g.stretch));
   if (g.weight !== undefined && !GARMENT_WEIGHTS.includes(g.weight)) {
