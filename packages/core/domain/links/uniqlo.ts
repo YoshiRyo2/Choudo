@@ -16,19 +16,7 @@ import type { UniqloLink } from './parse';
 
 export { FETCHED_COLOR } from './colors';
 
-const API = 'https://www.uniqlo.com/us/api/commerce/v5/en';
-
-/**
- * The two requests for one product: its size chart (garment measurements) and its
- * details (name, price, colours with a photo each, and the fit / sleeve / neck tags).
- */
-export function uniqloUrls(productCode: string): { sizeChart: string; details: string } {
-  const code = encodeURIComponent(productCode);
-  return {
-    sizeChart: `${API}/products/size-charts?productIdsWithColorCode=${code}&includeBodyMeasurements=true&simpleSizeChart=true&httpFailure=true`,
-    details: `${API}/products/${code}/price-groups/00/details?includeModelSize=false&httpFailure=true`,
-  };
-}
+export { uniqloUrls } from './urls';
 
 /** The id a fetched Uniqlo product gets in the catalogue (and the cache key). */
 export const uniqloGarmentId = (productCode: string): string => `uniqlo-${productCode}`;
