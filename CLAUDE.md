@@ -163,8 +163,10 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  use-garments.ts (publicGarments with __DEV__ or Test mode on (DEV_TOOLS): Discover's catalogue; the
                  Fitting room's is the fetched garments first, then this, tagged "From your link"),
                  use-fetched.ts (the fetched list and unsupported hosts; GarmentLookupContext, provided by the root
-                 layout: every screen finds a garment by id through useFindGarment, so outfits, likes and fit details
-                 can point at a fetched one; a dropped one isn't found and is skipped, never deleted),
+                 layout and the only place the stored list is readied (readyFetched), so every screen gets the same
+                 Garment objects: useFindGarment, useKnownGarments, useReadyFetched. Outfits, likes and fit details
+                 can point at a fetched garment; a dropped one isn't found and is skipped, never deleted. Compare
+                 garments by id, never by object),
                  use-fit-reference.ts (anchor + fit style together), use-test-mode.ts, use-fit-tests.ts
                  (Test mode's results, the fitTests key), use-head.ts
                  (the mascot head; _layout.tsx provides it through MascotHeadContext), use-closet.ts (the

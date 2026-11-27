@@ -15,19 +15,19 @@ export function useUnsupportedHosts(): [string[], (next: string[]) => void] {
   return usePersistentState<string[]>(STORAGE_KEYS.unsupportedHosts, [], isStringList);
 }
 
-/** The stored fetched garments, checked and normalised like seed rows; any that fail are dropped. */
-export function useFetchedGarments(): readonly ReadyFetched[] {
-  const [list] = useFetchedList();
-  return useMemo(() => readyFetched(list), [list]);
-}
-
 /** Finds a garment by id: the seed's, or one read from a link. */
 export type FindGarment = (id: string) => Garment | undefined;
 
-/** Every garment the app knows (fetched first, then the seed) and a lookup over them. */
+/**
+ * Every garment the app knows (fetched first, then the seed) and a lookup over them, plus the
+ * stored fetched garments, checked and normalised like seed rows (any that fail are dropped).
+ * Built once, in the root layout: every screen gets the same Garment objects for a fetched
+ * garment, so `find(id)` and `fetched` agree (still, compare garments by id, never by object).
+ */
 export interface GarmentLookup {
   find: FindGarment;
   all: readonly Garment[];
+  fetched: readonly ReadyFetched[];
 }
 
 /**
@@ -36,18 +36,24 @@ export interface GarmentLookup {
  * a provider it's the seed alone. A fetched garment that was dropped isn't found, so whatever
  * points at it is skipped, never deleted.
  */
-export const GarmentLookupContext = createContext<GarmentLookup>({ find: findSeedGarment, all: GARMENTS });
+export const GarmentLookupContext = createContext<GarmentLookup>({ find: findSeedGarment, all: GARMENTS, fetched: [] });
 
 export const useFindGarment = (): FindGarment => useContext(GarmentLookupContext).find;
 /** Every garment the app knows, for helpers that take a list (outfitLine). */
 export const useKnownGarments = (): readonly Garment[] => useContext(GarmentLookupContext).all;
+/** The garments read from pasted links, newest first (the context's one ready list). */
+export const useReadyFetched = (): readonly ReadyFetched[] => useContext(GarmentLookupContext).fetched;
 
-/** The lookup the root layout provides: fetched garments first, then the seed. */
+/**
+ * The lookup the root layout provides (the only place the stored list is readied): fetched
+ * garments first, then the seed. Read it with useFindGarment, useKnownGarments, useReadyFetched.
+ */
 export function useGarmentLookup(): GarmentLookup {
-  const fetched = useFetchedGarments();
+  const [list] = useFetchedList();
   return useMemo(() => {
+    const fetched = readyFetched(list);
     const byId = new Map(fetched.map((f) => [f.garment.id, f.garment]));
     const all = [...byId.values(), ...GARMENTS.filter((g) => !byId.has(g.id))];
-    return { find: (id: string) => byId.get(id) ?? findSeedGarment(id), all };
-  }, [fetched]);
+    return { find: (id: string) => byId.get(id) ?? findSeedGarment(id), all, fetched };
+  }, [list]);
 }

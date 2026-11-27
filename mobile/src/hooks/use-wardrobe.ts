@@ -7,7 +7,7 @@ import type { Outfit, UnitSystem } from '@choudo/core/ui-logic/state/stored';
 
 import { useBody } from './use-body';
 import { useCatalogue } from './use-catalogue';
-import { useFetchedGarments } from './use-fetched';
+import { useReadyFetched } from './use-fetched';
 import { useGarments } from './use-garments';
 import { useOutfit } from './use-outfit';
 import { usePreference } from './use-preference';
@@ -44,7 +44,7 @@ export function useWardrobe(): Wardrobe | null {
   // No sample rows in a store build: a stored sample is swapped, not shown (storage is left alone).
   const seed = useGarments();
   // Garments read from pasted links (Check tab) come first; a dropped one is simply not here.
-  const fetched = useFetchedGarments();
+  const fetched = useReadyFetched();
   const fromLink = useMemo(() => new Set(fetched.map((f) => f.garment.id)), [fetched]);
   const garments = useMemo(
     () => [...fetched.map((f) => f.garment), ...seed.filter((g) => !fromLink.has(g.id))],
