@@ -12,7 +12,9 @@ import { reliability } from '@choudo/core/ui-logic/reliability';
 import { garmentOdds } from '@choudo/core/ui-logic/state/odds';
 import { EMPTY_OUTFIT, STORAGE_KEYS, type Outfit, type StoredFetched } from '@choudo/core/ui-logic/state/stored';
 
+import { brush, byTestId, nodes, type Node } from '@/components/mannequin/svg-tree';
 import { forgetThisLaunch } from '@/hooks/use-persistent-state';
+import { colorHex } from '@choudo/core/domain/links/colors';
 
 jest.mock('expo-web-browser', () => ({ openBrowserAsync: jest.fn(() => Promise.resolve({ type: 'opened' })) }));
 
@@ -109,8 +111,8 @@ test('a Uniqlo link: reading shows inline, then the product, the answer, the why
 
   const r = result();
   expect(r.getByRole('header', { name: 'Crew Neck T-Shirt' })).toBeTruthy();
-  expect(r.getByText('$14.90')).toBeTruthy();
-  expect(r.getByTestId('check-thumb').props.source).toEqual({ uri: 'https://image.uniqlo.com/UQ/ST3/us/imagesgoods/424873/item/usgoods_00_424873_3x4.jpg' });
+  expect(r.getByText('$14.90 · White · Crew Neck · Short sleeve · Regular fit')).toBeTruthy();
+  expect(r.getByTestId('check-photo').props.source).toEqual({ uri: 'https://image.uniqlo.com/UQ/ST3/us/imagesgoods/424873/item/usgoods_00_424873_3x4.jpg' });
   expect(odds.recommended).not.toBeNull();
   const lines = linesFor(odds.recommended!);
   expect(r.getByText(lines.headline)).toBeTruthy();
@@ -262,4 +264,57 @@ test('a stored fetched garment that fails the checks is dropped, and an outfit w
   expect(screen.queryByRole('button', { name: 'Uniqlo Crew Neck T-Shirt' })).toBeNull();
   // Storage is left as it was.
   expect(read<Outfit>(STORAGE_KEYS.outfit).topId).toBe('uniqlo-E424873-000');
+});
+
+describe('the real look: photo, drawing, colour', () => {
+  /** True when the tree under this testID paints a path in `hex`. */
+  const paints = (testID: string, hex: string) =>
+    nodes(byTestId(screen.toJSON() as unknown as Node, testID)!, 'RNSVGPath').some((p) => JSON.stringify(p.props.fill) === JSON.stringify(brush(hex)));
+
+  test("Uniqlo's photo for the link's colour, credited; Choudo's drawing beside it in that colour; the cut in words", async () => {
+    await open();
+    await checkLink('https://www.uniqlo.com/us/en/products/E424873-000/09');
+    const r = result();
+    expect(r.getByTestId('check-photo').props.source).toEqual({ uri: 'https://image.uniqlo.com/UQ/ST3/us/imagesgoods/424873/item/usgoods_09_424873_3x4.jpg' });
+    expect(r.getByTestId('check-photo').props.resizeMode).toBe('contain');
+    expect(r.getByText('Photo: Uniqlo')).toBeTruthy();
+    expect(r.getByText('On you')).toBeTruthy();
+    expect(paints('check-preview', colorHex('BLACK'))).toBe(true);
+    expect(r.getByText('$14.90 · Black · Crew Neck · Short sleeve · Regular fit')).toBeTruthy();
+    expect(r.getByText('Colour: Black')).toBeTruthy();
+    expect(r.queryByTestId('other-sleeve')).toBeNull();
+    // One chip per colour the product comes in, named for VoiceOver; the link's is selected.
+    const chips = r.getAllByRole('radio', { name: /^(White|Black|Red|Brown|Green|Navy|Purple)$/ });
+    expect(chips).toHaveLength(7);
+    expect(r.getByRole('radio', { name: 'Black' }).props.accessibilityState).toMatchObject({ selected: true });
+  });
+
+  test('a colour chip recolours the drawing and the photo, and is stored with the product', async () => {
+    await open();
+    await checkLink('https://www.uniqlo.com/us/en/products/E424873-000/09');
+    await fireEvent.press(result().getByRole('radio', { name: 'White' }));
+    expect(paints('check-preview', colorHex('WHITE'))).toBe(true);
+    expect(result().getByTestId('check-photo').props.source).toEqual({ uri: 'https://image.uniqlo.com/UQ/ST3/us/imagesgoods/424873/item/usgoods_00_424873_3x4.jpg' });
+    const stored = read<StoredFetched[]>(STORAGE_KEYS.fetched)[0]!;
+    expect(stored.product).toMatchObject({ colorCode: '00', colorName: 'WHITE', garment: { color: colorHex('WHITE') } });
+  });
+
+  test('"Try it on" (or a tap on the drawing) wears the chosen colour in the Fitting room', async () => {
+    await open();
+    await checkLink('https://www.uniqlo.com/us/en/products/E424873-000/09');
+    await fireEvent.press(result().getByRole('radio', { name: 'Navy' }));
+    await fireEvent.press(result().getByTestId('check-preview'));
+    expect(screen).toHavePathname('/fitting-room');
+    expect(read<Outfit>(STORAGE_KEYS.outfit)).toMatchObject({ topId: 'uniqlo-E424873-000', topSize: odds.recommended });
+    expect(paints('stage', colorHex('NAVY'))).toBe(true);
+  });
+
+  test('a sleeve Choudo cannot draw yet is drawn short, with a note', async () => {
+    const sleeveless = JSON.parse(JSON.stringify(product));
+    sleeveless.result.tags = sleeveless.result.tags.map((t: { group: string }) => (t.group === 'sleeve' ? { ...t, tag: 'sleeveless', tagName: 'Sleeveless' } : t));
+    answerWith({ product: () => reply(sleeveless) });
+    await open();
+    await checkLink(TEE_URL);
+    expect(result().getByTestId('other-sleeve')).toHaveTextContent('Choudo draws short and long sleeves only for now.');
+  });
 });

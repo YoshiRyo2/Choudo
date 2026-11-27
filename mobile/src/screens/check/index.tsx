@@ -30,6 +30,8 @@ export interface CheckScreenProps {
   onTryOn: (garment: Garment, size: string) => void;
   onOpenProduct: (url: string) => void;
   onEditBody: () => void;
+  /** A colour chip: store the checked product in that colour. */
+  onColor: (garmentId: string, colorCode: string) => void;
   /** Test mode only: hosts of pasted links Choudo couldn't read. */
   unsupportedHosts?: readonly string[];
 }
@@ -51,6 +53,7 @@ export function CheckScreen({
   onTryOn,
   onOpenProduct,
   onEditBody,
+  onColor,
   unsupportedHosts,
 }: CheckScreenProps) {
   const [text, setText] = useState('');
@@ -121,6 +124,7 @@ export function CheckScreen({
           onTryOn={onTryOn}
           onOpenProduct={onOpenProduct}
           onEditBody={onEditBody}
+          onColor={(code) => onColor(state.fetched.garment.id, code)}
         />
       )}
 

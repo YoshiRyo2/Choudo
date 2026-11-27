@@ -75,11 +75,18 @@ packages/core/   @choudo/core, shared by the web app and the native app. TypeScr
                  random.ts, fitTestCsv.ts + fitTestReport.ts (npm run fit:report)
     links/       parse.ts (parseProductLink: the first link in pasted text → Uniqlo US product code
                  + colour, or unknown with its host and why: other region / not a product page),
-                 uniqlo.ts (uniqloUrls: the size-chart and product requests; uniqloToSeedGarment: the
-                 responses → a tee / long-sleeve tee seed row, cm, chest flat, length and sleeve from the
-                 centre back, tier B, plus price, photo URL and the cleaned link as FetchedProduct;
-                 readyFetchedGarment: validateSeed + normalizeGarment, null when it fails),
-                 __fixtures__/ (trimmed real Uniqlo responses). No fetch, no React.
+                 uniqlo.ts (uniqloUrls: the size-chart and product-details requests; uniqloToSeedGarment:
+                 the responses → a tee / long-sleeve tee seed row, cm, chest flat, length and sleeve from the
+                 centre back, tier B, drawn in the link's colour (display code, else the first) with the
+                 tags' sleeve and neckline, plus price, every colour with its photo, the cut in words and
+                 the cleaned link as FetchedProduct; the older products?productIds= JSON still reads;
+                 a details 404 "nok" code 25 is a missing product; readyFetchedGarment: validateSeed +
+                 normalizeGarment, null when it fails), colors.ts (colorHex: colour name → drawing hex,
+                 COLOR_BASES + DARK / LIGHT mixes, unknown → FETCHED_COLOR), cut.ts (uniqloCut: tags →
+                 sleeve (other sleeves drawn short and named), neckline (tag, else the name), fit and the
+                 tags in words; **the fit tag is shown, not sized by**: link garments stay fitIntent
+                 "regular" because the engine aims an oversized design at more room, a size up on the
+                 same chart), __fixtures__/ (real Uniqlo responses; the details one byte for byte). No fetch, no React.
   ui-logic/      the UI's pure helpers, kept at their app/src/ui sub-paths
     screens/     bodyForm.ts, bodyFieldErrors.ts (per-field checks shown on blur), bodyPreview.ts
                  (a typical body until height + weight are valid), anchorForm.ts
@@ -91,7 +98,8 @@ packages/core/   @choudo/core, shared by the web app and the native app. TypeScr
                  (folders, saved outfits; shownLikes / showsOutfit / shownFolderItems skip what the catalogue hides), odds.ts (cached sampleFit), fitTests.ts (Test mode records + CSV),
                  stampSeen.ts (which stamps have dropped this session; sessionStorage), migrate.ts,
                  fetched.ts (the fetched list: addFetched max 30 newest first, 7-day isFresh, readyFetched
-                 drops rows that fail the seed checks; addUnsupportedHost max 50)
+                 drops rows that fail the seed checks; withColor / replaceFetched: a colour chip's choice,
+                 stored with the entry; addUnsupportedHost max 50)
     checkText.ts the Check tab's wording and its blameless error lines (linkError, canRetry)
     fitText.ts   all user-facing fit wording (and isJustRight: when the ちょうど stamp shows), incl.
                  reliabilityText / reliabilityAction and whyLine ("M gives you 8 cm of room at the
@@ -213,8 +221,10 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  to a cache file with expo-file-system, then the share sheet)
   src/screens/   body/ (BodyScreen + estimate-list; the mannequin preview, a typical body until yours),
                  check/ (CheckScreen: field, inline loading, errors with Retry where it helps, recent checks,
-                 Test mode's unsupported hosts; result-card.tsx: name, price, the brand photo as a thumbnail,
-                 FitAnswer with `details` (why-line + confidence line, as the web), SizePicker chips),
+                 Test mode's unsupported hosts; result-card.tsx: name, price, colour and cut in words;
+                 Uniqlo's photo for the chosen colour, large and as it is ("Photo: Uniqlo"), beside Choudo's
+                 own drawing "On you" in that colour and cut (a tap = Try it on); FitAnswer with `details`
+                 (why-line + confidence line, as the web); colour chips (stored with the entry) and size chips),
                  fit-reference/ (FitReferenceScreen: choose / catalogue / measure / style steps, tee-diagram),
                  dev/mannequin-lab.tsx (every garment, size, head, face, side and frame, height ±5 cm,
                  fit pins via fitOutfit; nothing saved), fitting-room/ (FittingRoom, the web screen top to
@@ -500,6 +510,10 @@ or `app/`. The UI only calls their public functions.
   (stretched onto the body where smaller, never wider than the body above; body width without one),
   rib cuffs, and for hoodies a hood behind the neck with drawcords. Length and a centre-back
   sleeve are placed with `tops.ts`. A snapshot of every tee and shirt drawing guards `topShape`.
+- Necklines (`garment.neckline`, tees and shirts, optional; seed rows don't set it, so they draw as
+  before): `topShape` changes only the points across the neck, front view only (`NECKLINE` shares of
+  the body: V, wider/deeper scoop, wide shallow boat, a mock band up the neck, a henley placket with
+  buttons in `TopShape.neck`). Brand photos of link garments are never drawn on the mannequin.
 - Photo landmarks per template: knits take the top's 13 plus an optional `hoodTop` (not warped yet);
   tops `TOP_LANDMARKS` (13), pants `PANTS_LANDMARKS` (14: waist
   corners + centre, hips, crotch, knee and hem corners per leg). Read them with `topLandmarks()` /

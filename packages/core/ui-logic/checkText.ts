@@ -18,7 +18,22 @@ export const CHECK_TEXT = {
   recent: 'Recent checks',
   fromLink: 'From your link',
   unsupportedHosts: 'Unsupported hosts',
+  /** Under the brand's photo, which is shown as it is. */
+  photoCredit: 'Photo: Uniqlo',
+  /** Over the mannequin preview drawn by Choudo. */
+  onYou: 'On you',
+  colour: 'Colour',
+  /** Under the result when the product's sleeve is neither short nor long (drawn short). */
+  otherSleeve: 'Choudo draws short and long sleeves only for now.',
 } as const;
+
+/** "OFF WHITE" → "Off White": a colour name as Uniqlo gives it, for reading. */
+export const colourLabel = (name: string): string =>
+  name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/(^|[\s-])(\p{L})/gu, (_m, sep: string, ch: string) => sep + ch.toUpperCase());
 
 /** Why a check didn't give a size. */
 export type CheckError =
