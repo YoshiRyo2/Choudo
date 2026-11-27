@@ -21,7 +21,11 @@ well-named modules over clever ones.
   product JSON for a pasted link (`domain/links/`). Only the product code goes to Uniqlo, never
   the body. Fetched garments live on the device (`choudo.fetched.v1`) and **never enter
   seed.json**. Brand photos show as they are (a thumbnail only), never warped onto the mannequin.
-  The website gets this through a fetch service later (Uniqlo sends no CORS header).
+  The website will read it through the fetch service in `worker/` (Uniqlo sends no CORS header).
+- **The fetch service (`worker/`, Cloudflare Worker "choudo-fetch") is not a general proxy.**
+  It answers only `GET /uniqlo/<code>/size-chart | details` and only ever calls the two addresses
+  core's `uniqloUrls()` builds (`domain/links/urls.ts`, imports nothing). Never add a route that
+  takes a URL, forwards the visitor's headers, cookies or IP, or follows a redirect. It logs nothing.
 - **No face, no photo, no camera.** Body input = height + weight + body type ("Size me in
   women's / men's clothes"), plus optional chest (full bust) / waist / hips / inseam
   overrides and, for a women's body, an optional bra size.
@@ -43,7 +47,7 @@ well-named modules over clever ones.
 
 ## Layout
 ```
-package.json     npm workspace root: packages/core + app + mobile. `npm install` and `npm run check` run here.
+package.json     npm workspace root: packages/core + app + mobile + worker. `npm install` and `npm run check` run here.
 packages/core/   @choudo/core, shared by the web app and the native app. TypeScript source,
                  no build step; import as @choudo/core/domain/<path> or @choudo/core/ui-logic/<path>.
                  Never imports React, the DOM or app/ (its tsconfig has no DOM lib).
@@ -73,7 +77,8 @@ packages/core/   @choudo/core, shared by the web app and the native app. TypeScr
                  preference.ts (anchor tee / fit style -> personal verdict), sampleFit.ts
                  (seeded odds, recommendSize, measurementHint), uncertainty.ts (every spread),
                  random.ts, fitTestCsv.ts + fitTestReport.ts (npm run fit:report)
-    links/       parse.ts (parseProductLink: the first link in pasted text → Uniqlo US product code
+    links/       urls.ts (uniqloUrls: the size-chart and details addresses, UNIQLO_PRODUCT_CODE; imports
+                 nothing, so the fetch service bundles it alone), parse.ts (parseProductLink: the first link in pasted text → Uniqlo US product code
                  + colour, or unknown with its host and why: other region / not a product page),
                  uniqlo.ts (uniqloUrls: the size-chart and product-details requests; uniqloToSeedGarment:
                  the responses → a tee / long-sleeve tee seed row, cm, chest flat, length and sleeve from the
@@ -262,6 +267,15 @@ app/public/sw.js  service worker (offline), registered by the production build o
 app/public/privacy.html, support.html  static pages the App Store listing links to (the site's tokens and its
                own font files in public/fonts/); dist:check fails without them or a link back to the app
 .github/workflows/deploy-pages.yml  checks core + app, builds app/ and deploys it to GitHub Pages on every push to main
+.github/workflows/deploy-worker.yml  deploys worker/ to Cloudflare when worker/ or core's domain/links/ changes on
+               main (or by hand); skipped with a notice until the CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID
+               secrets exist; smoke test: /anything-else is a 404, Uniqlo's answer reported
+worker/        @choudo/worker, the website's fetch service (setup and local run in worker/README.md):
+                 src/handle.ts (handle(request, deps): the one route, upstreamUrl, 8 s timeout → 504, other
+                 failures and redirects → 502, Uniqlo's status and body as they are, CORS only for ALLOWED_ORIGINS
+                 (the site + Vite 5173 / 127.0.0.1:5173 / 4173), ok answers cached 24 h in caches.default),
+                 src/index.ts (the entry: exports only the handler — the runtime rejects any other export),
+                 wrangler.toml (workers_dev, observability off), vitest tests with a fake fetch and cache
 app/scripts/   stamp-glyphs.mjs (one-off: ちょうど outlined from Shippori Mincho B1, OFL, via opentype.js),
                data-check.mjs (npm run data:check), fit-report.mjs (npm run fit:report),
                garment-photos.mjs (npm run photos: AI cut-out via photo-model.mjs, BiRefNet-lite,
@@ -539,8 +553,8 @@ or `app/`. The UI only calls their public functions.
 ## Commands
 From the repo root:
 ```bash
-npm install                # install the workspace (packages/core + app + mobile)
-npm run check              # core, app, then mobile checks — gate every commit on this exiting 0
+npm install                # install the workspace (packages/core + app + mobile + worker)
+npm run check              # core, app, mobile, then worker checks — gate every commit on this exiting 0
 npm test -w @choudo/core   # core unit tests alone (the engine, golden tests, pure UI logic)
 ```
 From `mobile/`:
@@ -572,7 +586,7 @@ needs them).
 
 ## Deploy (GitHub Pages)
 - Every push to `main` runs `.github/workflows/deploy-pages.yml` from the repo root: install,
-  `npm run check` (core + app + mobile), `npm run build -w app`, `npm run dist:check -w app`, then deploy to https://yoshiryo2.github.io/Choudo/.
+  `npm run check` (core + app + mobile + worker), `npm run build -w app`, `npm run dist:check -w app`, then deploy to https://yoshiryo2.github.io/Choudo/.
   Pages' source must be "GitHub Actions" (repo settings).
 - Installable PWA: `public/manifest.webmanifest` uses relative URLs (works at `/` and `/Choudo/`).
   `public/sw.js` lets it open offline: the build stamps its `BUILD` line (`build/serviceWorker.ts`)
