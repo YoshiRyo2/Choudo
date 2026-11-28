@@ -1,0 +1,10 @@
+# choudo-fetch: the website's fetch service for Uniqlo's two public JSON addresses.
+# Deployed by .github/workflows/deploy-worker.yml; see README.md.
+name = "choudo-fetch"
+main = "src/index.ts"
+compatibility_date = "2026-11-20"
+# https://choudo-fetch.<subdomain>.workers.dev
+workers_dev = true
+# No logs beyond Cloudflare's default request counts: nothing a visitor checks is kept.
+[observability]
+enabled = false

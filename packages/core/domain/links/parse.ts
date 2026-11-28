@@ -3,6 +3,8 @@
  * global (core has no DOM lib), so the link is split with plain string rules.
  */
 
+import { UNIQLO_PRODUCT_CODE } from './urls';
+
 /** A Uniqlo US product page: www.uniqlo.com/us/<lang>/products/<code>[/<colour>]. */
 export interface UniqloLink {
   brand: 'uniqlo';
@@ -36,7 +38,6 @@ const TRAILING = /[).,;:!?\]}»”’]+$/;
 const URL_PARTS = /^(?:https?:\/\/)?([^/?#:@\s]+)(?::\d+)?([^?#]*)(\?[^#]*)?(#.*)?$/i;
 
 const UNIQLO_HOST = /^(?:(?:www|m)\.)?uniqlo\.com$/;
-const PRODUCT_CODE = /^[a-z]\d{6}-\d{3}$/i;
 const COLOR_CODE = /^\d{2,3}$/;
 const LANG = /^[a-z]{2}$/i;
 
@@ -61,7 +62,7 @@ export function parseProductLink(text: string): ProductLink | null {
     LANG.test(lang) &&
     products === 'products' &&
     code !== undefined &&
-    PRODUCT_CODE.test(code) &&
+    UNIQLO_PRODUCT_CODE.test(code) &&
     (color === undefined || COLOR_CODE.test(color));
   if (!isProduct) return { brand: 'unknown', host, uniqlo: 'not-a-product' };
   if (region!.toLowerCase() !== 'us') return { brand: 'unknown', host, uniqlo: 'other-region' };

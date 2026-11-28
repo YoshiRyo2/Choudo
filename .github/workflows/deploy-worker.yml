@@ -1,0 +1,78 @@
+# Deploys the fetch service (worker/, "choudo-fetch") to Cloudflare Workers when it or the
+# Uniqlo addresses it calls (packages/core/domain/links/) change on main, or by hand.
+# Needs the repo secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (worker/README.md);
+# without them the deploy is skipped with a notice, not failed.
+name: Deploy fetch service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - worker/**
+      - packages/core/domain/links/**
+      - .github/workflows/deploy-worker.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker
+  cancel-in-progress: false
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - id: check
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "$ACCOUNT" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=Fetch service not deployed::Add the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets (worker/README.md), then re-run this workflow."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: secrets
+    if: needs.secrets.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+      # From the repo root (the npm workspace), as deploy-pages.yml does.
+      - run: npm ci --ignore-scripts
+      - run: npm rebuild esbuild
+      - run: npm run check -w worker
+      - id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          # No wranglerVersion: the action uses the one npm ci installed (package-lock.json).
+          packageManager: npm
+      # Our own routes must answer as built; Uniqlo's answer is reported, not required.
+      - name: Smoke test
+        env:
+          URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          if [ -z "$URL" ]; then echo "::notice::No deployment URL from wrangler; smoke test skipped."; exit 0; fi
+          echo "Fetch service: $URL"
+          status=$(curl -s -o /dev/null -w '%{http_code}' "$URL/anything-else")
+          if [ "$status" != "404" ]; then echo "::error::$URL/anything-else answered $status, not 404"; exit 1; fi
+          status=$(curl -s -o /dev/null -w '%{http_code}' "$URL/uniqlo/E424873-000/size-chart")
+          if [ "$status" = "200" ]; then
+            echo "::notice title=Fetch service live::$URL (Uniqlo's size chart answered 200)"
+          else
+            echo "::warning title=Uniqlo didn't answer::$URL/uniqlo/E424873-000/size-chart answered $status"
+          fi

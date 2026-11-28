@@ -12,6 +12,6 @@ export {
   uniqloGarmentId,
   uniqloColor,
   uniqloToSeedGarment,
-  uniqloUrls,
 } from './uniqlo';
+export { UNIQLO_PRODUCT_CODE, uniqloUrls } from './urls';
 export type { FetchedColor, FetchedProduct, UniqloFailure, UniqloResult } from './uniqlo';

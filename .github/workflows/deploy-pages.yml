@@ -1,4 +1,4 @@
-# Checks the workspace (packages/core, app and mobile), builds app/ and deploys it to GitHub
+# Checks the workspace (packages/core, app, mobile and worker), builds app/ and deploys it to GitHub
 # Pages (https://yoshiryo2.github.io/Choudo/) on every push to main.
 # Needs Settings → Pages → Source: "GitHub Actions".
 name: Deploy to GitHub Pages
