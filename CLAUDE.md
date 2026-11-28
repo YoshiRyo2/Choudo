@@ -269,7 +269,8 @@ app/public/privacy.html, support.html  static pages the App Store listing links 
 .github/workflows/deploy-pages.yml  checks core + app, builds app/ and deploys it to GitHub Pages on every push to main
 .github/workflows/deploy-worker.yml  deploys worker/ to Cloudflare when worker/ or core's domain/links/ changes on
                main (or by hand); skipped with a notice until the CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID
-               secrets exist; smoke test: /anything-else is a 404, Uniqlo's answer reported
+               secrets exist; smoke test: waits up to 3 min (every 15 s) while Cloudflare's HTML
+               404 shows, then /anything-else is a 404, Uniqlo's answer reported (warns, never fails)
 worker/        @choudo/worker, the website's fetch service (setup and local run in worker/README.md):
                  src/handle.ts (handle(request, deps): the one route, upstreamUrl, 8 s timeout → 504, other
                  failures and redirects → 502, Uniqlo's status and body as they are, CORS only for ALLOWED_ORIGINS
