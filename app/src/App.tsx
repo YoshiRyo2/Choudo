@@ -44,7 +44,7 @@ import {
  * Enter your body once, then check a product link's size, or move between the fitting
  * room, the Discover feed and your Closet. Everything the user enters is kept in this
  * browser's localStorage and never leaves the device: a pasted link's product code goes to
- * the fetch service (links/fetchUniqlo.ts) and on to Uniqlo, nothing else. The production
+ * the fetch service (links/fetchUniqlo.ts, links/fetchZara.ts) and on to Uniqlo or Zara, nothing else. The production
  * build only counts anonymous visits and the fixed steps in ui/analytics.ts.
  */
 export function App() {

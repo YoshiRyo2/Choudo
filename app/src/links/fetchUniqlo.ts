@@ -10,9 +10,10 @@ import { isMissingProduct, readyFetchedGarment, UNIQLO_PRODUCT_CODE, uniqloToSee
 import type { CheckError } from '@choudo/core/ui-logic/checkText';
 import { isFresh } from '@choudo/core/ui-logic/state/fetched';
 import type { StoredFetched } from '@choudo/core/ui-logic/state/stored';
-import { FETCH_SERVICE, UNIQLO_IMAGE_HOST } from './service';
+import { getWithRetry } from './request';
+import { FETCH_SERVICE, UNIQLO_IMAGE_HOST, ZARA_IMAGE_HOST } from './service';
 
-export { FETCH_SERVICE, UNIQLO_IMAGE_HOST };
+export { FETCH_SERVICE, UNIQLO_IMAGE_HOST, ZARA_IMAGE_HOST };
 
 /** Where requests go: the fetch service, or VITE_FETCH_BASE (e.g. `npx wrangler dev`'s http://localhost:8787). */
 export const FETCH_BASE: string = (import.meta.env.VITE_FETCH_BASE as string | undefined)?.replace(/\/+$/, '') || FETCH_SERVICE;
@@ -40,31 +41,6 @@ export interface FetchOptions {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
   base?: string;
-}
-
-type Got = { ok: true; text: string } | { ok: false; status: number; text: string };
-
-/** One GET with a timeout. Throws on a network error or a timeout; a non-2xx is a result. */
-async function get(url: string, fetchImpl: typeof fetch, timeoutMs: number): Promise<Got> {
-  const abort = new AbortController();
-  const timer = setTimeout(() => abort.abort(), timeoutMs);
-  try {
-    // No cookies or credentials: the service needs none. Accept is a CORS-safelisted header, so no preflight.
-    const res = await fetchImpl(url, { signal: abort.signal, credentials: 'omit', headers: { Accept: 'application/json' } });
-    if (!res.ok) return { ok: false, status: res.status, text: await res.text().catch(() => '') };
-    return { ok: true, text: await res.text() };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-/** `get`, tried once more when the network fails (not when an error status comes back). */
-async function getWithRetry(url: string, fetchImpl: typeof fetch, timeoutMs: number): Promise<Got> {
-  try {
-    return await get(url, fetchImpl, timeoutMs);
-  } catch {
-    return get(url, fetchImpl, timeoutMs);
-  }
 }
 
 /** Both requests for a product code, in parallel. Never throws. */
@@ -116,13 +92,19 @@ export async function checkUniqloLink(link: UniqloLink, { cached, now = new Date
   return { kind: 'ok', entry: { product: result.product, fetchedAt: now.toISOString() }, fromCache: false };
 }
 
-/** The photo URL when it's an https address on Uniqlo's image host; null otherwise (the flat drawing shows). */
-export function uniqloPhoto(url: string | null | undefined): string | null {
+/** The photo URL when it's an https address on `host`; null otherwise (the flat drawing shows). */
+function photoOn(url: string | null | undefined, hosts: readonly string[]): string | null {
   if (!url) return null;
   try {
     const u = new URL(url);
-    return u.protocol === 'https:' && u.hostname === UNIQLO_IMAGE_HOST ? u.href : null;
+    return u.protocol === 'https:' && hosts.includes(u.hostname) ? u.href : null;
   } catch {
     return null;
   }
 }
+
+/** The photo URL when it's an https address on Uniqlo's image host; null otherwise (the flat drawing shows). */
+export const uniqloPhoto = (url: string | null | undefined): string | null => photoOn(url, [UNIQLO_IMAGE_HOST]);
+
+/** A checked product's photo: an https address on Uniqlo's or Zara's image host, else null (the flat drawing shows). */
+export const productPhoto = (url: string | null | undefined): string | null => photoOn(url, [UNIQLO_IMAGE_HOST, ZARA_IMAGE_HOST]);

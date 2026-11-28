@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { BodyModel } from '@choudo/core/domain/body';
 import type { PreferenceSpec } from '@choudo/core/domain/fit';
 import type { Garment } from '@choudo/core/domain/garments';
-import { canRetry, CHECK_TEXT, checkErrorText } from '@choudo/core/ui-logic/checkText';
+import { brandText, canRetry, CHECK_TEXT, checkErrorText } from '@choudo/core/ui-logic/checkText';
 import type { ReadyFetched } from '@choudo/core/ui-logic/state/fetched';
 import type { UnitSystem } from '@choudo/core/ui-logic/state/stored';
 import type { CheckState } from '../../links/useLinkCheck';
@@ -31,7 +31,7 @@ export interface CheckProps {
 }
 
 /**
- * The Check tab, where the site opens (the phone's CheckScreen): paste a Uniqlo US product
+ * The Check tab, where the site opens (the phone's CheckScreen): paste a Uniqlo US or Zara US product
  * link, see the size to buy, why, and how far to trust it. Loading and errors show inline,
  * under the field. Enter in the field checks.
  */
@@ -93,10 +93,10 @@ export function Check({
       </form>
 
       <div aria-live="polite" className="check__status">
-        {state.kind === 'loading' && <p data-testid="check-loading">{CHECK_TEXT.loading}</p>}
+        {state.kind === 'loading' && <p data-testid="check-loading">{brandText(state.brand).loading}</p>}
         {state.kind === 'error' && (
           <div className="check__error" data-testid="check-error">
-            <p role="alert">{checkErrorText(state.error)}</p>
+            <p role="alert">{checkErrorText(state.error, state.brand)}</p>
             {canRetry(state.error) && (
               <button type="button" className="button button--outline button--small" onClick={onRetry}>
                 {CHECK_TEXT.retry}

@@ -30,15 +30,33 @@
       "name": "choudo-fetch",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
-        "--prefix",
-        "worker",
         "run",
         "dev",
+        "-w",
+        "worker",
         "--",
         "--port",
         "8787"
       ],
       "port": 8787
+    },
+    {
+      "name": "choudo-app-local-fetch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "app",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "4173",
+        "--strictPort"
+      ],
+      "env": {
+        "VITE_FETCH_BASE": "http://localhost:8787"
+      },
+      "port": 4173
     }
   ]
 }

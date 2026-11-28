@@ -9,6 +9,8 @@ import type { CheckError } from '@choudo/core/ui-logic/checkText';
 import { isFresh } from '@choudo/core/ui-logic/state/fetched';
 import type { StoredFetched } from '@choudo/core/ui-logic/state/stored';
 
+import { getWithRetry } from './request';
+
 export const FETCH_TIMEOUT_MS = 10_000;
 
 export type FetchOutcome =
@@ -24,30 +26,6 @@ export type FetchOutcome =
 export interface FetchOptions {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
-}
-
-type Got = { ok: true; text: string } | { ok: false; status: number; text: string };
-
-/** One GET with a timeout. Throws on a network error or a timeout; a non-2xx is a result. */
-async function get(url: string, fetchImpl: typeof fetch, timeoutMs: number): Promise<Got> {
-  const abort = new AbortController();
-  const timer = setTimeout(() => abort.abort(), timeoutMs);
-  try {
-    const res = await fetchImpl(url, { signal: abort.signal, headers: { Accept: 'application/json' } });
-    if (!res.ok) return { ok: false, status: res.status, text: await res.text().catch(() => '') };
-    return { ok: true, text: await res.text() };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-/** `get`, tried once more when the network fails (not when Uniqlo answers with an error). */
-async function getWithRetry(url: string, fetchImpl: typeof fetch, timeoutMs: number): Promise<Got> {
-  try {
-    return await get(url, fetchImpl, timeoutMs);
-  } catch {
-    return get(url, fetchImpl, timeoutMs);
-  }
 }
 
 /** Both requests for a product code, in parallel. Never throws. */

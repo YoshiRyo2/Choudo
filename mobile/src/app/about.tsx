@@ -27,8 +27,8 @@ export default function About() {
         only. Deleting the app removes them.
       </ThemedText>
       <ThemedText>
-        When you paste a product link, Choudo reads Uniqlo’s public size chart for it: only the link is sent to Uniqlo,
-        never your measurements.
+        When you paste a product link, Choudo reads the brand’s public size chart for it (Uniqlo or Zara): only the
+        link’s product code is sent, never your measurements.
       </ThemedText>
       <ThemedText style={styles.link} accessibilityRole="link" onPress={() => void WebBrowser.openBrowserAsync(PRIVACY_URL).catch(() => {})}>
         Privacy policy

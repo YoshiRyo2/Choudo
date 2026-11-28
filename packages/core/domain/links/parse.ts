@@ -4,6 +4,7 @@
  */
 
 import { UNIQLO_PRODUCT_CODE } from './urls';
+import { ZARA_PRODUCT_ID } from './zaraUrls';
 
 /** A Uniqlo US product page: www.uniqlo.com/us/<lang>/products/<code>[/<colour>]. */
 export interface UniqloLink {
@@ -17,27 +18,56 @@ export interface UniqloLink {
   url: string;
 }
 
-/**
- * Any other link. `uniqlo` says why a uniqlo.com link isn't one we read:
- * another region's shop, or not a product page.
- */
+/** A Zara US product page: www.zara.com/us/<lang>/<slug>-p<8 digits>.html[?v1=<colour product id>]. */
+export interface ZaraLink {
+  brand: 'zara';
+  region: 'us';
+  /** The 8 digits after "-p": "04174639". Zara's search finds the product by it. */
+  seoId: string;
+  /** The colour's product id from `?v1=`, when the link has one (shared links often do). */
+  colorProductId?: number;
+  /** The link as Choudo keeps it: https, www host, /us/en/, `?v1=` only when it was there. */
+  url: string;
+}
+
+/** Why a brand's own link isn't one we read: another region's shop, or not a product page. */
+export type BrandLinkReason = 'other-region' | 'not-a-product';
+
+/** Any other link. `uniqlo` / `zara` say why that brand's link isn't one we read. */
 export interface UnknownLink {
   brand: 'unknown';
   /** Lower case, no port. */
   host: string;
-  uniqlo?: 'other-region' | 'not-a-product';
+  uniqlo?: BrandLinkReason;
+  zara?: BrandLinkReason;
 }
 
-export type ProductLink = UniqloLink | UnknownLink;
+export type ProductLink = UniqloLink | ZaraLink | UnknownLink;
 
-/** The first http(s)://, www. or bare uniqlo.com/ address in the text. */
-const URL_IN_TEXT = /(?:https?:\/\/|www\.|\b(?:m\.)?uniqlo\.com\/)[^\s<>"'`]*/i;
+/** The brands Choudo reads a product link from. */
+export type LinkBrand = 'uniqlo' | 'zara';
+
+/** The brand a link is from (also a brand link Choudo can't read yet), or undefined. */
+export function linkBrand(link: ProductLink | null): LinkBrand | undefined {
+  if (link === null) return undefined;
+  if (link.brand !== 'unknown') return link.brand;
+  if (link.uniqlo) return 'uniqlo';
+  if (link.zara) return 'zara';
+  return undefined;
+}
+
+/** The first http(s)://, www. or bare uniqlo.com/ or zara.com/ address in the text. */
+const URL_IN_TEXT = /(?:https?:\/\/|www\.|\b(?:m\.)?(?:uniqlo|zara)\.com\/)[^\s<>"'`]*/i;
 /** Punctuation a sentence puts after a link, not part of it. */
 const TRAILING = /[).,;:!?\]}»”’]+$/;
 /** scheme? host port? path query? fragment? */
 const URL_PARTS = /^(?:https?:\/\/)?([^/?#:@\s]+)(?::\d+)?([^?#]*)(\?[^#]*)?(#.*)?$/i;
 
 const UNIQLO_HOST = /^(?:(?:www|m)\.)?uniqlo\.com$/;
+const ZARA_HOST = /^(?:(?:www|m)\.)?zara\.com$/;
+/** A Zara product page's last path part: "<slug>-p<8 digits>.html", the slug possibly empty. */
+const ZARA_PAGE = /^(.*)-p(\d{8})\.html$/i;
+const REGION = /^[a-z]{2}$/i;
 const COLOR_CODE = /^\d{2,3}$/;
 const LANG = /^[a-z]{2}$/i;
 
@@ -52,6 +82,7 @@ export function parseProductLink(text: string): ProductLink | null {
   if (!parts) return null;
   const host = parts[1]!.toLowerCase().replace(/\.$/, '');
   if (!host.includes('.')) return null;
+  if (ZARA_HOST.test(host)) return zaraLink(host, parts[2] ?? '', parts[3]);
   if (!UNIQLO_HOST.test(host)) return { brand: 'unknown', host };
 
   const path = (parts[2] ?? '').split('/').filter((p) => p !== '');
@@ -75,5 +106,37 @@ export function parseProductLink(text: string): ProductLink | null {
     url: `https://www.uniqlo.com/us/${lang!.toLowerCase()}/products/${productCode}${color !== undefined ? `/${color}` : ''}`,
   };
   if (color !== undefined) link.colorCode = color;
+  return link;
+}
+
+/** The `v1` value of a query string ("?v1=616513993&utm_source=x"), or undefined. */
+function v1Of(query: string | undefined): string | undefined {
+  if (!query) return undefined;
+  for (const pair of query.slice(1).split('&')) {
+    const [key, value] = pair.split('=');
+    if (key === 'v1') return value;
+  }
+  return undefined;
+}
+
+/** A zara.com link: a US product page, or why not. Only `?v1=` is read from the query. */
+function zaraLink(host: string, pathname: string, query: string | undefined): ZaraLink | UnknownLink {
+  const path = pathname.split('/').filter((p) => p !== '');
+  const [region, lang, page] = path;
+  const m = page !== undefined ? ZARA_PAGE.exec(page) : null;
+  const isProduct = path.length === 3 && REGION.test(region!) && lang !== undefined && LANG.test(lang) && m !== null;
+  if (!isProduct) return { brand: 'unknown', host, zara: 'not-a-product' };
+  if (region!.toLowerCase() !== 'us') return { brand: 'unknown', host, zara: 'other-region' };
+
+  const seoId = m[2]!;
+  const v1 = v1Of(query);
+  const color = v1 !== undefined && ZARA_PRODUCT_ID.test(v1) ? v1 : undefined;
+  const link: ZaraLink = {
+    brand: 'zara',
+    region: 'us',
+    seoId,
+    url: `https://www.zara.com/us/en/${m[1]!}-p${seoId}.html${color !== undefined ? `?v1=${color}` : ''}`,
+  };
+  if (color !== undefined) link.colorProductId = Number(color);
   return link;
 }

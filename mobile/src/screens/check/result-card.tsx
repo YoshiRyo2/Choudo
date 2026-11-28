@@ -3,7 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BodyModel } from '@choudo/core/domain/body';
 import { fitAllSizes, type PreferenceSpec } from '@choudo/core/domain/fit';
 import type { Garment } from '@choudo/core/domain/garments';
-import { CHECK_TEXT, colourLabel } from '@choudo/core/ui-logic/checkText';
+import { brandText, CHECK_TEXT, colourLabel, productBrand } from '@choudo/core/ui-logic/checkText';
 import { fittingHeadline } from '@choudo/core/ui-logic/fitText';
 import type { ReadyFetched } from '@choudo/core/ui-logic/state/fetched';
 import { garmentOdds } from '@choudo/core/ui-logic/state/odds';
@@ -32,7 +32,7 @@ export interface ResultCardProps {
 }
 
 /**
- * One checked product: name and price; Uniqlo's photo, large and as it is ("Photo: Uniqlo"),
+ * One checked product: name and price; the brand's photo, large and as it is ("Photo: Uniqlo" / "Photo: Zara"),
  * beside Choudo's own drawing of it on you in the product's colour and cut; the answer for
  * the suggested size; a chip per colour and per size. Give it a `key` per garment so a new
  * product starts on its own suggested size.
@@ -45,6 +45,7 @@ export function ResultCard({ fetched, model, preference, units, hasFitReference,
   const fit = fits.find((f) => f.sizeLabel === size);
   const face = fittingHeadline(odds, size, garment).tone;
   const colorName = product.colorName ? colourLabel(product.colorName) : null;
+  const brand = brandText(productBrand(garment));
 
   return (
     <View style={styles.card} testID="check-result">
@@ -61,10 +62,10 @@ export function ResultCard({ fetched, model, preference, units, hasFitReference,
       <View style={styles.pictures}>
         <View style={styles.picture}>
           <View style={styles.frame}>
-            <ProductPhoto garment={garment} uri={product.imageUrl} name={garment.name} />
+            <ProductPhoto garment={garment} uri={product.imageUrl} name={garment.name} credit={brand.photoCredit} />
           </View>
           <ThemedText variant="small" tone="muted" style={styles.caption}>
-            {CHECK_TEXT.photoCredit}
+            {brand.photoCredit}
           </ThemedText>
         </View>
         <View style={styles.picture}>
@@ -132,14 +133,14 @@ export function ResultCard({ fetched, model, preference, units, hasFitReference,
 
       <View style={styles.actions}>
         <Button title={CHECK_TEXT.tryOn} onPress={() => onTryOn(garment, size)} />
-        <Button variant="outline" title={CHECK_TEXT.openAt} onPress={() => onOpenProduct(product.productUrl)} />
+        <Button variant="outline" title={brand.openAt} onPress={() => onOpenProduct(product.productUrl)} />
       </View>
     </View>
   );
 }
 
-/** Uniqlo's photo as it is: fitted into its frame (contained, never cropped or recoloured); the flat drawing without one or on an error. */
-function ProductPhoto({ garment, uri, name }: { garment: Garment; uri: string | null; name: string }) {
+/** The brand's photo as it is: fitted into its frame (contained, never cropped or recoloured); the flat drawing without one or on an error. */
+function ProductPhoto({ garment, uri, name, credit }: { garment: Garment; uri: string | null; name: string; credit: string }) {
   const [failed, setFailed] = useState(false);
   if (!uri || failed) return <GarmentIcon garment={garment} />;
   return (
@@ -148,7 +149,7 @@ function ProductPhoto({ garment, uri, name }: { garment: Garment; uri: string | 
       source={{ uri }}
       resizeMode="contain"
       style={styles.photo}
-      accessibilityLabel={`${name}, ${CHECK_TEXT.photoCredit}`}
+      accessibilityLabel={`${name}, ${credit}`}
       onError={() => setFailed(true)}
     />
   );

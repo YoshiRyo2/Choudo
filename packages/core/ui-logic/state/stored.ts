@@ -31,7 +31,7 @@ export const STORAGE_KEYS = {
   /** The mascot head on the mannequin: "cloud", "peach" or "bunny" (a drawing choice only). */
   head: 'choudo.head.v1',
   /**
-   * Garments read from pasted product links (phone: Uniqlo US), newest first, at most 30, each
+   * Garments read from pasted product links (Uniqlo US, Zara US), newest first, at most 30, each
    * with when it was fetched. Also the 7-day cache by product code. Device only: never seed.json.
    */
   fetched: 'choudo.fetched.v1',

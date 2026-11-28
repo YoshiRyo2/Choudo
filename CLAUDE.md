@@ -19,14 +19,17 @@ well-named modules over clever ones.
   links, hosts or stored data. Only `ui/analytics.ts`
   talks to GoatCounter; never rewrite the page URL before its first count. `mobile/` has none.
 - **Product links (phone and website).** The Check tab reads Uniqlo US's public size-chart and
-  product JSON for a pasted link (`domain/links/`). Only the product code goes out, never
+  product JSON, or Zara US's search and size guide, for a pasted link (`domain/links/`). Only the
+  product code (Zara: the link's number and the colour's id) goes out, never
   the body. Fetched garments live on the device (`choudo.fetched.v1`) and **never enter
   seed.json**. Brand photos show as they are (a thumbnail only), never warped onto the mannequin.
-  The phone asks Uniqlo directly; the website asks the fetch service in `worker/` (Uniqlo sends
-  no CORS header) and shows photos only from `image.uniqlo.com` (`app/src/links/`).
+  The phone asks the brand directly (Zara: through the fetch service only when Zara answers 403 / 429);
+  the website asks the fetch service in `worker/` (neither brand sends a CORS header) and shows photos
+  only from `image.uniqlo.com` and `static.zara.net` (`app/src/links/`).
 - **The fetch service (`worker/`, Cloudflare Worker "choudo-fetch") is not a general proxy.**
-  It answers only `GET /uniqlo/<code>/size-chart | details` and only ever calls the two addresses
-  core's `uniqloUrls()` builds (`domain/links/urls.ts`, imports nothing). Never add a route that
+  It answers only `GET /uniqlo/<code>/size-chart | details`, `/zara/<8 digits>/search` and
+  `/zara/<6–12 digits>/size-guide`, and only ever calls the addresses core's `uniqloUrls()` and
+  `zaraUrls` build (`domain/links/urls.ts`, `zaraUrls.ts`, both import nothing). Never add a route that
   takes a URL, forwards the visitor's headers, cookies or IP, or follows a redirect. It logs nothing.
 - **No face, no photo, no camera.** Body input = height + weight + body type ("Size me in
   women's / men's clothes"), plus optional chest (full bust) / waist / hips / inseam
@@ -81,7 +84,8 @@ packages/core/   @choudo/core, shared by the web app and the native app. TypeScr
                  random.ts, fitTestCsv.ts + fitTestReport.ts (npm run fit:report)
     links/       urls.ts (uniqloUrls: the size-chart and details addresses, UNIQLO_PRODUCT_CODE; imports
                  nothing, so the fetch service bundles it alone), parse.ts (parseProductLink: the first link in pasted text → Uniqlo US product code
-                 + colour, or unknown with its host and why: other region / not a product page),
+                 + colour, a Zara US link (`/us/<lang>/<slug>-p<8 digits>.html`, `?v1=` colour) → ZaraLink, or unknown
+                 with its host and why (`uniqlo` / `zara`: other region / not a product page); linkBrand),
                  uniqlo.ts (uniqloUrls: the size-chart and product-details requests; uniqloToSeedGarment:
                  the responses → a tee / long-sleeve tee seed row, cm, chest flat, length and sleeve from the
                  centre back, tier B, drawn in the link's colour (display code, else the first) with the
@@ -93,7 +97,16 @@ packages/core/   @choudo/core, shared by the web app and the native app. TypeScr
                  sleeve (other sleeves drawn short and named), neckline (tag, else the name), fit and the
                  tags in words; **the fit tag is shown, not sized by**: link garments stay fitIntent
                  "regular" because the engine aims an oversized design at more room, a size up on the
-                 same chart), __fixtures__/ (real Uniqlo responses; the details one byte for byte). No fetch, no React.
+                 same chart; cutFromName: the name's sleeve / neckline, any brand), names.ts (titleCase),
+                 zaraUrls.ts (zaraUrls.search / sizeGuide, store 11719, ZARA_SEO_ID, ZARA_PRODUCT_ID; imports
+                 nothing), zara.ts (Zara: the link's 8-digit number isn't the guide's id, so zaraProduct reads the
+                 fuzzy search's results whose seoProductId matches (none = isMissingZara), each colour with Zara's
+                 hex and its own result's photo at w=750; zaraSizeGuideId: the link's ?v1= colour, else the first
+                 result's; zaraToSeedGarment: the guide by tableTitle (CHEST flat only if it says "side to side",
+                 FRONT LENGTH hps, SLEEVE LENGTH shoulder_to_cuff, BACK WIDTH shoulder), familyName T-SHIRT / TOP /
+                 BODYSUIT / POLO only, sleeve from the name else the numbers (≥ 45 cm long, < 30 short, between
+                 short + "Mid-length"), same FetchedProduct as Uniqlo; isMissingZaraGuide: Zara's no-guide 404),
+                 __fixtures__/ (real Uniqlo and Zara responses; the Uniqlo details one byte for byte). No fetch, no React.
   ui-logic/      the UI's pure helpers, kept at their app/src/ui sub-paths
     screens/     bodyForm.ts, bodyFieldErrors.ts (per-field checks shown on blur), bodyPreview.ts
                  (a typical body until height + weight are valid), anchorForm.ts
@@ -107,7 +120,8 @@ packages/core/   @choudo/core, shared by the web app and the native app. TypeScr
                  fetched.ts (the fetched list: addFetched max 30 newest first, 7-day isFresh, readyFetched
                  drops rows that fail the seed checks; withColor / replaceFetched: a colour chip's choice,
                  stored with the entry; addUnsupportedHost max 50)
-    checkText.ts the Check tab's wording and its blameless error lines (linkError, canRetry)
+    checkText.ts the Check tab's wording and its blameless error lines (linkError, canRetry), brand-aware:
+                 checkErrorText(error, brand), brandText(brand) (loading, Open at, photo credit), productBrand
     fitText.ts   all user-facing fit wording (and isJustRight: when the ちょうど stamp shows), incl.
                  reliabilityText / reliabilityAction and whyLine ("M gives you 8 cm of room at the
                  chest; L gives 14 cm.", DECIDING_ZONE per template); catalogueText.ts;
@@ -116,10 +130,13 @@ packages/core/   @choudo/core, shared by the web app and the native app. TypeScr
                  closetText.ts (outfitLine, shared by the web Closet and the phone's)
 app/src/
   links/         the website's Check flow (the phone's src/links/): service.ts (FETCH_SERVICE, the worker's
-                 address, and UNIQLO_IMAGE_HOST; imports nothing, dist:check reads it), fetchUniqlo.ts
+                 address, UNIQLO_IMAGE_HOST and ZARA_IMAGE_HOST; imports nothing, dist:check reads it), request.ts
+                 (get with timeout, one retry), fetchZara.ts (search then guide through <service>/zara/…; a guide
+                 404 is no-sizes), fetchUniqlo.ts
                  (fetchUniqlo / checkUniqloLink as the phone's, but to <service>/uniqlo/<code>/size-chart |
                  details; VITE_FETCH_BASE overrides the address in dev, e.g. `npx wrangler dev`'s :8787;
-                 uniqloPhoto: an https image.uniqlo.com URL or null), useLinkCheck.ts (parse, fetch, store;
+                 uniqloPhoto / productPhoto: an https image.uniqlo.com or static.zara.net URL or null),
+                 useLinkCheck.ts (parse, dispatch by brand, fetch, store;
                  the stored lists come from App, which keeps them and builds the one ready list)
   ui/            React (app icons and favicon: app/public/, made by npm run icons)
     screens/     Check + check/ResultCard (the phone's Check tab: where the site opens once a body exists),
@@ -167,8 +184,8 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
                  expo-sharing's sheet; a cancel says nothing, no sharing says so),
                  dev/mannequin.tsx (the mannequin lab; redirects to /fitting-room unless __DEV__, so never in a store
                  build; the Fitting room shows its button in development only).
-                 (tabs)/check.tsx is the Check tab ("What size should I buy?": paste a Uniqlo US link,
-                 useLinkCheck; "Try it on" wears it and navigates to /fitting-room; "Open at Uniqlo" in
+                 (tabs)/check.tsx is the Check tab ("What size should I buy?": paste a Uniqlo US or Zara US link,
+                 useLinkCheck; "Try it on" wears it and navigates to /fitting-room; "Open at Uniqlo / Zara" in
                  expo-web-browser). (tabs)/fitting-room.tsx is the Fitting room (anything that means it
                  goes to `/fitting-room`; a stale sheet on a cold start goes home, `/`). (tabs)/discover.tsx is Discover: native tabs all
                  render at launch and stay mounted, so it draws nothing until first opened, then builds a
@@ -179,8 +196,10 @@ mobile/        @choudo/mobile, the Expo app (iPhone; portrait, light, bundle id 
   src/storage/   kv.ts (expo-sqlite/kv-store as a StorageLike; runMigrations)
   src/links/     fetch-uniqlo.ts (fetchUniqlo: both requests in parallel, 10 s timeout, one retry on a
                  network error → ok / not-found / network / blocked; checkUniqloLink: the stored copy under
-                 7 days old, else Uniqlo's, else (offline or blocked) an older stored copy),
-                 use-link-check.ts (the Check tab's flow: parse, fetch, store, the hosts it can't read)
+                 7 days old, else Uniqlo's, else (offline or blocked) an older stored copy), fetch-zara.ts
+                 (search then guide, from Zara directly; a 403 / 429 tries that request once through the fetch
+                 service, FETCH_SERVICE as the website's; checkZaraLink as checkUniqloLink), request.ts,
+                 use-link-check.ts (the Check tab's flow: parse, dispatch by brand, fetch, store, the hosts it can't read)
   src/hooks/     use-persistent-state.ts (the web hook's twin on kv), use-body.ts, use-units.ts,
                  use-garments.ts (publicGarments with __DEV__ or Test mode on (DEV_TOOLS): Discover's catalogue; the
                  Fitting room's is the fetched garments first, then this, tagged "From your link"),
@@ -279,11 +298,13 @@ app/public/privacy.html, support.html  static pages the App Store listing links 
 .github/workflows/deploy-worker.yml  deploys worker/ to Cloudflare when worker/ or core's domain/links/ changes on
                main (or by hand); skipped with a notice until the CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID
                secrets exist; smoke test: waits up to 3 min (every 15 s) while Cloudflare's HTML
-               404 shows, then /anything-else is a 404, Uniqlo's answer reported (warns, never fails)
+               404 shows, then /anything-else is a 404, Uniqlo's answer reported (warns, never fails), then
+               /zara/04174639/search and /zara/616513993/size-guide ("Zara didn't answer the fetch service" warns)
 worker/        @choudo/worker, the website's fetch service (setup and local run in worker/README.md):
-                 src/handle.ts (handle(request, deps): the one route, upstreamUrl, 8 s timeout → 504, other
-                 failures and redirects → 502, Uniqlo's status and body as they are, CORS only for ALLOWED_ORIGINS
-                 (the site + Vite 5173 / 127.0.0.1:5173 / 4173), ok answers cached 24 h in caches.default),
+                 src/handle.ts (handle(request, deps): the Uniqlo and Zara routes, upstreamFor / upstreamUrl, 8 s
+                 timeout → 504, other failures and redirects → 502, the brand's status and body as they are, CORS
+                 only for ALLOWED_ORIGINS (the site + Vite 5173 / 127.0.0.1:5173 / 4173), good answers cached 24 h in
+                 caches.default: Uniqlo "ok", Zara search "SUCCESS", Zara guide with measureGuideInfo),
                  src/index.ts (the entry: exports only the handler — the runtime rejects any other export),
                  wrangler.toml (workers_dev, observability off), vitest tests with a fake fetch and cache
 app/scripts/   stamp-glyphs.mjs (one-off: ちょうど outlined from Shippori Mincho B1, OFL, via opentype.js),
@@ -584,7 +605,7 @@ npm run test:watch # app unit tests, watch mode
 npm run check      # app only: typecheck + tests + data:check (the root check runs core too)
 npm run data:check # garment data report: grade, warnings, errors, audit per garment
 npm run dist:check # after npm run build: URLs under /Choudo/, only GoatCounter loaded from elsewhere, the code names
-                   # no site beyond the fetch service, image.uniqlo.com and the ones it named before, sw.js, no dev pages or local-only photos
+                   # no site beyond the fetch service, image.uniqlo.com, static.zara.net, www.zara.com and the ones it named before, sw.js, no dev pages or local-only photos
 npm run fit:report # fit-test report from ../data/fit_tests.csv (or a path after --)
 npm run photos     # cut garment photos out into public/garments/ (commit the PNG)
                    # then place landmarks at http://localhost:5173/dev/landmarks?id=<garment>

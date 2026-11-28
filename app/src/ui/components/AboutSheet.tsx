@@ -18,7 +18,7 @@ export function AboutSheet({ onClose }: { onClose: () => void }) {
         </p>
         <p>
           When you check a product link, the link’s product code is sent to Choudo’s fetch service, which asks
-          Uniqlo for that product’s size chart. Your measurements are never sent, and the service keeps no logs of
+          the brand (Uniqlo or Zara) for that product’s size chart. Your measurements are never sent, and the service keeps no logs of
           what you check.
         </p>
         <p>

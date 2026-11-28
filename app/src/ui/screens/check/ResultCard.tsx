@@ -2,13 +2,13 @@ import { useMemo, useState } from 'react';
 import type { BodyModel } from '@choudo/core/domain/body';
 import { fitAllSizes, type PreferenceSpec } from '@choudo/core/domain/fit';
 import type { Garment } from '@choudo/core/domain/garments';
-import { CHECK_TEXT, colourLabel } from '@choudo/core/ui-logic/checkText';
+import { brandText, CHECK_TEXT, colourLabel, productBrand } from '@choudo/core/ui-logic/checkText';
 import { fittingHeadline } from '@choudo/core/ui-logic/fitText';
 import type { ReadyFetched } from '@choudo/core/ui-logic/state/fetched';
 import { garmentOdds } from '@choudo/core/ui-logic/state/odds';
 import { middleSize } from '@choudo/core/ui-logic/state/outfit';
 import type { UnitSystem } from '@choudo/core/ui-logic/state/stored';
-import { uniqloPhoto } from '../../../links/fetchUniqlo';
+import { productPhoto } from '../../../links/fetchUniqlo';
 import { FitAnswer } from '../../components/FitAnswer';
 import { GarmentIcon } from '../../components/GarmentIcon';
 import { Mannequin } from '../../components/Mannequin/Mannequin';
@@ -27,8 +27,8 @@ export interface ResultCardProps {
 }
 
 /**
- * One checked product (the phone's ResultCard): name and price; Uniqlo's photo, large and as
- * it is ("Photo: Uniqlo"), beside Choudo's own drawing of it on you in the product's colour
+ * One checked product (the phone's ResultCard): name and price; the brand's photo, large and as
+ * it is ("Photo: Uniqlo" / "Photo: Zara"), beside Choudo's own drawing of it on you in the product's colour
  * and cut; the answer for the suggested size; a chip per colour and per size. Give it a `key`
  * per garment so a new product starts on its own suggested size.
  */
@@ -40,6 +40,7 @@ export function ResultCard({ fetched, model, preference, units, hasFitReference,
   const fit = fits.find((f) => f.sizeLabel === size);
   const face = fittingHeadline(odds, size, garment).tone;
   const colorName = product.colorName ? colourLabel(product.colorName) : null;
+  const brand = brandText(productBrand(garment));
 
   return (
     <section className="check-result" aria-labelledby="check-result-name" data-testid="check-result">
@@ -54,9 +55,9 @@ export function ResultCard({ fetched, model, preference, units, hasFitReference,
       <div className="check-result__pictures">
         <figure className="check-result__picture">
           <div className="check-result__frame">
-            <ProductPhoto garment={garment} url={product.imageUrl} name={garment.name} />
+            <ProductPhoto garment={garment} url={product.imageUrl} name={garment.name} credit={brand.photoCredit} />
           </div>
-          <figcaption>{CHECK_TEXT.photoCredit}</figcaption>
+          <figcaption>{brand.photoCredit}</figcaption>
         </figure>
         <figure className="check-result__picture">
           <button
@@ -129,7 +130,7 @@ export function ResultCard({ fetched, model, preference, units, hasFitReference,
           {CHECK_TEXT.tryOn}
         </button>
         <a className="button button--ink-outline" href={product.productUrl} target="_blank" rel="noopener noreferrer">
-          {CHECK_TEXT.openAt}
+          {brand.openAt}
         </a>
       </div>
     </section>
@@ -137,19 +138,19 @@ export function ResultCard({ fetched, model, preference, units, hasFitReference,
 }
 
 /**
- * Uniqlo's photo as it is: fitted into its frame (contained, never cropped or recoloured),
- * and only from Uniqlo's image host; the flat drawing without one or on an error.
+ * The brand's photo as it is: fitted into its frame (contained, never cropped or recoloured),
+ * and only from Uniqlo's or Zara's image host; the flat drawing without one or on an error.
  */
-function ProductPhoto({ garment, url, name }: { garment: Garment; url: string | null; name: string }) {
+function ProductPhoto({ garment, url, name, credit }: { garment: Garment; url: string | null; name: string; credit: string }) {
   const [failed, setFailed] = useState(false);
-  const src = uniqloPhoto(url);
+  const src = productPhoto(url);
   if (!src || failed) return <GarmentIcon garment={garment} />;
   return (
     <img
       className="check-result__photo"
       data-testid="check-photo"
       src={src}
-      alt={`${name}, ${CHECK_TEXT.photoCredit}`}
+      alt={`${name}, ${credit}`}
       referrerPolicy="no-referrer"
       loading="lazy"
       decoding="async"
