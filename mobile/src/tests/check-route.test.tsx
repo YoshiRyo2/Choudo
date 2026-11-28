@@ -62,7 +62,7 @@ async function open(body: BodyInput = WOMENS) {
 
 /** Paste `text` and press Check size, then let the requests finish. */
 async function checkLink(text: string) {
-  await fireEvent.changeText(screen.getByLabelText('Paste a Uniqlo link'), text);
+  await fireEvent.changeText(screen.getByLabelText('Paste a Uniqlo or Zara link'), text);
   await fireEvent.press(screen.getByRole('button', { name: 'Check size' }));
   await act(async () => {
     await Promise.resolve();
@@ -82,8 +82,8 @@ test('opens on the Check tab with the field, the button and what it works with',
   await open();
   expect(screen).toHavePathname('/check');
   expect(screen.getByRole('header', { name: 'What size should I buy?' })).toBeTruthy();
-  expect(screen.getByLabelText('Paste a Uniqlo link')).toBeTruthy();
-  expect(screen.getByText('Works with Uniqlo US tops for now.')).toBeTruthy();
+  expect(screen.getByLabelText('Paste a Uniqlo or Zara link')).toBeTruthy();
+  expect(screen.getByText('Works with Uniqlo US and Zara US tops for now.')).toBeTruthy();
   expect(screen.queryByTestId('check-result')).toBeNull();
 });
 
@@ -98,7 +98,7 @@ test('a Uniqlo link: reading shows inline, then the product, the answer, the why
   const held = new Promise<void>((r) => (release = r));
   answerWith({ chart: () => held.then(() => reply(sizeChart)) });
   await open();
-  await fireEvent.changeText(screen.getByLabelText('Paste a Uniqlo link'), `Is this my size? ${TEE_URL}?colorDisplayCode=00`);
+  await fireEvent.changeText(screen.getByLabelText('Paste a Uniqlo or Zara link'), `Is this my size? ${TEE_URL}?colorDisplayCode=00`);
   await fireEvent.press(screen.getByRole('button', { name: 'Check size' }));
   expect(screen.getByTestId('check-loading')).toHaveTextContent('Reading Uniqlo’s size chart…');
   await act(async () => {
@@ -172,17 +172,17 @@ describe('errors', () => {
   test('no link', async () => {
     await open();
     await checkLink('crew neck tee in M');
-    expect(errorText().getByText('Paste a product link from uniqlo.com.')).toBeTruthy();
+    expect(errorText().getByText('Paste a product link from uniqlo.com or zara.com.')).toBeTruthy();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   test('another brand: says so and remembers the host (shown in Test mode only)', async () => {
     Storage.setItemSync(STORAGE_KEYS.testMode, 'true');
     await open();
-    await checkLink('https://www.zara.com/us/en/linen-shirt-p04174639.html');
-    expect(errorText().getByText('Choudo can read Uniqlo links for now. More brands soon.')).toBeTruthy();
-    expect(read<string[]>(STORAGE_KEYS.unsupportedHosts)).toEqual(['www.zara.com']);
-    expect(screen.getByTestId('unsupported-hosts')).toHaveTextContent('Unsupported hosts: www.zara.com');
+    await checkLink('https://www2.hm.com/en_us/productpage.1234567001.html');
+    expect(errorText().getByText('Choudo can read Uniqlo and Zara links for now. More brands soon.')).toBeTruthy();
+    expect(read<string[]>(STORAGE_KEYS.unsupportedHosts)).toEqual(['www2.hm.com']);
+    expect(screen.getByTestId('unsupported-hosts')).toHaveTextContent('Unsupported hosts: www2.hm.com');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

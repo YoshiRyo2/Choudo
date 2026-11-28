@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import type { BodyModel } from '@choudo/core/domain/body';
 import type { PreferenceSpec } from '@choudo/core/domain/fit';
 import type { Garment } from '@choudo/core/domain/garments';
-import { canRetry, CHECK_TEXT, checkErrorText } from '@choudo/core/ui-logic/checkText';
+import { brandText, canRetry, CHECK_TEXT, checkErrorText } from '@choudo/core/ui-logic/checkText';
 import type { ReadyFetched } from '@choudo/core/ui-logic/state/fetched';
 import type { UnitSystem } from '@choudo/core/ui-logic/state/stored';
 
@@ -37,7 +37,7 @@ export interface CheckScreenProps {
 }
 
 /**
- * The Check tab, where the app opens: paste a Uniqlo US product link, see the size to buy,
+ * The Check tab, where the app opens: paste a Uniqlo US or Zara US product link, see the size to buy,
  * why, and how far to trust it. Loading and errors show inline, under the field.
  */
 export function CheckScreen({
@@ -102,13 +102,13 @@ export function CheckScreen({
 
       {state.kind === 'loading' && (
         <ThemedText accessibilityLiveRegion="polite" testID="check-loading">
-          {CHECK_TEXT.loading}
+          {brandText(state.brand).loading}
         </ThemedText>
       )}
 
       {state.kind === 'error' && (
         <View style={styles.error} accessibilityLiveRegion="polite" testID="check-error">
-          <ThemedText accessibilityRole="alert">{checkErrorText(state.error)}</ThemedText>
+          <ThemedText accessibilityRole="alert">{checkErrorText(state.error, state.brand)}</ThemedText>
           {canRetry(state.error) && <Button size="sm" variant="outline" title={CHECK_TEXT.retry} onPress={onRetry} />}
         </View>
       )}
