@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { uniqloUrls } from '@choudo/core/domain/links';
+import { uniqloUrls, zaraUrls } from '@choudo/core/domain/links';
+import zaraGuide from '@choudo/core/domain/links/__fixtures__/zara-guide-616513993.json';
+import zaraMissingGuide from '@choudo/core/domain/links/__fixtures__/zara-guide-missing.json';
+import zaraSearch from '@choudo/core/domain/links/__fixtures__/zara-search-04174639.json';
 import { ALLOWED_ORIGINS, CACHE_SECONDS, handle, upstreamUrl, USER_AGENT, type Deps } from './handle';
 
 const CODE = 'E424873-000';
@@ -97,6 +100,122 @@ describe('routes', () => {
       expect(res.headers.get('Allow')).toBe('GET, OPTIONS');
     }
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+describe('Zara routes', () => {
+  const SEO = '04174639';
+  const COLOUR = '616513993';
+  const SEARCH = JSON.stringify(zaraSearch);
+  const GUIDE = JSON.stringify(zaraGuide);
+  const NO_GUIDE = JSON.stringify(zaraMissingGuide);
+
+  it('maps the search and size-guide paths to exactly the core URLs', () => {
+    expect(upstreamUrl(`/zara/${SEO}/search`)).toBe(zaraUrls.search(SEO));
+    expect(upstreamUrl(`/zara/${SEO}/search`)).toBe('https://www.zara.com/itxrest/1/search/store/11719/query?query=04174639&locale=en_US');
+    expect(upstreamUrl(`/zara/${COLOUR}/size-guide`)).toBe(zaraUrls.sizeGuide(COLOUR));
+    expect(upstreamUrl('/zara/123456/size-guide')).toBe(zaraUrls.sizeGuide('123456'));
+    expect(upstreamUrl('/zara/123456789012/size-guide')).toBe(zaraUrls.sizeGuide('123456789012'));
+  });
+
+  it('refuses any other id or path', () => {
+    for (const path of [
+      '/zara',
+      `/zara/${SEO}`,
+      '/zara/0417463/search',
+      '/zara/041746399/search',
+      '/zara/0417463a/search',
+      `/zara/${SEO}/search/`,
+      `/zara/${SEO}/size-guide/extra`,
+      `/zara/${SEO}/details`,
+      '/zara/12345/size-guide',
+      '/zara/1234567890123/size-guide',
+      '/zara/61651399x/size-guide',
+      '/zara/616513993%2F../size-guide',
+      `/zara/${COLOUR}/search`,
+      `/uniqlo/${SEO}/search`,
+      `//zara/${SEO}/search`,
+    ]) {
+      expect(upstreamUrl(path), path).toBeNull();
+    }
+  });
+
+  it('asks Zara for the core URL only, with our headers, never the query string', async () => {
+    const { d, fetchImpl } = deps(upstream(SEARCH));
+    const res = await handle(get(`/zara/${SEO}/search?query=99999998&url=https://evil.example/`, { origin: SITE, headers: { Cookie: 'a=1' } }), d);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe(SEARCH);
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe(SITE);
+    expect(fetchImpl.mock.calls[0]![0]).toBe(zaraUrls.search(SEO));
+    const init = fetchImpl.mock.calls[0]![1]!;
+    expect(Object.fromEntries(new Headers(init.headers))).toEqual({ 'user-agent': USER_AGENT, accept: 'application/json' });
+    expect(init.redirect).toBe('manual');
+  });
+
+  it('caches a SUCCESS search and a guide with measurements for 24 h', async () => {
+    const search = deps(upstream(SEARCH));
+    await handle(get(`/zara/${SEO}/search`), search.d);
+    await search.settle();
+    expect([...search.cache!.store.keys()]).toEqual([zaraUrls.search(SEO)]);
+    await handle(get(`/zara/${SEO}/search`), search.d);
+    expect(search.fetchImpl).toHaveBeenCalledTimes(1);
+
+    const guide = deps(upstream(GUIDE));
+    const res = await handle(get(`/zara/${COLOUR}/size-guide`), guide.d);
+    await guide.settle();
+    expect(res.headers.get('Cache-Control')).toBe(`public, max-age=${CACHE_SECONDS}`);
+    expect([...guide.cache!.store.keys()]).toEqual([zaraUrls.sizeGuide(COLOUR)]);
+  });
+
+  it('passes a guide 404 on as it is (status and body), uncached', async () => {
+    const { d, cache, settle } = deps(upstream(NO_GUIDE, 404));
+    const res = await handle(get('/zara/616513990/size-guide', { origin: SITE }), d);
+    await settle();
+    expect(res.status).toBe(404);
+    expect(await res.text()).toBe(NO_GUIDE);
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe(SITE);
+    expect(res.headers.get('Cache-Control')).toBe('no-store');
+    expect(cache!.put).not.toHaveBeenCalled();
+  });
+
+  it('does not cache any other answer', async () => {
+    const cases: [string, string, number][] = [
+      ['search', '{"status":"ERROR"}', 200],
+      ['search', '{"status":"ok"}', 200],
+      ['search', '<html>Access Denied</html>', 403],
+      ['search', '<html>Access Denied</html>', 200],
+      ['size-guide', '{"sizeGuideInfo":null,"measureGuideInfo":null}', 200],
+      ['size-guide', '{"measureGuideInfo":[]}', 200],
+      ['size-guide', '{"status":"SUCCESS"}', 200],
+      ['size-guide', GUIDE, 429],
+    ];
+    for (const [route, body, status] of cases) {
+      const id = route === 'search' ? SEO : COLOUR;
+      const { d, cache, settle } = deps(upstream(body, status));
+      const res = await handle(get(`/zara/${id}/${route}`), d);
+      await settle();
+      expect(res.status, `${route} ${body}`).toBe(status);
+      expect(cache!.put, `${route} ${body}`).not.toHaveBeenCalled();
+    }
+  });
+
+  it('does not cache a Uniqlo-shaped "ok" on a Zara route, or a Zara SUCCESS on a Uniqlo one', async () => {
+    const zara = deps(upstream(OK));
+    await handle(get(`/zara/${SEO}/search`), zara.d);
+    await zara.settle();
+    expect(zara.cache!.put).not.toHaveBeenCalled();
+
+    const uniqlo = deps(upstream(SEARCH));
+    await handle(get(`/uniqlo/${CODE}/details`), uniqlo.d);
+    await uniqlo.settle();
+    expect(uniqlo.cache!.put).not.toHaveBeenCalled();
+  });
+
+  it('answers 502 for a Zara redirect, never following it', async () => {
+    const moved = vi.fn(() => Promise.resolve(new Response(null, { status: 301, headers: { Location: 'https://www.zara.com/us/en/' } })));
+    const res = await handle(get(`/zara/${SEO}/search`), deps(moved).d);
+    expect(res.status).toBe(502);
+    expect(moved).toHaveBeenCalledTimes(1);
   });
 });
 

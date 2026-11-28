@@ -1,5 +1,5 @@
 # Deploys the fetch service (worker/, "choudo-fetch") to Cloudflare Workers when it or the
-# Uniqlo addresses it calls (packages/core/domain/links/) change on main, or by hand.
+# Uniqlo and Zara addresses it calls (packages/core/domain/links/) change on main, or by hand.
 # Needs the repo secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (worker/README.md);
 # without them the deploy is skipped with a notice, not failed.
 name: Deploy fetch service
@@ -61,7 +61,7 @@ jobs:
           workingDirectory: worker
           # No wranglerVersion: the action uses the one npm ci installed (package-lock.json).
           packageManager: npm
-      # Our own routes must answer as built; Uniqlo's answer is reported, not required.
+      # Our own routes must answer as built; Uniqlo's and Zara's answers are reported, not required.
       # A fresh workers.dev address takes a few minutes to go live, and until then Cloudflare
       # answers 404 with its own HTML page (ours are always JSON), so the size chart is retried
       # every 15 s for up to 3 minutes while that page shows, before the 404 check below.
@@ -87,4 +87,12 @@ jobs:
             echo "::notice title=Fetch service live::$URL (Uniqlo's size chart answered 200)"
           else
             echo "::warning title=Uniqlo didn't answer::$chart answered $status"
+          fi
+          # Zara may block Cloudflare's addresses: then the website can't read Zara (the phone still can).
+          zara_search=$(curl -s "$URL/zara/04174639/search" || true)
+          zara_guide=$(curl -s "$URL/zara/616513993/size-guide" || true)
+          if [[ "$zara_search" == *04174639* ]] && [[ "$zara_guide" == *measureGuideInfo* ]]; then
+            echo "::notice title=Zara answered::$URL/zara/04174639/search and /zara/616513993/size-guide"
+          else
+            echo "::warning title=Zara didn't answer the fetch service::/zara/04174639/search has the product: $([[ "$zara_search" == *04174639* ]] && echo yes || echo no); /zara/616513993/size-guide has measureGuideInfo: $([[ "$zara_guide" == *measureGuideInfo* ]] && echo yes || echo no)"
           fi

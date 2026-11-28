@@ -2,14 +2,19 @@
  * The fetch service's logic (index.ts is the Worker's entry; it may only export the handler).
  *
  * choudo-fetch: lets the Choudo website read Uniqlo US's public size chart and product
- * details, which the browser can't (Uniqlo sends no CORS header).
+ * details, and Zara US's product search and size guide, which the browser can't (neither
+ * brand sends a CORS header).
  *
- * Not a general proxy. One route, GET /uniqlo/<productCode>/<size-chart | details>, and it
- * only ever calls the two addresses core's uniqloUrls() builds; nothing in the request
- * (query string, headers, cookies, IP) is passed on. Logs nothing.
+ * Not a general proxy. Four routes:
+ *   GET /uniqlo/<productCode>/<size-chart | details>
+ *   GET /zara/<8 digits>/search
+ *   GET /zara/<6–12 digits>/size-guide
+ * and it only ever calls the addresses core's uniqloUrls() and zaraUrls build; nothing in
+ * the request (query string, headers, cookies, IP) is passed on. Logs nothing.
  */
 
 import { UNIQLO_PRODUCT_CODE, uniqloUrls } from '@choudo/core/domain/links/urls';
+import { ZARA_PRODUCT_ID, ZARA_SEO_ID, zaraUrls } from '@choudo/core/domain/links/zaraUrls';
 
 /** Who may read the answers: the site, and the Vite dev (5173) and preview (4173) servers. */
 export const ALLOWED_ORIGINS: readonly string[] = [
@@ -24,7 +29,8 @@ export const UPSTREAM_TIMEOUT_MS = 8_000;
 /** How long an ok answer is kept in the Workers cache: 24 h. */
 export const CACHE_SECONDS = 24 * 60 * 60;
 
-const ROUTE = /^\/uniqlo\/([^/]+)\/(size-chart|details)$/;
+const UNIQLO_ROUTE = /^\/uniqlo\/([^/]+)\/(size-chart|details)$/;
+const ZARA_ROUTE = /^\/zara\/([^/]+)\/(search|size-guide)$/;
 const METHODS = 'GET, OPTIONS';
 
 /** What `handle` needs from the runtime, passed in so tests can fake it. */
@@ -37,37 +43,56 @@ export interface Deps {
   timeoutMs?: number;
 }
 
-/** The Uniqlo address a path stands for, or null for any other path. */
-export function upstreamUrl(pathname: string): string | null {
-  const m = ROUTE.exec(pathname);
-  if (!m || !UNIQLO_PRODUCT_CODE.test(m[1]!)) return null;
-  const urls = uniqloUrls(m[1]!.toUpperCase());
-  return m[2] === 'size-chart' ? urls.sizeChart : urls.details;
+/** A brand address a path stands for, and which of its answers are good enough to cache. */
+export interface Upstream {
+  url: string;
+  /** A 200's body that's a real answer (kept 24 h); anything else is passed on uncached. */
+  isGood: (body: string) => boolean;
 }
+
+/** The brand address a path stands for, or null for any other path. */
+export function upstreamFor(pathname: string): Upstream | null {
+  const uniqlo = UNIQLO_ROUTE.exec(pathname);
+  if (uniqlo && UNIQLO_PRODUCT_CODE.test(uniqlo[1]!)) {
+    const urls = uniqloUrls(uniqlo[1]!.toUpperCase());
+    return { url: uniqlo[2] === 'size-chart' ? urls.sizeChart : urls.details, isGood: (body) => field(body, 'status') === 'ok' };
+  }
+  const zara = ZARA_ROUTE.exec(pathname);
+  if (zara?.[2] === 'search' && ZARA_SEO_ID.test(zara[1]!)) {
+    return { url: zaraUrls.search(zara[1]!), isGood: (body) => field(body, 'status') === 'SUCCESS' };
+  }
+  if (zara?.[2] === 'size-guide' && ZARA_PRODUCT_ID.test(zara[1]!)) {
+    return { url: zaraUrls.sizeGuide(zara[1]!), isGood: (body) => isRecord(field(body, 'measureGuideInfo')) };
+  }
+  return null;
+}
+
+/** The brand address a path stands for, or null for any other path. */
+export const upstreamUrl = (pathname: string): string | null => upstreamFor(pathname)?.url ?? null;
 
 export async function handle(request: Request, deps: Deps): Promise<Response> {
   const cors = corsHeaders(request.headers.get('Origin'));
-  const target = upstreamUrl(new URL(request.url).pathname);
+  const upstream = upstreamFor(new URL(request.url).pathname);
 
   if (request.method !== 'GET' && request.method !== 'OPTIONS') {
     return json({ status: 'error', reason: 'method' }, 405, { ...cors, Allow: METHODS });
   }
-  if (!target) return json({ status: 'error', reason: 'not-found' }, 404, cors);
+  if (!upstream) return json({ status: 'error', reason: 'not-found' }, 404, cors);
   if (request.method === 'OPTIONS') {
     const preflight: Record<string, string> = cors['Access-Control-Allow-Origin'] ? { 'Access-Control-Allow-Methods': METHODS, 'Access-Control-Max-Age': '86400' } : {};
     return new Response(null, { status: 204, headers: { ...cors, ...preflight, Allow: METHODS } });
   }
 
-  const key = new Request(target, { method: 'GET' });
+  const key = new Request(upstream.url, { method: 'GET' });
   const hit = await deps.cache?.match(key).catch(() => undefined);
   if (hit) return withHeaders(await hit.text(), 200, cors, true);
 
-  const answer = await askUniqlo(target, deps);
+  const answer = await askBrand(upstream.url, deps);
   if (answer.kind === 'timeout') return json({ status: 'error', reason: 'timeout' }, 504, cors);
   if (answer.kind === 'failed') return json({ status: 'error', reason: 'upstream' }, 502, cors);
 
   const { status, body } = answer;
-  const cacheable = status === 200 && isOk(body);
+  const cacheable = status === 200 && upstream.isGood(body);
   if (cacheable && deps.cache) {
     const write = deps.cache.put(key, withHeaders(body, 200, {}, true)).catch(() => undefined);
     if (deps.waitUntil) deps.waitUntil(write);
@@ -78,8 +103,8 @@ export async function handle(request: Request, deps: Deps): Promise<Response> {
 
 type Answer = { kind: 'ok'; status: number; body: string } | { kind: 'timeout' } | { kind: 'failed' };
 
-/** One request to Uniqlo with only our own headers; redirects are not followed. */
-async function askUniqlo(url: string, deps: Deps): Promise<Answer> {
+/** One request to the brand with only our own headers; redirects are not followed. */
+async function askBrand(url: string, deps: Deps): Promise<Answer> {
   const controller = new AbortController();
   let timedOut = false;
   const timer = setTimeout(() => {
@@ -103,21 +128,24 @@ async function askUniqlo(url: string, deps: Deps): Promise<Answer> {
   }
 }
 
-const isOk = (body: string): boolean => {
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** One top-level field of a JSON body; undefined when it isn't a JSON object. */
+function field(body: string, name: string): unknown {
   try {
     const parsed: unknown = JSON.parse(body);
-    return typeof parsed === 'object' && parsed !== null && (parsed as { status?: unknown }).status === 'ok';
+    return isRecord(parsed) ? parsed[name] : undefined;
   } catch {
-    return false;
+    return undefined;
   }
-};
+}
 
 function corsHeaders(origin: string | null): Record<string, string> {
   const vary = { Vary: 'Origin' };
   return origin && ALLOWED_ORIGINS.includes(origin) ? { ...vary, 'Access-Control-Allow-Origin': origin } : vary;
 }
 
-/** A fresh response: our headers only (Uniqlo's, cookies included, are dropped). */
+/** A fresh response: our headers only (the brand's, cookies included, are dropped). */
 function withHeaders(body: string, status: number, extra: Record<string, string>, cacheable: boolean): Response {
   return new Response(body, {
     status,
