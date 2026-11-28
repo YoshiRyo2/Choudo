@@ -13,15 +13,17 @@ well-named modules over clever ones.
   the device (`localStorage` on the web, the phone's key-value store in `mobile/`).
 - **Analytics = GoatCounter, web production build only** (site code `choudo`, no cookies).
   It counts page views (with the URL's query, so `?utm_campaign=…&utm_source=…` links show
-  up) and five fixed events, each once per session: `fitting-room-opened`,
-  `fit-details-opened`, `discover-opened`, `closet-opened`, `garment-saved`. Nothing personal
-  is ever sent: no body numbers, sizes, garment names or stored data. Only `ui/analytics.ts`
+  up) and seven fixed events, each once per session: `fitting-room-opened`,
+  `fit-details-opened`, `discover-opened`, `closet-opened`, `garment-saved`, `link-checked`,
+  `link-unsupported`. Nothing personal is ever sent: no body numbers, sizes, garment names,
+  links, hosts or stored data. Only `ui/analytics.ts`
   talks to GoatCounter; never rewrite the page URL before its first count. `mobile/` has none.
-- **Product links (phone only so far).** The Check tab reads Uniqlo US's public size-chart and
-  product JSON for a pasted link (`domain/links/`). Only the product code goes to Uniqlo, never
+- **Product links (phone and website).** The Check tab reads Uniqlo US's public size-chart and
+  product JSON for a pasted link (`domain/links/`). Only the product code goes out, never
   the body. Fetched garments live on the device (`choudo.fetched.v1`) and **never enter
   seed.json**. Brand photos show as they are (a thumbnail only), never warped onto the mannequin.
-  The website will read it through the fetch service in `worker/` (Uniqlo sends no CORS header).
+  The phone asks Uniqlo directly; the website asks the fetch service in `worker/` (Uniqlo sends
+  no CORS header) and shows photos only from `image.uniqlo.com` (`app/src/links/`).
 - **The fetch service (`worker/`, Cloudflare Worker "choudo-fetch") is not a general proxy.**
   It answers only `GET /uniqlo/<code>/size-chart | details` and only ever calls the two addresses
   core's `uniqloUrls()` builds (`domain/links/urls.ts`, imports nothing). Never add a route that
@@ -113,8 +115,15 @@ packages/core/   @choudo/core, shared by the web app and the native app. TypeScr
                  (RELIABILITY_RULES: a first guess until the fit test);
                  closetText.ts (outfitLine, shared by the web Closet and the phone's)
 app/src/
+  links/         the website's Check flow (the phone's src/links/): service.ts (FETCH_SERVICE, the worker's
+                 address, and UNIQLO_IMAGE_HOST; imports nothing, dist:check reads it), fetchUniqlo.ts
+                 (fetchUniqlo / checkUniqloLink as the phone's, but to <service>/uniqlo/<code>/size-chart |
+                 details; VITE_FETCH_BASE overrides the address in dev, e.g. `npx wrangler dev`'s :8787;
+                 uniqloPhoto: an https image.uniqlo.com URL or null), useLinkCheck.ts (parse, fetch, store;
+                 the stored lists come from App, which keeps them and builds the one ready list)
   ui/            React (app icons and favicon: app/public/, made by npm run icons)
-    screens/     BodyScreen (input), AnchorScreen (fit reference), FittingRoom (browse + size + fit),
+    screens/     Check + check/ResultCard (the phone's Check tab: where the site opens once a body exists),
+                 BodyScreen (input), AnchorScreen (fit reference), FittingRoom (browse + size + fit),
                  FitTestPanel (Test mode), Discover (swipe feed), Closet + closet/ (Liked, Folders, Outfits tabs)
     components/  Mannequin/ (Mannequin.tsx: the SVG; MascotHead.tsx: the fit-reactive face, a skin laid out
                  from g.head; skin.test.tsx checks the body and garments are identical under every head),
@@ -574,7 +583,8 @@ npm test           # app unit tests, once (core's run from the root)
 npm run test:watch # app unit tests, watch mode
 npm run check      # app only: typecheck + tests + data:check (the root check runs core too)
 npm run data:check # garment data report: grade, warnings, errors, audit per garment
-npm run dist:check # after npm run build: URLs under /Choudo/, only GoatCounter from elsewhere, sw.js, no dev pages or local-only photos
+npm run dist:check # after npm run build: URLs under /Choudo/, only GoatCounter loaded from elsewhere, the code names
+                   # no site beyond the fetch service, image.uniqlo.com and the ones it named before, sw.js, no dev pages or local-only photos
 npm run fit:report # fit-test report from ../data/fit_tests.csv (or a path after --)
 npm run photos     # cut garment photos out into public/garments/ (commit the PNG)
                    # then place landmarks at http://localhost:5173/dev/landmarks?id=<garment>
@@ -617,9 +627,11 @@ before the Choudo rename used the app's old prefix; `migrateAppRename` moves the
   worn; it opens on Dress when one is worn). A dress takes the place of the top and bottom; a top
   or bottom takes it off. A worn jacket's sizes, odds, hint and fit sheet are worked out over the
   top or dress, and its readout says "With your hoodie under it" plus layer notes.
-- Navigation is a bottom `TabBar` (Fitting room / Discover / Closet) with plain state in
-  `App.tsx`; the fitting-room outfit and the closet data live in `App` so any screen can
-  put clothes on the mannequin.
+- Navigation is a bottom `TabBar` (Check / Fitting room / Discover / Closet; the site opens on
+  Check once a body is stored) with plain state in `App.tsx`; the fitting-room outfit, the
+  closet data and the fetched list live in `App` so any screen can put clothes on the mannequin.
+  Garments from links come first in the Fitting room (tagged "From your link") and the Closet;
+  Discover's feed is the catalogue's, as on the phone.
 - Discover feed (`buildFeed`): unseen garments in catalogue order, then passed ones oldest
   first; liked ones are left out, and only garments the catalogue toggle shows. The feed is
   fixed when the screen opens (or the toggle changes); at the end it says there are no more
