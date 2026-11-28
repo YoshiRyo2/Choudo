@@ -62,17 +62,29 @@ jobs:
           # No wranglerVersion: the action uses the one npm ci installed (package-lock.json).
           packageManager: npm
       # Our own routes must answer as built; Uniqlo's answer is reported, not required.
+      # A fresh workers.dev address takes a few minutes to go live, and until then Cloudflare
+      # answers 404 with its own HTML page (ours are always JSON), so the size chart is retried
+      # every 15 s for up to 3 minutes while that page shows, before the 404 check below.
       - name: Smoke test
         env:
           URL: ${{ steps.deploy.outputs.deployment-url }}
         run: |
           if [ -z "$URL" ]; then echo "::notice::No deployment URL from wrangler; smoke test skipped."; exit 0; fi
           echo "Fetch service: $URL"
-          status=$(curl -s -o /dev/null -w '%{http_code}' "$URL/anything-else")
-          if [ "$status" != "404" ]; then echo "::error::$URL/anything-else answered $status, not 404"; exit 1; fi
-          status=$(curl -s -o /dev/null -w '%{http_code}' "$URL/uniqlo/E424873-000/size-chart")
-          if [ "$status" = "200" ]; then
+          chart="$URL/uniqlo/E424873-000/size-chart"
+          deadline=$((SECONDS + 180))
+          while :; do
+            read -r status type < <(curl -s -o /dev/null -w '%{http_code} %{content_type}\n' "$chart")
+            if [ "$status" != "404" ] || [[ "$type" != text/html* ]] || [ "$SECONDS" -ge "$deadline" ]; then break; fi
+            echo "Not live yet ($status, Cloudflare's page); trying again in 15 s."
+            sleep 15
+          done
+          status404=$(curl -s -o /dev/null -w '%{http_code}' "$URL/anything-else")
+          if [ "$status404" != "404" ]; then echo "::error::$URL/anything-else answered $status404, not 404"; exit 1; fi
+          if [ "$status" = "404" ] && [[ "$type" == text/html* ]]; then
+            echo "::warning title=Fetch service not live yet::$chart still shows Cloudflare's 404 page after 3 minutes; try it again in a few minutes."
+          elif [ "$status" = "200" ]; then
             echo "::notice title=Fetch service live::$URL (Uniqlo's size chart answered 200)"
           else
-            echo "::warning title=Uniqlo didn't answer::$URL/uniqlo/E424873-000/size-chart answered $status"
+            echo "::warning title=Uniqlo didn't answer::$chart answered $status"
           fi

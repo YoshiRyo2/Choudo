@@ -51,7 +51,9 @@ handler (the runtime treats any other export as an entry point).
    `worker/` or `packages/core/domain/links/`, or by hand (Actions → Deploy fetch service →
    Run workflow). Without the secrets it's skipped with a notice, not failed. Once it runs,
    the address is `https://choudo-fetch.<your-subdomain>.workers.dev`. The job's smoke test
-   prints it, checks `/anything-else` is a 404, and reports what Uniqlo's size chart answered.
+   prints it, waits up to 3 minutes for a fresh address to go live (Cloudflare shows its own
+   404 page until then), checks `/anything-else` is a 404, and reports what Uniqlo's size
+   chart answered (a warning, never a failure, if it isn't 200).
 
 Free plan: 100,000 requests a day (resets at midnight UTC). A check is two requests.
 
