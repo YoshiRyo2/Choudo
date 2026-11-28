@@ -62,7 +62,7 @@ function open(body: BodyInput | null = WOMENS) {
   render(<App />);
 }
 
-const field = () => screen.getByRole('textbox', { name: 'Paste a Uniqlo link' }) as HTMLInputElement;
+const field = () => screen.getByRole('textbox', { name: 'Paste a Uniqlo or Zara link' }) as HTMLInputElement;
 
 /** Paste `text` and press Check size, then let the requests finish. */
 async function checkLink(text: string) {
@@ -104,7 +104,7 @@ it('opens on the Check tab with the field, the button and what it works with', (
   expect(screen.getByRole('heading', { level: 1, name: 'What size should I buy?' })).toBeTruthy();
   expect(field()).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Check size' })).toBeTruthy();
-  expect(screen.getByText('Works with Uniqlo US tops for now.')).toBeTruthy();
+  expect(screen.getByText('Works with Uniqlo US and Zara US tops for now.')).toBeTruthy();
   expect(screen.getByRole('button', { name: /Check/, current: 'page' })).toBeTruthy();
   // Stored data from before the Check tab (no fetched keys) loads fine.
   expect(localStorage.getItem(STORAGE_KEYS.fetched)).toBeNull();
@@ -112,7 +112,7 @@ it('opens on the Check tab with the field, the button and what it works with', (
 
 it('a first run (no body) gets the Body screen, as before', () => {
   open(null);
-  expect(screen.queryByRole('textbox', { name: 'Paste a Uniqlo link' })).toBeNull();
+  expect(screen.queryByRole('textbox', { name: 'Paste a Uniqlo or Zara link' })).toBeNull();
   expect(screen.queryByRole('navigation', { name: 'Sections' })).toBeNull();
 });
 
@@ -195,23 +195,29 @@ describe('errors', () => {
   it('no link', async () => {
     open();
     await checkLink('hello');
-    expect(errorText()).toBe('Paste a product link from uniqlo.com.');
+    expect(errorText()).toBe('Paste a product link from uniqlo.com or zara.com.');
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('another brand: says so, counts it (never the host), and remembers the host for Test mode', async () => {
     open();
-    await checkLink('https://www.zara.com/us/en/tee-p0123.html');
-    expect(errorText()).toBe('Choudo can read Uniqlo links for now. More brands soon.');
-    expect(read<string[]>(STORAGE_KEYS.unsupportedHosts)).toEqual(['www.zara.com']);
+    await checkLink('https://www2.hm.com/en_us/productpage.1234567001.html');
+    expect(errorText()).toBe('Choudo can read Uniqlo and Zara links for now. More brands soon.');
+    expect(read<string[]>(STORAGE_KEYS.unsupportedHosts)).toEqual(['www2.hm.com']);
     expect(vi.mocked(track).mock.calls).toEqual([['link-unsupported']]);
     // Listed in Test mode only.
     expect(screen.queryByTestId('unsupported-hosts')).toBeNull();
     cleanup();
     store(STORAGE_KEYS.testMode, true);
     open();
-    expect(screen.getByTestId('unsupported-hosts').textContent).toBe('Unsupported hosts: www.zara.com');
+    expect(screen.getByTestId('unsupported-hosts').textContent).toBe('Unsupported hosts: www2.hm.com');
+  });
+
+  it('a uniqlo.com page that is not a product', async () => {
+    open();
+    await checkLink('https://www.uniqlo.com/us/en/women/tops');
+    expect(errorText()).toBe('Paste a product link from uniqlo.com.');
   });
 
   it('Uniqlo outside the US', async () => {
