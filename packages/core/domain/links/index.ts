@@ -1,8 +1,9 @@
 export { COLOR_BASES, colorHex, DARK_MIX, LIGHT_MIX } from './colors';
-export { uniqloCut } from './cut';
-export type { UniqloCut } from './cut';
-export { parseProductLink } from './parse';
-export type { ProductLink, UniqloLink, UnknownLink } from './parse';
+export { cutFromName, uniqloCut } from './cut';
+export type { NameCut, UniqloCut } from './cut';
+export { titleCase } from './names';
+export { linkBrand, parseProductLink } from './parse';
+export type { BrandLinkReason, LinkBrand, ProductLink, UniqloLink, UnknownLink, ZaraLink } from './parse';
 export {
   FETCHED_COLOR,
   isMissingProduct,
@@ -15,3 +16,15 @@ export {
 } from './uniqlo';
 export { UNIQLO_PRODUCT_CODE, uniqloUrls } from './urls';
 export type { FetchedColor, FetchedProduct, UniqloFailure, UniqloResult } from './uniqlo';
+export {
+  isMissingZara,
+  isMissingZaraGuide,
+  ZARA_MEASURE_KEYS,
+  ZARA_NOTES,
+  zaraGarmentId,
+  zaraProduct,
+  zaraSizeGuideId,
+  zaraToSeedGarment,
+} from './zara';
+export type { ZaraColor, ZaraProduct, ZaraResult } from './zara';
+export { ZARA_PRODUCT_ID, ZARA_SEO_ID, zaraUrls } from './zaraUrls';

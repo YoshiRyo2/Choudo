@@ -66,6 +66,23 @@ const NECK_IN_NAME: readonly [RegExp, Neckline][] = [
 ];
 
 const LONG_SLEEVE_IN_NAME = /\blong[\s-]*sleeve/i;
+const SHORT_SLEEVE_IN_NAME = /\bshort[\s-]*sleeve/i;
+
+/** What a product's name alone says about its cut (any brand): the sleeve and neckline, when it names them. */
+export interface NameCut {
+  sleeve?: 'short' | 'long';
+  neckline?: Neckline;
+}
+
+/** The sleeve and neckline a product name gives ("Interlock Long-Sleeve T-Shirt" → long), each unset when it says nothing. */
+export function cutFromName(name: string): NameCut {
+  const cut: NameCut = {};
+  if (LONG_SLEEVE_IN_NAME.test(name)) cut.sleeve = 'long';
+  else if (SHORT_SLEEVE_IN_NAME.test(name)) cut.sleeve = 'short';
+  const neckline = NECK_IN_NAME.find(([re]) => re.test(name))?.[1];
+  if (neckline) cut.neckline = neckline;
+  return cut;
+}
 
 function tagsOf(raw: unknown): Tag[] {
   if (!Array.isArray(raw)) return [];
@@ -83,12 +100,13 @@ export function uniqloCut(tagsRaw: unknown, name: string): UniqloCut {
   const sleeveTag = tag('sleeve');
   const neckTag = tag('neck-type');
 
+  const fromName = cutFromName(name);
   const cut: UniqloCut = { sleeve: 'short', fit: (fitTag && FIT[fitTag.tag]) || 'regular', text: null };
   if (sleeveTag?.tag === 'long') cut.sleeve = 'long';
   else if (sleeveTag && sleeveTag.tag !== 'short') cut.otherSleeve = sleeveTag.tagName;
-  else if (!sleeveTag && LONG_SLEEVE_IN_NAME.test(name)) cut.sleeve = 'long';
+  else if (!sleeveTag && fromName.sleeve === 'long') cut.sleeve = 'long';
 
-  const neckline = (neckTag && NECK[neckTag.tag]) ?? NECK_IN_NAME.find(([re]) => re.test(name))?.[1];
+  const neckline = (neckTag && NECK[neckTag.tag]) ?? fromName.neckline;
   if (neckline) cut.neckline = neckline;
 
   const words = [

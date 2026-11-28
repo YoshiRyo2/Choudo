@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import details from './__fixtures__/uniqlo-details-E424873-000.json';
-import { uniqloCut } from './cut';
+import { cutFromName, uniqloCut } from './cut';
 
 const tag = (group: string, t: string, tagName: string) => ({ display: true, group, groupName: group, tag: t, tagName });
 
@@ -65,5 +65,14 @@ describe('uniqloCut', () => {
   it('ignores malformed tags', () => {
     expect(uniqloCut('tags', 'T-Shirt')).toEqual({ sleeve: 'short', fit: 'regular', text: null });
     expect(uniqloCut([{ group: 'sleeve' }, null, 3], 'T-Shirt')).toEqual({ sleeve: 'short', fit: 'regular', text: null });
+  });
+});
+
+describe('cutFromName', () => {
+  it('reads the sleeve and neckline a name gives, for any brand', () => {
+    expect(cutFromName('Interlock Long-Sleeve T-Shirt')).toEqual({ sleeve: 'long' });
+    expect(cutFromName('SHORT SLEEVE V-NECK TOP')).toEqual({ sleeve: 'short', neckline: 'v' });
+    expect(cutFromName('Ribbed Mock Neck Top')).toEqual({ neckline: 'mock' });
+    expect(cutFromName('Basic T-Shirt')).toEqual({});
   });
 });
