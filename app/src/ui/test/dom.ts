@@ -1,6 +1,6 @@
 /**
  * What jsdom lacks for our components: <dialog>'s showModal / close, and
- * Element.scrollTo / scrollIntoView (the size row and carousel centre their pick). Import from component tests.
+ * Element.scrollTo / scrollIntoView (the size row and carousel centre their pick), and window.scrollTo. Import from component tests.
  */
 import { afterEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
@@ -15,6 +15,8 @@ if (dialog && !dialog.showModal) {
     this.dispatchEvent(new Event('close'));
   };
 }
+// jsdom logs "not implemented" for window.scrollTo (App scrolls a new tab to its top).
+if (globalThis.window) window.scrollTo = () => {};
 if (globalThis.Element) {
   Element.prototype.scrollTo ??= function () {};
   Element.prototype.scrollIntoView ??= function () {};

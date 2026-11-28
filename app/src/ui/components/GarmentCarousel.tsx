@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import type { Garment } from '@choudo/core/domain/garments';
+import { CHECK_TEXT } from '@choudo/core/ui-logic/checkText';
 import { GarmentBadge } from './GarmentBadge';
 import { GarmentIcon } from './GarmentIcon';
 import './GarmentCarousel.css';
@@ -11,13 +12,15 @@ interface GarmentCarouselProps {
   onSelect: (id: string) => void;
   /** A small control in the header row, after the count (the fitting room's Show chip). */
   headerAction?: ReactNode;
+  /** Ids of the garments read from pasted links (tagged "From your link"). */
+  fromLink?: ReadonlySet<string>;
 }
 
 /**
  * Swipe sideways through garments. Whichever card settles in the middle is
  * selected; tapping a card or using the arrow buttons does the same.
  */
-export function GarmentCarousel({ label, garments, selectedId, onSelect, headerAction }: GarmentCarouselProps) {
+export function GarmentCarousel({ label, garments, selectedId, onSelect, headerAction, fromLink }: GarmentCarouselProps) {
   const trackRef = useRef<HTMLUListElement>(null);
   const settleTimer = useRef<number | undefined>(undefined);
   const selectedIndex = Math.max(0, garments.findIndex((g) => g.id === selectedId));
@@ -105,6 +108,7 @@ export function GarmentCarousel({ label, garments, selectedId, onSelect, headerA
                   <span className="garment-card__brand">{g.brand}</span>
                   <span className="garment-card__name">{g.name}</span>
                   <GarmentBadge garment={g} className="garment-card__flag" />
+                  {fromLink?.has(g.id) && <span className="garment-tag garment-card__link">{CHECK_TEXT.fromLink}</span>}
                 </span>
               </button>
             </li>

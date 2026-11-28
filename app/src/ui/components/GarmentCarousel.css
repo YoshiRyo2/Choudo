@@ -104,9 +104,15 @@
   line-height: 1.25;
 }
 
-.garment-card__flag {
+.garment-card__flag,
+.garment-card__link {
   margin-top: 4px;
   align-self: flex-start;
+}
+/* A garment read from a pasted link (Check tab). */
+.garment-tag.garment-card__link {
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 .garment-icon { flex: none; }

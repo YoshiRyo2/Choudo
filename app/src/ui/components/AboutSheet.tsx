@@ -17,6 +17,11 @@ export function AboutSheet({ onClose }: { onClose: () => void }) {
           browser only. Clearing the site’s data removes them.
         </p>
         <p>
+          When you check a product link, the link’s product code is sent to Choudo’s fetch service, which asks
+          Uniqlo for that product’s size chart. Your measurements are never sent, and the service keeps no logs of
+          what you check.
+        </p>
+        <p>
           We count anonymous visits, and which screens are opened, with GoatCounter. No cookies, and never your
           measurements, sizes or the clothes you pick.
         </p>
