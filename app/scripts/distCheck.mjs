@@ -16,9 +16,14 @@ export const REQUIRED_PAGES = ['privacy.html', 'support.html'];
  *   analytics: GoatCounter's script URL and snippet (build/goatCounter.ts), the one thing
  *   index.html may load from another site, and which it must load exactly once.
  *   pages: the text of the static pages in REQUIRED_PAGES that are in dist/.
+ *   scripts: the text of each built script (assets/*.js), by file.
+ *   hosts: `allowed`, every other site a script may name (scripts/dist-check.mjs lists them:
+ *   the fetch service, Uniqlo's image host, and what was there before: product and chart
+ *   links, SVG namespaces, React's error links); `service`, the fetch service's address,
+ *   which a script must name exactly (a build pointed at another VITE_FETCH_BASE fails).
  * @returns {string[]}
  */
-export function distProblems({ files, indexHtml, manifest, localOnly, base, swSource, analytics, pages = {} }) {
+export function distProblems({ files, indexHtml, manifest, localOnly, base, swSource, analytics, pages = {}, scripts = {}, hosts }) {
   const problems = [];
   const have = new Set(files);
   const origin = 'https://pages.invalid';
@@ -67,6 +72,22 @@ export function distProblems({ files, indexHtml, manifest, localOnly, base, swSo
   for (const file of localOnly) {
     if (have.has(file)) problems.push(`${file} is local-only and must not ship`);
   }
+  // The code names only the sites it's allowed to, and reads links through the fetch service.
+  if (hosts) {
+    const allowed = new Set(hosts.allowed.map((h) => h.toLowerCase()));
+    const named = new Map();
+    for (const [file, text] of Object.entries(scripts)) {
+      for (const [, host] of text.matchAll(/\bhttps?:\/\/([a-z0-9-]+(?:\.[a-z0-9-]+)+)/gi)) {
+        const h = host.toLowerCase();
+        if (!allowed.has(h) && !named.has(h)) named.set(h, file);
+      }
+    }
+    for (const [host, file] of named) problems.push(`${file} names ${host}, which is not an allowed site (scripts/dist-check.mjs)`);
+    if (!Object.values(scripts).some((text) => text.includes(hosts.service))) {
+      problems.push(`no script reads links through the fetch service at ${hosts.service} (VITE_FETCH_BASE set for a production build?)`);
+    }
+  }
+
   // The App Store listing links to these; each leads back to the app.
   for (const page of REQUIRED_PAGES) {
     if (!have.has(page)) problems.push(`${page} is missing`);

@@ -109,4 +109,28 @@ describe('distProblems', () => {
     const lost = { ...pages, 'support.html': '<!doctype html><html><body>Support</body></html>' };
     expect(distProblems({ ...clean, pages: lost })).toEqual(['support.html does not link back to the app (href="./")']);
   });
+
+  describe('the sites the code names', () => {
+    const service = 'https://choudo-fetch.example.workers.dev';
+    const hosts = { allowed: ['choudo-fetch.example.workers.dev', 'image.uniqlo.com', 'www.w3.org'], service };
+    const code = `fetch("${service}/uniqlo/"+c+"/size-chart");const ns="http://www.w3.org/2000/svg";const img="image.uniqlo.com";`;
+
+    it('passes code that names only allowed sites and reads links through the service', () => {
+      expect(distProblems({ ...clean, scripts: { 'assets/index-abc.js': code }, hosts })).toEqual([]);
+    });
+
+    it('flags any other site, once per site', () => {
+      const leaky = `${code}fetch("https://tracker.example.com/a");fetch("https://tracker.example.com/b");`;
+      expect(distProblems({ ...clean, scripts: { 'assets/index-abc.js': leaky }, hosts })).toEqual([
+        'assets/index-abc.js names tracker.example.com, which is not an allowed site (scripts/dist-check.mjs)',
+      ]);
+    });
+
+    it('flags a build that reads links from anywhere but the fetch service', () => {
+      const local = code.replace(service, 'http://localhost:8787');
+      expect(distProblems({ ...clean, scripts: { 'assets/index-abc.js': local }, hosts })).toEqual([
+        `no script reads links through the fetch service at ${service} (VITE_FETCH_BASE set for a production build?)`,
+      ]);
+    });
+  });
 });

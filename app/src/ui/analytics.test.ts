@@ -42,6 +42,8 @@ describe('track', () => {
       'discover-opened',
       'closet-opened',
       'garment-saved',
+      'link-checked',
+      'link-unsupported',
     ]);
     for (const event of TRACK_EVENTS) expect(event).toMatch(/^[a-z]+(-[a-z]+)+$/);
   });
@@ -144,8 +146,8 @@ describe('what the app sends', () => {
 
   it('calls track only with a fixed event name, written out as a literal', () => {
     const args = sources.flatMap(([, text]) => [...text.matchAll(/\btrack\(([^)]*)\)/g)].map((m) => m[1]!.trim()));
-    // FitSheet, Discover's like, and App's tabs (looked up in a table of literals).
-    expect(args.sort()).toEqual(["'fit-details-opened'", "'garment-saved'", 'TAB_EVENTS[tab]']);
+    // FitSheet, Discover's like, App's tabs (looked up in a table of literals), and the Check tab's two.
+    expect(args.sort()).toEqual(["'fit-details-opened'", "'garment-saved'", "'link-checked'", "'link-unsupported'", 'TAB_EVENTS[tab]']);
   });
 
   it('is the only place that talks to GoatCounter', () => {

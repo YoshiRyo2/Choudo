@@ -43,6 +43,8 @@ interface FittingRoomProps {
   units: UnitSystem;
   /** Every garment the app may show (`publicGarments`: no samples on the public site). */
   garments: readonly Garment[];
+  /** Ids of the garments read from pasted links (Check tab), tagged "From your link". */
+  fromLink?: ReadonlySet<string>;
   /** The outfit on the mannequin, as stored (may be stale; it's resolved here). */
   outfit: Outfit;
   onOutfitChange: (outfit: Outfit) => void;
@@ -86,6 +88,7 @@ export function FittingRoom({
   preference,
   units,
   garments,
+  fromLink,
   outfit: saved,
   onOutfitChange: setSaved,
   catalogue,
@@ -177,7 +180,8 @@ export function FittingRoom({
 
   // The carousel: what's on show in this category, plus the worn garment if the filter hides it.
   const inCategory = shown.filter((g) => g.category === tab);
-  const carousel = active && !inCategory.includes(active.garment) ? [active.garment, ...inCategory] : inCategory;
+  // By id, never by object: a garment from a link is rebuilt when its colour changes.
+  const carousel = active && !inCategory.some((g) => g.id === active.garment.id) ? [active.garment, ...inCategory] : inCategory;
 
   // The Show chip lives in the carousel, which remounts when the scope changes;
   // put focus back on the new chip so a keyboard user isn't dropped.
@@ -335,6 +339,7 @@ export function FittingRoom({
             key={`${tab}-${catalogue}`}
             label={CAROUSEL_LABEL[tab]}
             garments={carousel}
+            fromLink={fromLink}
             selectedId={active?.garment.id ?? null}
             onSelect={chooseGarment}
             headerAction={

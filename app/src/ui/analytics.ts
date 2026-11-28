@@ -15,6 +15,10 @@ export const TRACK_EVENTS = [
   'discover-opened',
   'closet-opened',
   'garment-saved',
+  /** A pasted link gave a size chart. Never the link, the product or a size. */
+  'link-checked',
+  /** A pasted link was from a brand or region Choudo can't read yet. Never the link or its host. */
+  'link-unsupported',
 ] as const;
 
 export type TrackEvent = (typeof TRACK_EVENTS)[number];

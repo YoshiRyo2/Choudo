@@ -68,3 +68,12 @@ npm run check -w worker    # typecheck + tests (also part of the root npm run ch
 
 Then open `http://localhost:8787/uniqlo/E424873-000/size-chart`. `wrangler dev` runs the
 real Workers runtime on your machine, so Uniqlo sees your connection, not Cloudflare's.
+
+The website reads the deployed service (`FETCH_SERVICE` in `app/src/links/service.ts`). To point
+the dev server at a local one instead, start it with the address:
+
+```bash
+VITE_FETCH_BASE=http://localhost:8787 npm run dev -w app
+```
+
+A production build must use the deployed address: `npm run dist:check` fails otherwise.

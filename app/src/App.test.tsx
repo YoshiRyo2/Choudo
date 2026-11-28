@@ -13,20 +13,25 @@ describe('the mascot head choice', () => {
   });
 
   const drawnHead = () => document.querySelector<SVGGElement>('.mannequin__head')?.dataset.head;
+  /** The site opens on Check; the head picker is in the Fitting room. */
+  const openFittingRoom = () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Fitting room/ }));
+  };
 
   it('starts on the cloud', () => {
-    render(<App />);
+    openFittingRoom();
     expect(screen.getByRole('button', { name: 'Cloud head' }).getAttribute('aria-pressed')).toBe('true');
     expect(drawnHead()).toBe('cloud');
   });
 
   it('is saved on the device and comes back next time', () => {
-    render(<App />);
+    openFittingRoom();
     fireEvent.click(screen.getByRole('button', { name: 'Peach head' }));
     expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.head)!)).toBe('peach');
     cleanup();
 
-    render(<App />);
+    openFittingRoom();
     expect(screen.getByRole('button', { name: 'Peach head' }).getAttribute('aria-pressed')).toBe('true');
     expect(drawnHead()).toBe('peach');
   });
@@ -42,7 +47,7 @@ describe('the mascot head choice', () => {
 
   it('ignores a stored value that isn’t a head', () => {
     localStorage.setItem(STORAGE_KEYS.head, JSON.stringify('cat'));
-    render(<App />);
+    openFittingRoom();
     expect(drawnHead()).toBe('cloud');
   });
 });
